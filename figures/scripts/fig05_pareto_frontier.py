@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v1" / "e03_results.csv"
+DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2" / "e03_results.csv"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig05.png"
 
 ARCH_MAP = {
@@ -19,6 +19,13 @@ ARCH_MAP = {
 def load_data():
     df = pd.read_csv(DATA_PATH)
     df["architecture_id"] = df["architecture_name"].map(ARCH_MAP).fillna(df["architecture_name"])
+    # Only completed deliveries have a real TFUP; a censored (NaN) point
+    # can't be meaningfully placed on a Pareto frontier.
+    n_before = len(df)
+    df = df[df["completed"].astype(bool)].reset_index(drop=True)
+    dropped = n_before - len(df)
+    if dropped:
+        print(f"fig05: dropped {dropped} uncompleted (censored) rows out of {n_before}")
     return df
 
 

@@ -70,6 +70,9 @@ def main():
         "processing_energy_j",
         "tx_energy_j",
         "contact_utilization",
+        "completed",
+        "fidelity_lossy",
+        "fidelity_resolution_class",
     ]
 
     with out_path.open("w", newline="") as f:
@@ -92,6 +95,9 @@ def main():
                         "processing_energy_j": r.processing_energy_j,
                         "tx_energy_j": r.tx_energy_j,
                         "contact_utilization": r.contact_utilization,
+                        "completed": r.completed,
+                        "fidelity_lossy": r.fidelity_lossy,
+                        "fidelity_resolution_class": r.fidelity_resolution_class,
                     }
                 )
                 idx += 1

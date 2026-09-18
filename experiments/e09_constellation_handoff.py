@@ -77,7 +77,7 @@ def main():
     downlink_rate_bps_per_s = downlink_rate_bps / 8
 
     # Prepare output
-    out_dir = Path("results/frozen/v1")
+    out_dir = Path("results/frozen/v2")
     out_dir.mkdir(parents=True, exist_ok=True)
     csv_path = out_dir / "e09_constellation.csv"
     fig_path = Path("figures/fig15_constellation_coverage.png")

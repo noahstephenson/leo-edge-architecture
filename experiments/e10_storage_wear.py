@@ -60,7 +60,7 @@ def main():
         })
 
     # Save CSV
-    out_dir = Path("results/frozen/v1")
+    out_dir = Path("results/frozen/v2")
     out_dir.mkdir(parents=True, exist_ok=True)
     csv_path = out_dir / "e10_storage_wear.csv"
     fieldnames = ["hour","day","soc_wh","processing_paused","brownout_events","storage_used_bytes","storage_occupancy","total_physical_writes_bytes","wear_fraction","health_fraction"]

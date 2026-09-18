@@ -23,7 +23,7 @@ from leo_edge.architectures import (
     ContactAware,
 )
 
-CSV_PATH = repo_root / "results" / "frozen" / "v1" / "e03_results.csv"
+CSV_PATH = repo_root / "results" / "frozen" / "v2" / "e03_results.csv"
 
 st.set_page_config(page_title="LEO Edge Dashboard", layout="wide")
 st.title("LEO Edge Architecture: TFUP / TCP Sensitivity")
@@ -98,10 +98,11 @@ for key, (name, obj) in arch_map.items():
         "processing_energy_j": out["processing_energy_j"],
         "tx_energy_j": out["tx_energy_j"],
         "contact_utilization": out["contact_utilization"],
+        "Completed": out["completed"],
     })
 
 res_df = pd.DataFrame(results)
-res_df = res_df[["Architecture", "Name", "TFUP_s", "TCP_s", "contact_utilization", "processing_energy_j", "tx_energy_j"]]
+res_df = res_df[["Architecture", "Name", "TFUP_s", "TCP_s", "Completed", "contact_utilization", "processing_energy_j", "tx_energy_j"]]
 
 st.subheader("Live Analytic Results")
 st.dataframe(res_df.style.format({"TFUP_s": "{:.2f}", "TCP_s": "{:.2f}", "contact_utilization": "{:.3f}", "processing_energy_j": "{:.1f}", "tx_energy_j": "{:.1f}"}), use_container_width=True)
@@ -124,4 +125,8 @@ st.subheader("Reference frozen data (e03_results.csv)")
 ref_summary = df_ref.groupby("architecture_name")[["tfup_s", "tcp_s"]].mean().reset_index()
 st.dataframe(ref_summary, use_container_width=True)
 
-st.caption("Simple analytic model: processing time scales with 1/power, contact capacity = rate * duration /8. Architectures from src/leo_edge/architectures.py")
+st.caption(
+    "Simple analytic model: processing time scales with 1/power, contact capacity = rate * duration /8. "
+    "Architectures from src/leo_edge/architectures.py. TFUP/TCP show as NaN and Completed=False when the "
+    "product didn't fit in this one contact window, not zero seconds."
+)

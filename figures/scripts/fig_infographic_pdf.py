@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from PIL import Image
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v1" / "e03_results.csv"
+DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2" / "e03_results.csv"
 FIG_DIR = Path(__file__).resolve().parents[1]
 OUT_PATH = FIG_DIR / "infographic_summary.pdf"
 
@@ -69,8 +69,9 @@ def main():
     
     # Footer notes
     note = ("Notes: TFUP = time to first useful product; TCP = time to complete product.\n"
-            "Metrics are medians over the rate/contact sweep from frozen v1 results. "
-            "System diagram and regime map are from fig01 and fig04.")
+            "Medians are computed only over completed deliveries within a single contact "
+            "window (see results/frozen/v2); an architecture with no completed deliveries "
+            "in the sweep shows as NaN. System diagram and regime map are from fig01 and fig04.")
     ax_text.text(0.01, 0.1, note, fontsize=8, va='bottom', wrap=True)
     
     plt.suptitle("LEO Edge Architecture - One Page Summary", fontsize=16, y=0.98)

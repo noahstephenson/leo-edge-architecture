@@ -21,7 +21,7 @@ from leo_edge.architectures import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v1"
+RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v2"
 FIGURES_DIR = REPO_ROOT / "figures"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
@@ -110,6 +110,7 @@ def main():
                 "architecture": arch_name,
                 "tfup_s": float(out.get("tfup_s", np.nan)),
                 "tcp_s": float(out.get("tcp_s", np.nan)),
+                "completed": bool(out.get("completed", False)),
                 "contact_error": float(contact_err),
                 "proc_jitter": float(proc_jitter),
                 "comp_var": float(comp_var),
@@ -117,25 +118,43 @@ def main():
 
     df = pd.DataFrame(all_rows)
     # Save CSV with required columns plus diagnostics
-    df_out = df[["run_id", "architecture", "tfup_s", "tcp_s"]]
+    df_out = df[["run_id", "architecture", "tfup_s", "tcp_s", "completed"]]
     df_out.to_csv(OUTPUT_CSV, index=False)
     print(f"Saved {len(df_out)} rows to {OUTPUT_CSV}")
+    completion_rates = df.groupby("architecture")["completed"].mean()
+    print("Completion rate per architecture:")
+    print(completion_rates.to_string())
 
-    # Figure: distribution of TFUP and TCP per architecture
+    # Figure: distribution of TFUP and TCP per architecture, censored
+    # (uncompleted) runs excluded since NaN has no place on a boxplot.
     fig, axes = plt.subplots(1, 2, figsize=(14, 6), sharey=False)
 
     arch_names = [a[0] for a in ARCHITECTURES]
-    tfup_data = [df[df["architecture"] == name]["tfup_s"].values for name in arch_names]
-    tcp_data = [df[df["architecture"] == name]["tcp_s"].values for name in arch_names]
+
+    def _nonempty_series(metric):
+        names, data = [], []
+        for name in arch_names:
+            vals = df[(df["architecture"] == name) & df[metric].notna()][metric].values
+            if len(vals) > 0:
+                names.append(name)
+                data.append(vals)
+            else:
+                print(f"Monte Carlo: {name} had zero completed runs for {metric}, excluded from boxplot")
+        return names, data
+
+    tfup_names, tfup_data = _nonempty_series("tfup_s")
+    tcp_names, tcp_data = _nonempty_series("tcp_s")
 
     bp0 = axes[0].boxplot(tfup_data, showfliers=False)
-    axes[0].set_xticklabels(arch_names, rotation=45)
-    axes[0].set_title("TFUP Distribution (Monte Carlo)")
+    axes[0].set_xticks(range(1, len(tfup_names) + 1))
+    axes[0].set_xticklabels(tfup_names, rotation=45)
+    axes[0].set_title("TFUP Distribution (Monte Carlo, completed runs only)")
     axes[0].set_ylabel("TFUP [s]")
 
     bp1 = axes[1].boxplot(tcp_data, showfliers=False)
-    axes[1].set_xticklabels(arch_names, rotation=45)
-    axes[1].set_title("TCP Distribution (Monte Carlo)")
+    axes[1].set_xticks(range(1, len(tcp_names) + 1))
+    axes[1].set_xticklabels(tcp_names, rotation=45)
+    axes[1].set_title("TCP Distribution (Monte Carlo, completed runs only)")
     axes[1].set_ylabel("TCP [s]")
 
     plt.tight_layout()

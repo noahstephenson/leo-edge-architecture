@@ -5,7 +5,12 @@ at a fixed 300 s contact, e04 sweeps contact duration at a fixed 10 Mbps),
 so neither has the full rate x duration grid a regime map needs. This script
 builds that grid directly from the same simulation code those experiments
 use (leo_edge.simulation.run_static_architecture) and caches the result to
-results/frozen/v1/fig04_data.csv for reproducibility.
+results/frozen/v2/fig04_data.csv for reproducibility.
+
+tcp_s is NaN wherever an architecture didn't complete full delivery within
+that single contact window (see architectures.py's `completed` flag); a
+grid cell where every architecture is censored has no winner and is plotted
+as "no completion" rather than picking an arbitrary NaN-adjacent value.
 """
 from pathlib import Path
 import sys
@@ -21,7 +26,7 @@ if str(SRC_DIR) not in sys.path:
 from leo_edge.architectures import GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive
 from leo_edge.simulation import run_static_architecture
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v1"
+DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2"
 DATA_FILE = DATA_DIR / "fig04_data.csv"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig04.png"
 
@@ -38,6 +43,8 @@ ARCH_CLASSES = {
     "A4_PROGRESSIVE": Progressive,
 }
 
+NO_COMPLETION_LABEL = "NO_COMPLETION"
+
 
 def build_grid():
     rows = []
@@ -52,6 +59,7 @@ def build_grid():
                     "rate_bps": rate_bps,
                     "architecture_id": arch_id,
                     "tcp_s": result.tcp_s,
+                    "completed": result.completed,
                 })
     df = pd.DataFrame(rows)
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -66,9 +74,22 @@ def load_data():
 
 
 def best_architecture(df):
-    # Best = minimal time to complete product (tcp_s) for that rate/duration cell.
-    idx = df.groupby(["rate_bps", "contact_duration_s"])["tcp_s"].idxmin()
-    return df.loc[idx, ["rate_bps", "contact_duration_s", "architecture_id"]]
+    # Best = minimal time to complete product (tcp_s) among architectures
+    # that actually completed delivery in that cell. Cells where nothing
+    # completed get an explicit NO_COMPLETION label instead of an error or
+    # an arbitrary pick among NaNs.
+    completed = df[df["completed"].astype(bool)]
+    winners = {}
+    for (rate, dur), group in df.groupby(["rate_bps", "contact_duration_s"]):
+        sub = completed[(completed["rate_bps"] == rate) & (completed["contact_duration_s"] == dur)]
+        if sub.empty:
+            winners[(rate, dur)] = NO_COMPLETION_LABEL
+        else:
+            winners[(rate, dur)] = sub.loc[sub["tcp_s"].idxmin(), "architecture_id"]
+    out = pd.DataFrame(
+        [{"rate_bps": r, "contact_duration_s": d, "architecture_id": a} for (r, d), a in winners.items()]
+    )
+    return out
 
 
 def main():
@@ -84,18 +105,19 @@ def main():
 
     plt.figure(figsize=(9, 6))
     cmap = plt.get_cmap("tab10")
-    plt.imshow(code_matrix.values, aspect="auto", cmap=cmap, vmin=0, vmax=len(arch_codes) - 1, origin="lower")
+    plt.imshow(code_matrix.values, aspect="auto", cmap=cmap, vmin=0, vmax=max(len(arch_codes) - 1, 1), origin="lower")
 
     for i in range(code_matrix.shape[0]):
         for j in range(code_matrix.shape[1]):
             arch = pivot.iloc[i, j]
-            plt.text(j, i, arch.replace("_", "\n", 1), ha="center", va="center", fontsize=7)
+            label = "no\ncompletion" if arch == NO_COMPLETION_LABEL else arch.replace("_", "\n", 1)
+            plt.text(j, i, label, ha="center", va="center", fontsize=7)
 
     plt.xticks(ticks=np.arange(len(rate_labels)), labels=rate_labels, rotation=45, ha="right")
     plt.yticks(ticks=np.arange(len(duration_labels)), labels=duration_labels)
     plt.xlabel("Downlink rate")
     plt.ylabel("Contact duration")
-    plt.title("Best architecture by rate and contact duration\n(minimum time to complete product)")
+    plt.title("Best architecture by rate and contact duration\n(minimum time to complete product, among those that completed)")
     plt.tight_layout()
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(OUT_PATH, dpi=150)
