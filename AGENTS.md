@@ -8,19 +8,21 @@ Read this file before making changes.
 
 ## Mission
 
-Build a reproducible systems-engineering research repository that can support an IEEE Aerospace Conference paper on processing placement and progressive direct-to-edge imagery delivery for a COTS-heavy LEO small-satellite system.
+Build a reproducible systems-engineering research repository that evaluates how imagery functions should be allocated between a commercial LEO space segment and an Army-owned tactical edge segment. Everything operational is notional and unofficial; this repository does not represent an Army requirement, program, or acquisition decision. See `docs/OPERATIONAL_CONTEXT.md`.
 
 The repository must connect:
 
-**operational need → architecture → requirements → model → experiment → figure → paper claim**
+**operational need → stakeholder value → requirement → function → allocation → experiment → trade study → acquisition implication**
 
-Every major code feature should trace to that chain.
+Every major code feature should trace to that chain. See `docs/REQUIREMENTS.md` for the traceability matrix this chain is checked against.
 
 ## Highest-priority research question
 
-> Under intermittent LEO contact and spacecraft SWaP constraints, when should geospatial imagery be processed onboard a COTS-heavy small satellite rather than transmitted for processing at a local ground terminal?
+> How should imagery functions (tasking, collection, processing, prioritization, delivery) be allocated between a commercial LEO space segment acquired as a service and an Army-owned tactical edge segment, and how does the preferred allocation shift across mission needs, terminal classes, and contested or DDIL conditions?
 
-Do not silently change this question.
+This question replaces the repository's original one (onboard vs. ground processing placement, preserved for history in `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md`); the pivot is recorded in `docs/DECISION_LOG.md` ADR-007, per this file's own governance rule below, which is why it was safe to change here.
+
+Do not silently change this question again.
 
 If results suggest a different question is stronger, document the proposed pivot in `docs/DECISION_LOG.md` before changing the design.
 
@@ -214,10 +216,10 @@ When parallel agents are available, divide work by responsibility.
 
 ### Agent A: Novelty and result claims
 Own:
-- `docs/NOVELTY_AUDIT.md`
-- checking every claim in `paper/manuscript.md` against a real number in `results/frozen/v1/`
+- `docs/NOVELTY.md`
+- checking every claim in `docs/TRADE_STUDY.md` and `docs/ACQUISITION_IMPLICATIONS.md` against a real number in `results/frozen/v2/`
 
-No claim in the paper should depend on a literature comparison unless a real literature review has actually been done and recorded. See `docs/DECISION_LOG.md` (ADR-005).
+No claim should depend on a literature comparison unless a real literature review has actually been done and recorded with real citations, per `docs/NOVELTY.md`. `paper/manuscript.md` reflects the retired v1 research question (`docs/DECISION_LOG.md` ADR-005, ADR-007) and is not owned by this workstream going forward.
 
 ### Agent B: Architecture and requirements
 Own:

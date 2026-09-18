@@ -1,22 +1,101 @@
 # LEO Edge Architecture
 
-A reproducible systems-architecture study: under intermittent LEO contact and spacecraft power/size/weight constraints, when should a small satellite process imagery onboard instead of sending it raw for a ground terminal to process?
+**Everything in this repository is notional and unofficial. It does not
+represent an Army requirement, program, doctrine position, or acquisition
+decision.**
 
-![OV-1: Army COTS LEO direct-to-edge imagery concept](docs/figures/ov1_concept.png)
+A reproducible systems-architecture study: the Army increasingly consumes
+imagery from commercial LEO providers while owning its own tactical edge
+ground terminals. How should imagery functions (tasking, collection,
+processing, prioritization, delivery) be allocated between the commercial
+space segment and the Army-owned edge segment, and how does the preferred
+allocation shift with mission need, terminal class, and contested
+conditions?
 
-## The system
+`docs/OPERATIONAL_CONTEXT.md` grounds that question in three real, publicly
+documented Army programs (Remote Ground Terminal, TITAN, Next Generation
+Tactical Terminal) without claiming to model any of them.
 
-A small COTS-heavy satellite in low Earth orbit images an area, optionally processes the result onboard, and downlinks directly to a local ground terminal during the next contact window, no centralized ground station required. The question this project answers is what to do on the satellite before that downlink: send the raw scene and let the ground terminal do all the work, or spend onboard compute time shrinking the product first.
+## The allocation decision space
 
-See `docs/ARCHITECTURE.md` for the block diagram and state machine, `docs/ARCHITECTURE_VIEWS.md` for the full 4+1 view set, and `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md` for the operational concept the OV-1 graphic above comes from.
+`docs/ALLOCATION_SPACE.md` is the central document: it defines the
+decisions (processing allocation, tasking path, product prioritization,
+policy adaptivity), places the six architectures this repository evaluates
+(A0-A5) as points within that space, and states plainly which regions
+(mission-thread-aware prioritization, split processing, terminal-class-
+dependent allocation) aren't covered.
 
-## Six architectures, one regime map
+`docs/STAKEHOLDERS.md`, `docs/REQUIREMENTS.md` (with a full traceability
+matrix), and `docs/FUNCTIONAL_ARCHITECTURE.md` round out the systems
+architecture; `docs/ARCHITECTURE_VIEWS.md` has the diagrams.
 
-We compare six delivery architectures (raw, compressed, quicklook-first, ROI-first, progressive, and a contact-aware adaptive policy) across a grid of downlink rates and contact durations, using processing and compression numbers measured from real image benchmarks rather than assumed constants.
+## The headline trade-study result
+
+`docs/TRADE_STUDY.md` evaluates all six architectures against four
+notional mission threads, two terminal classes, and five contested-link
+conditions, using real SGP4 contact windows and a Monte Carlo mission-
+thread-success metric with bootstrap confidence intervals
+(`experiments/e11_mission_thread_success.py`,
+`scripts/trade_study.py`).
+
+**Three of the six architectures (raw downlink, compressed-full, and the
+contact-aware adaptive policy) scored exactly 0% mission-thread success on
+every thread and condition tested**, for a structural reason: none of them
+ever produce anything but a single, full-scene-scale product, and three of
+the four mission threads need an earlier tier. Among the architectures that
+can succeed at all, **contact geometry dominates**: a single ground site
+sees roughly 28 contact opportunities a week, hours apart on average, which
+is longer than every mission thread's latency tolerance. Best case, the
+top-scoring architecture (Progressive, a five-tier delivery scheme) still
+only reaches about a 5% mission-thread success rate.
+
+`docs/ACQUISITION_IMPLICATIONS.md` draws out what that means: requiring
+genuinely tiered products (not just onboard compression) from a commercial
+provider is necessary but not sufficient, because **the acquisition lever
+that actually moves the success number is contact frequency** (more
+satellites reachable from a terminal, or more ground sites), not which
+onboard processing architecture is used.
+
+`docs/V1_VS_V2.md` documents a separate, earlier finding: the original
+single-contact-window simulation had a real bug (uncapped byte counts) that
+silently scored truncated deliveries as complete successes. Fixing it
+changed which architecture "wins" a single contact window; see that
+document for the full before/after.
+
+## System architecture
+
+![System block diagram](figures/fig01.png)
+
+A commercial LEO satellite images an area of interest, optionally tiers
+the product onboard, and downlinks during a contact window to an Army-
+owned tactical edge terminal, either directly or through a rear-echelon
+tasking cell. `docs/ARCHITECTURE_VIEWS.md` has the full view set (OV-2
+resource flows, OV-5b activities per mission thread, OV-6c event trace,
+and the 4+1 software views); `docs/OV1_SPEC.md` describes what a concept
+graphic for the recommended allocation should show (no image is generated
+by this repository; the old OV-1 concept graphic predates this rework's
+research question and is retired).
+
+## Single-contact-window regime map
+
+Within one contact window, which architecture completes fastest still
+depends heavily on rate and contact duration:
 
 ![Best architecture by rate and contact duration](figures/fig04.png)
 
-Quicklook-first delivery wins across most of the grid. Compressed full-scene delivery only wins once the link is fast enough that transmission is cheap and onboard processing delay stops paying for itself. The fully staged progressive architecture wins only at the lowest rate and longest contact durations, where even a small early product beats waiting for anything bigger. The full result, with real numbers, is in `paper/manuscript.md`.
+Grid cells marked "no completion" are exactly that: no architecture
+delivered a complete product within that single window, honestly reported
+instead of a fabricated completion time (`docs/DECISION_LOG.md` ADR-008).
+This is single-window evidence, distinct from the multi-contact mission-
+thread-success result above; `docs/MODEL_REFERENCE.md` explains how the
+two relate.
+
+## Novelty
+
+`docs/NOVELTY.md` includes a real, verified literature scan (ten sources,
+each cited with a title and URL, found this session) and states honestly
+where this repository's contribution does and doesn't distinguish itself
+from that literature.
 
 ## Quick start
 
@@ -25,20 +104,25 @@ uv sync
 uv run pytest
 make experiments
 make figures
+make trade_study
 ```
 
-Every experiment writes its output to `results/`, and every figure regenerates from that output. See `REPRODUCE_LOG.md` for a real run log and `Makefile` for the individual targets.
+`make experiments` runs `e00` through `e11`, including the mission-thread
+Monte Carlo; `make trade_study` regenerates the weighted scores in
+`docs/TRADE_STUDY.md` from that output. `make reproduce` runs all of the
+above. See `REPRODUCE_LOG.md` for a real run log.
 
 ## Repository map
 
 | Path | What's there |
 |---|---|
 | `src/leo_edge/` | The architecture, orbit, imagery, and metrics model |
-| `experiments/` | Twelve scripts, `e00` through `e10`, each answering one question about the model |
-| `results/frozen/v1/` | Frozen CSV output from those experiments |
-| `figures/` | Six figures generated from that output, see `figures/README.md` |
-| `docs/` | Requirements, assumptions, decisions, architecture views, validation |
-| `paper/` | The manuscript and a hand-calculation check of the core timing model |
+| `experiments/` | `e00` through `e11`, each answering one question about the model |
+| `results/frozen/v1/` | The original (buggy) frozen results, kept as historical record |
+| `results/frozen/v2/` | Current frozen results, from the corrected model (`docs/V1_VS_V2.md`) |
+| `figures/` | Figures generated from `results/frozen/v2/`, see `figures/README.md` |
+| `docs/` | Operational context, stakeholders, requirements, allocation space, trade study, acquisition implications, architecture views, novelty, assumptions, decisions |
+| `paper/` | The v1 manuscript and hand-calculation check; not updated by this rework |
 | `app/dashboard.py` | A Streamlit dashboard for exploring the architectures interactively |
 
 ## License

@@ -22,6 +22,25 @@ from leo_edge.architectures import (
     Progressive,
     ContactAware,
 )
+from leo_edge.simulation import simulate_multi_contact
+from leo_edge.products import ProductTier
+
+# Mission threads, terminal classes, and conditions from docs/MISSION_THREADS.md.
+MISSION_THREADS = {
+    "MT-1 Time-sensitive cueing": {"needed_tier": ProductTier.P2_QUICKLOOK, "latency_tolerance_s": 120},
+    "MT-2 Route reconnaissance (first product)": {"needed_tier": ProductTier.P3_ROI, "latency_tolerance_s": 900},
+    "MT-4 Persistent monitoring": {"needed_tier": ProductTier.P1_THUMBNAIL, "latency_tolerance_s": 300},
+}
+TERMINAL_CLASSES = {
+    "Vehicle-mounted": 50_000_000,
+    "Dismounted / manpack": 5_000_000,
+}
+CONDITIONS = {
+    "Nominal": {"derate": 1.0, "tasking_delay_s": 60},
+    "Interference (0.5x rate)": {"derate": 0.5, "tasking_delay_s": 60},
+    "Reachback lost (direct tasking delay)": {"derate": 1.0, "tasking_delay_s": 180},
+    "Combined degraded": {"derate": 0.5, "tasking_delay_s": 180},
+}
 
 CSV_PATH = repo_root / "results" / "frozen" / "v2" / "e03_results.csv"
 
@@ -41,12 +60,17 @@ scene_bytes = 1_000_000_000  # 1 GB from e03
 baseline_processing_time_s = 20.0
 baseline_processor_power_w = 15.0
 
+st.sidebar.header("Mission Context (docs/MISSION_THREADS.md)")
+terminal_class = st.sidebar.selectbox("Terminal class", list(TERMINAL_CLASSES.keys()))
+condition_name = st.sidebar.selectbox("Contested condition", list(CONDITIONS.keys()))
+thread_name = st.sidebar.selectbox("Mission thread", list(MISSION_THREADS.keys()))
+
 st.sidebar.header("Simulation Controls")
 rate_bps = st.sidebar.slider(
     "Downlink rate (bps)",
     min_value=1_000_000,
     max_value=100_000_000,
-    value=10_000_000,
+    value=TERMINAL_CLASSES[terminal_class],
     step=1_000_000,
     format="%d",
 )
@@ -119,6 +143,45 @@ ax.set_ylabel("Seconds")
 ax.set_title("TFUP and TCP by Architecture")
 ax.legend()
 st.pyplot(fig)
+
+st.subheader(f"Mission-thread check: {thread_name}, {terminal_class}, {condition_name}")
+thread = MISSION_THREADS[thread_name]
+condition = CONDITIONS[condition_name]
+derated_rate_bps = rate_bps * condition["derate"]
+tasking_delay_s = condition["tasking_delay_s"]
+
+thread_rows = []
+for key, (name, obj) in arch_map.items():
+    result = simulate_multi_contact(
+        obj, scene_bytes, [(0.0, contact_duration_s)], derated_rate_bps, processing_time_s,
+    )
+    tier_time = result.tier_completion_s.get(thread["needed_tier"].value)
+    if tier_time is None:
+        latency_s = float("nan")
+        reason = "architecture never produces this tier"
+    else:
+        latency_s = tier_time + tasking_delay_s
+        reason = ""
+    success = tier_time is not None and latency_s <= thread["latency_tolerance_s"]
+    thread_rows.append({
+        "Architecture": key,
+        "Produces needed tier": tier_time is not None,
+        "Latency (s, incl. tasking delay)": latency_s,
+        "Tolerance (s)": thread["latency_tolerance_s"],
+        "Success": success,
+        "Note": reason,
+    })
+
+thread_df = pd.DataFrame(thread_rows)
+st.dataframe(
+    thread_df.style.format({"Latency (s, incl. tasking delay)": "{:.1f}"}, na_rep="N/A"),
+    use_container_width=True,
+)
+st.caption(
+    "This is a single-contact-window check (docs/MODEL_REFERENCE.md), not the full multi-week Monte Carlo "
+    "in experiments/e11_mission_thread_success.py; it will show more successes than the real mission-thread "
+    "success rate, which also accounts for the wait for the next usable contact (docs/TRADE_STUDY.md)."
+)
 
 st.subheader("Reference frozen data (e03_results.csv)")
 # Show a summary from reference

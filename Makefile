@@ -1,6 +1,6 @@
-.PHONY: reproduce test experiments figures paper
+.PHONY: reproduce test experiments figures trade_study paper
 
-reproduce: test experiments figures
+reproduce: test experiments figures trade_study
 	@echo "Reproduce complete"
 
 test:
@@ -22,6 +22,11 @@ figures:
 		echo "Generating $$f"; \
 		uv run python $$f; \
 	done
+
+trade_study:
+	uv sync
+	@echo "Running trade study..."
+	uv run python scripts/trade_study.py
 
 paper: experiments figures
 	uv sync

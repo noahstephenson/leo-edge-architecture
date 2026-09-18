@@ -12,7 +12,8 @@ dependencies = [
     "pytest==8.2.0",
     "pydantic",
     "pyyaml==6.0.1",
-    "matplotlib==3.8.4"
+    "matplotlib==3.8.4",
+    "streamlit>=1.38"
 ]
 
 [build-system]

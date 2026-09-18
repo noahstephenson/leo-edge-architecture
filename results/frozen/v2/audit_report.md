@@ -1,7 +1,7 @@
 # Audit Report
 Scanned directory: results\frozen\v2
-CSV files found: 14
-Rows processed: 54012
+CSV files found: 18
+Rows processed: 90360
 
 ## Metric Summary
 Censored (NaN) counts rows where the product never completed within its contact window; Min/Max/Mean are computed only over completed deliveries.
@@ -34,5 +34,9 @@ Censored (NaN) counts rows where the product never completed within its contact 
 - e08_uncertainty.csv
 - e09_constellation.csv
 - e10_storage_wear.csv
+- e11_mission_thread_success.csv
+- e11_mission_thread_trials.csv
 - fig04_data.csv
 - monte_carlo.csv
+- trade_study_scores.csv
+- trade_study_sensitivity.csv
