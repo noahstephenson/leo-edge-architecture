@@ -115,6 +115,7 @@ class MultiContactResult:
     tcp_s: float
     completed: bool
     contacts_used: int
+    tier_completion_s: dict
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -179,7 +180,7 @@ def simulate_multi_contact(
 
     name = type(architecture).__name__
     if not tiers or rate_bps <= 0:
-        return MultiContactResult(name, float("nan"), float("nan"), False, 0)
+        return MultiContactResult(name, float("nan"), float("nan"), False, 0, {})
 
     delivered = [0.0] * len(tiers)
     tier_idx = 0
@@ -187,6 +188,7 @@ def simulate_multi_contact(
     tfup_s = None
     tcp_s = None
     contacts_used = 0
+    tier_completion_s = {}
 
     for window_start_s, duration_s in contact_windows_s:
         if tier_idx >= len(tiers):
@@ -211,6 +213,7 @@ def simulate_multi_contact(
             t += take_time_s
             if delivered[tier_idx] >= target_bytes - 1e-6:
                 completion_s = window_start_s + t
+                tier_completion_s[tier.value] = completion_s
                 if tfup_s is None:
                     tfup_s = completion_s
                 if tier_idx == len(tiers) - 1:
@@ -227,4 +230,5 @@ def simulate_multi_contact(
         tcp_s=tcp_s if tcp_s is not None else float("nan"),
         completed=tcp_s is not None,
         contacts_used=contacts_used,
+        tier_completion_s=tier_completion_s,
     )

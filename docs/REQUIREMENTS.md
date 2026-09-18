@@ -1,45 +1,104 @@
 # Requirements
 
-These are the requirements the system architecture and simulation are built against. Each one maps to code in `src/leo_edge/` and is checked either by a unit test in `tests/` or by an experiment in `experiments/`.
+Numbered, verifiable shall-statements, each traced to a stakeholder need
+(`docs/STAKEHOLDERS.md`) and a mission thread (`docs/MISSION_THREADS.md`)
+where applicable, with a verification method. All notional; none of these
+are sourced Army requirements. Requirement IDs from the v1 pass (MR/SR/GR/
+SIM) are retired; the mapping from old to new is in
+`docs/DECISION_LOG.md` ADR-007's consequence.
 
-## Mission
+## Allocation and tasking
 
-- **MR-001**: The system delivers a geospatial data product from a LEO spacecraft to a local ground user.
-- **MR-002**: The system supports direct spacecraft-to-ground-terminal downlink, with no requirement to route through a centralized ground station first.
-- **MR-003**: The system supports at least one reduced-size product tier in addition to the complete, full-resolution product.
+- **REQ-ALLOC-001**: The system shall support delivering at least one
+  reduced-fidelity product tier before the complete product, when contact
+  capacity does not allow immediate delivery of the complete product.
+  Verification: unit test (`tests/test_architectures.py`), demonstrated by
+  every tiered architecture (A2-A4).
+- **REQ-ALLOC-002**: The system shall support both a reachback tasking path
+  (through a rear-echelon tasking cell) and a direct edge tasking path, and
+  shall model the added latency of each explicitly rather than treating
+  tasking as instantaneous.
+  Verification: `docs/MISSION_THREADS.md`'s tasking-path parameters, applied
+  in the mission-thread-success experiments (Part 3 trade study).
+- **REQ-ALLOC-003**: The system shall evaluate at least one adaptive
+  allocation policy (A5) that selects a delivery approach based on
+  contact-capacity margin, in addition to the fixed static allocations
+  (A0-A4).
+  Verification: `tests/test_architectures.py::test_architecture_registry_matches_arch_ids`,
+  `experiments/e07_adaptive_policy.py`.
 
-## Spacecraft
+## Mission-thread success
 
-- **SR-001**: The spacecraft model includes imaging, processing, storage, power, and communications functions (`processing.py`, `storage.py`, `power.py`, `link.py`).
-- **SR-002**: Processing can be configured between bypass (raw downlink) and onboard-processing modes. Each architecture in `architectures.py` implements this choice differently.
-- **SR-003**: The spacecraft maintains a prioritized queue of generated data products (`queues.py`).
-- **SR-004**: Spacecraft storage is finite and enforced (`storage.py`'s `MassMemory` raises on overflow).
-- **SR-005**: Processing is constrained by available energy (`power.py`'s `PowerSystem`, including a brownout policy that pauses processing when charge is low).
+- **REQ-THREAD-001**: For MT-1 (time-sensitive cueing), the system shall
+  report whether the coarse detection product was delivered within its
+  latency tolerance, as a boolean success/failure, not just a raw time.
+  Verification: mission-thread experiment (Part 3), traced to
+  `docs/MISSION_THREADS.md` MT-1.
+- **REQ-THREAD-002**: For MT-2 (route reconnaissance), the system shall
+  distinguish delivery of the ROI-first product from delivery of the
+  complete scene, and report both against their separate latency
+  tolerances.
+  Verification: mission-thread experiment, traced to MT-2.
+- **REQ-THREAD-003**: For MT-3 (battle damage assessment), the system shall
+  report thread failure, not a fabricated result, when no prior reference
+  image is available for change detection.
+  Verification: mission-thread experiment, traced to MT-3's dependency row.
+- **REQ-THREAD-004**: For MT-4 (persistent monitoring), the system shall
+  track delivery cadence across a mission duration (multiple contact
+  opportunities), not just a single request/response latency.
+  Verification: mission-thread experiment, traced to MT-4.
 
-## Ground
+## Correctness (carried forward from Part 1, restated as requirements)
 
-- **GR-001**: The ground terminal receives direct downlink during line-of-sight contact windows.
-- **GR-002**: The ground terminal can perform additional processing after receiving a product.
-- **GR-003**: Ground-side processing throughput is finite, not instantaneous.
+- **REQ-CORRECT-001**: The system shall never report `bytes_transmitted`
+  exceeding the contact window's byte capacity.
+  Verification: `tests/test_architectures.py::test_never_exceeds_contact_capacity`.
+- **REQ-CORRECT-002**: The system shall never report `contact_utilization`
+  outside [0, 1].
+  Verification: `tests/test_architectures.py::test_contact_utilization_never_exceeds_one`,
+  `scripts/audit_paper_numbers.py` (fails the audit if violated).
+- **REQ-CORRECT-003**: The system shall censor (report as not completed,
+  not as a fabricated number) any product that does not finish delivering
+  within the contact windows evaluated.
+  Verification: `tests/test_architectures.py::test_censored_when_capacity_too_small`,
+  `tests/test_simulation.py::test_multi_contact_censors_when_horizon_runs_out`.
+- **REQ-CORRECT-004**: Every delivered product shall report a fidelity
+  label (lossy/lossless, resolution class); no result shall compare two
+  architectures' timing without also stating what was delivered.
+  Verification: `tests/test_architectures.py::test_fidelity_always_reported`.
 
-## Simulation
+## Terminal class
 
-- **SIM-001**: Contact windows are generated from an explicit orbit and ground-station geometry model (`orbit/access.py`, using Skyfield).
-- **SIM-002**: Image-product sizes and processing times come from real or reproducible benchmarks (`imagery/benchmark.py`), not invented numbers.
-- **SIM-003**: All results in `results/frozen/v1/` are reproducible from version-controlled code and configuration by running the scripts in `experiments/`.
+- **REQ-TERM-001**: The system shall model at least two terminal classes
+  with different downlink rate ranges and edge-compute capability, and
+  shall show at least one case where the preferred allocation differs
+  between them.
+  Verification: `docs/MISSION_THREADS.md` terminal-class table; trade study
+  weight-sensitivity analysis (`docs/TRADE_STUDY.md`).
 
-## Key interfaces
+## Contested conditions
 
-| Interface | Data or resource passed |
-|---|---|
-| payload to processor | raw imagery |
-| processor to storage | product files |
-| storage to scheduler | product metadata |
-| scheduler to radio | prioritized product stream |
-| radio to ground | RF downlink |
-| receiver to ground processor | received product |
-| ground processor to user | final or quicklook product |
-| contact predictor to scheduler | predicted contact capacity |
-| power manager to processor | processing permission |
+- **REQ-DDIL-001**: The system shall support evaluating any candidate
+  allocation under interference derate, contact denial, and reachback
+  loss, individually and in combination.
+  Verification: mission-thread experiment with degradation parameters
+  applied, traced to `docs/MISSION_THREADS.md`'s DDIL table.
+- **REQ-DDIL-002**: The system shall report mission-thread success rates
+  with confidence intervals across degraded-condition Monte Carlo runs, not
+  single-run point estimates.
+  Verification: reuses the bootstrap-CI approach in
+  `scripts/compute_confidence_intervals.py`, applied to mission-thread
+  outcomes.
 
-See `docs/INTERFACES.md` for data formats, units, and timing/energy budgets.
+## Traceability matrix
+
+| Need (stakeholder) | Requirement | Function | Candidate allocation(s) | Experiment | Test |
+|---|---|---|---|---|---|
+| Tactical user: fast first product (MT-1) | REQ-THREAD-001, REQ-ALLOC-001 | process (tiered), transmit | A2, A4, A5 | mission-thread experiment | `test_architectures.py` |
+| Tactical user: full-fidelity route coverage (MT-2) | REQ-THREAD-002, REQ-CORRECT-004 | process (ROI), transmit | A3, A4 | mission-thread experiment | `test_fidelity_always_reported` |
+| Tactical user: honest failure when no reference exists (MT-3) | REQ-THREAD-003 | store (reference retention), process (change detection) | not yet allocated, see `docs/ALLOCATION_SPACE.md` gaps | mission-thread experiment | n/a (new) |
+| Tactical user: sustained cadence (MT-4) | REQ-THREAD-004 | task, collect, transmit | A0-A5 evaluated repeatedly | mission-thread experiment | n/a (new) |
+| Terminal operator: SWaP-appropriate processing (dismounted vs. vehicle) | REQ-TERM-001 | process | allocation depends on terminal class | trade study | n/a (analysis) |
+| Rear-echelon tasking cell: deconfliction vs. speed | REQ-ALLOC-002 | task | reachback vs. direct edge | mission-thread experiment | n/a (new) |
+| Acquisition: evidence-based, not fabricated results | REQ-CORRECT-001 through REQ-CORRECT-004 | all | all | Part 1 fixes | `tests/test_architectures.py`, `tests/test_simulation.py` |
+| Provider/acquisition: adaptive policy as real candidate | REQ-ALLOC-003 | task, process, transmit | A5 | `experiments/e07_adaptive_policy.py` | `test_architecture_registry_matches_arch_ids` |
