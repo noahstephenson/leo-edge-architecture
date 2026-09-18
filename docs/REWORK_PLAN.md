@@ -229,8 +229,8 @@ constraints. Part 5 is last, once the actual v2 findings exist to report.
 
 ## Deliverables checklist
 
-- [ ] Part 1 fixes, each with a test; `uv run pytest` passes
-- [ ] `results/frozen/v2/`, regenerated figures, `V1_VS_V2.md`
+- [x] Part 1 fixes, each with a test; `uv run pytest` passes
+- [x] `results/frozen/v2/`, regenerated figures, `V1_VS_V2.md`
 - [ ] OPERATIONAL_CONTEXT, MISSION_THREADS, STAKEHOLDERS, REQUIREMENTS (with
       traceability), FUNCTIONAL_ARCHITECTURE, ALLOCATION_SPACE, TRADE_STUDY
       (with sensitivity), ACQUISITION_IMPLICATIONS, MODEL_REFERENCE,
