@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+title: LEO Edge Architecture
+version: 0.1.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: "Noah"
+    given-names: "H"
+date-released: 2026-09-18
+license: MIT

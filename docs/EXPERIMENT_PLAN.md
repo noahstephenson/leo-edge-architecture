@@ -1,0 +1,26 @@
+# Experiment Plan
+
+Every experiment lives in `experiments/` and writes its output CSV to `results/raw/`, which gets copied into `results/frozen/v1/` once a result set is frozen for the paper. Run any of them with `PYTHONPATH=src python experiments/<name>.py`, or run all of them with `make experiments`.
+
+| Script | Question it answers | Output |
+|---|---|---|
+| `e00_sanity.py` | Do the break-even formulas behave the way basic algebra says they should? | Printed sanity checks, no CSV |
+| `e01_orbit_contacts.py` | What do real LEO contact windows look like for a representative orbit and ground station over a week? | `e01_access_windows.csv` |
+| `e02_image_benchmark.py` | How much do compression, quicklook, and ROI extraction actually cost in size and runtime, on a synthetic test image? | `e02_compression.csv`, `e02_quicklook.csv`, `e02_roi.csv` |
+| `e02_image_benchmark_tiles.py` | Does the same benchmark hold up on a larger set of real (or realistic synthetic) image tiles? | Benchmark results over `data/imagery/tiles/` |
+| `e03_static_architectures.py` | Which architecture gives the lowest time-to-first-product and time-to-complete-product across a range of downlink rates? | `e03_results.csv` |
+| `e04_contact_sweep.py` | How does the best architecture change as contact duration changes? | `e04_contact_sweep.csv` |
+| `e05_power_sweep.py` | At what processor power does onboard processing stop being worth its energy cost? | `e05_power_sweep.csv` |
+| `e06_queue_stress.py` | What happens to the backlog when scenes arrive faster than contacts can drain them? | `e06_queue_stress.csv` |
+| `e07_adaptive_policy.py` | Does a simple rule-based adaptive policy track the best static architecture as contact capacity changes? | `e07_adaptive_policy.csv` |
+| `e08_uncertainty.py` | How sensitive are the results to uncertainty in predicted contact capacity? | `e08_uncertainty.csv` |
+| `e09_constellation_handoff.py` | How does adding more satellites (phased in a small constellation) change contact availability? | `e09_constellation.csv` |
+| `e10_storage_wear.py` | Does repeated store/free cycling wear out flash storage over a realistic mission timeline? | `e10_storage_wear.csv` |
+
+## Research design principle behind the sweeps
+
+The point of e03 through e08 is not to crown one architecture "best." It's to find the conditions, in downlink rate, contact duration, processor power, and contact-capacity uncertainty, under which each architecture wins. `figures/fig04.png` (the regime map) is the direct answer to that question for the rate/duration axes.
+
+## What each experiment checks against the analytical model
+
+`e00_sanity.py` and `paper/hand_calc_break_even.md` both check the simulation's timing model against the closed-form break-even relation `T_proc < (D_r - D_p) / R`. `e05_power_sweep.py` extends that check across a range of processor power values.
