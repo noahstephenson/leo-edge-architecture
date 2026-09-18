@@ -6,14 +6,17 @@ These are the fields computed by `src/leo_edge/metrics.py` and reported in every
 
 | Field | Meaning | Unit |
 |---|---|---|
-| `tfup_s` | Time to first useful product: how long after image capture the first usable product (thumbnail or quicklook) reaches the user | seconds |
-| `tcp_s` | Time to complete product: how long after capture the full-resolution product reaches the user | seconds |
-| `contact_utilization` | Fraction of the contact window's downlink capacity actually used | 0 to 1 |
+| `tfup_s` | Time to first useful product: how long after image capture the first usable product reaches the user. `NaN` when no usable product was delivered (see `completed`), never a fabricated number. | seconds |
+| `tcp_s` | Time to complete product: how long after capture the full-resolution product reaches the user. `NaN` when the full product never arrived, rather than being set equal to `tfup_s`. | seconds |
+| `completed` | Whether the full product (the tier `tcp_s` describes) actually finished delivering. False means `tcp_s` is `NaN`, not zero and not equal to `tfup_s`. | true/false |
+| `contact_utilization` | Fraction of the contact window's downlink capacity actually used | 0 to 1, clamped |
 | `processing_energy_j` | Energy spent on onboard processing | joules |
 | `tx_energy_j` | Energy spent on radio transmission | joules |
 | `storage_peak_bytes` | Peak onboard storage used during the scenario | bytes |
-| `deadline_met` | Whether the product was delivered within its deadline | true/false |
+| `deadline_met` | Whether the product was delivered, and delivered within the contact window | true/false |
 | `product_completeness` | Fraction of the full scene actually delivered | 0 to 1 |
+| `fidelity_lossy` | Whether the delivered product discards information relative to the raw scene | true/false |
+| `fidelity_resolution_class` | Coarse label for what the delivered product actually shows: `metadata`, `coarse`, `reduced`, `roi_full_res`, or `full_res`. Two architectures with the same `tfup_s` are not necessarily comparable unless this field also matches. | string |
 
 ## Product tiers
 

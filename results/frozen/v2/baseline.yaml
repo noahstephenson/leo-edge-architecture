@@ -1,0 +1,12 @@
+# Baseline scenario used by experiments/e03_static_architectures.py and the
+# hand-calculation check in paper/hand_calc_break_even.md.
+scene_bytes: 1_000_000_000
+contact_duration_s: 300
+processing_time_s: 20
+rates_bps:
+  - 1_000_000
+  - 5_000_000
+  - 10_000_000
+  - 25_000_000
+  - 50_000_000
+  - 100_000_000
