@@ -1,183 +1,185 @@
-# Architecture Views - 4+1
+# Architecture Views
 
-This document captures the 4+1 architectural views for the LEO Edge Architecture research repository. Views trace to the research question: *Under intermittent LEO contact and spacecraft SWaP constraints, when should geospatial imagery be processed onboard a COTS-heavy small satellite rather than transmitted for processing at a local ground terminal?*
+Software/systems views for the LEO Edge Architecture repository, tracing to
+the current research question (`docs/DECISION_LOG.md` ADR-007): *how
+should imagery functions be allocated between a commercial LEO space
+segment acquired as a service and an Army-owned tactical edge segment, and
+how does the preferred allocation shift with mission need, terminal class,
+and contested conditions?* This replaces the v1 version of this document,
+which traced to the retired onboard-vs-ground-processing question (see
+`LEO_EDGE_OPERATIONAL_VIEWPOINTS.md`'s header for that framing, kept for
+history).
 
-## Operational / Scenario View
+These views cover both the DoDAF-style operational content this rework
+introduced (OV-2 resource flows, OV-5b activities, OV-6c event trace,
+folded into the Operational/Scenario view below rather than a separate
+document) and the 4+1 software views already in this repository, since
+both describe the same system from different angles and keeping them in
+one document is easier to keep consistent than two.
 
-Operational context and primary use case for direct-to-edge imagery delivery with Time to First Useful Product [TFUP].
+## Operational / Scenario View (OV-2, OV-5b, OV-6c)
 
-Actors: Mission Planner, LEO Satellite, Ground Terminal, Edge User.
+Actors: Tactical User, Rear-Echelon Tasking Cell, Commercial LEO Provider
+(space segment), Army Edge Terminal. See `docs/STAKEHOLDERS.md` for what
+each actor values.
 
-### Use Case Overview
+### OV-2: Resource flow
 
 ```mermaid
 graph TD
-    MissionPlanner((Mission Planner))
-    Satellite([LEO Satellite])
-    GroundTerminal([Ground Terminal])
-    EdgeUser((Edge User))
+    User((Tactical User))
+    Rear[Rear-Echelon Tasking Cell]
+    Provider([Commercial LEO Provider])
+    Terminal([Army Edge Terminal])
 
-    MissionPlanner -->|requests collection| Satellite
-    Satellite -->|captures scene| Satellite
-    Satellite -->|downlinks products| GroundTerminal
-    GroundTerminal -->|relays to edge| EdgeUser
-    Satellite -.direct contact.| EdgeUser
-
-    UC1((Direct-to-Edge Imagery Delivery))
-    MissionPlanner --> UC1
-    Satellite --> UC1
-    GroundTerminal --> UC1
-    EdgeUser --> UC1
+    User -->|reachback tasking request| Rear
+    Rear -->|collection request| Provider
+    User -.direct edge tasking.-> Provider
+    Provider -->|tiered product, contact-windowed| Terminal
+    Terminal -->|actionable product| User
 ```
 
-### Direct-to-Edge TFUP Sequence
+The ownership boundary is the arrow from Provider to Terminal: everything
+left of it is commercial-segment-owned, everything right of it is
+Army-owned. `docs/ALLOCATION_SPACE.md` is about what crosses that boundary
+and in what form.
+
+### OV-5b: Activities per mission thread
+
+Each mission thread (`docs/MISSION_THREADS.md`) walks the same function
+sequence (`docs/FUNCTIONAL_ARCHITECTURE.md`: Task, Collect, Store, Process,
+Prioritize, Transmit, Receive, Exploit, Disseminate) but stops at a
+different point for "first actionable":
+
+| Thread | First-needed function completes at | Complete-product function completes at |
+|---|---|---|
+| MT-1 (cueing) | Process (P2 quicklook) -> Transmit -> Receive -> Exploit | N/A, no complete product required |
+| MT-2 (route recon) | Process (P3 ROI) -> Transmit -> Receive -> Exploit | Process (P4 full) -> Transmit -> Receive -> Exploit |
+| MT-3 (BDA / change detection) | Store (prior) + Process (change product) -> Exploit | Process (P4 full) -> Transmit -> Receive -> Exploit |
+| MT-4 (persistent monitoring) | Process (P1 thumbnail), repeated per contact | Process (P4 full), when capacity allows, per contact |
+
+### OV-6c: Event trace, MT-2 (route reconnaissance) nominal case
 
 ```mermaid
 sequenceDiagram
-    participant MP as Mission Planner
-    participant SAT as Satellite
-    participant STO as Onboard Storage
-    participant PROC as Onboard Processing
-    participant LINK as Downlink
-    participant EDGE as Edge Terminal
+    participant User as Tactical User
+    participant Rear as Rear-Echelon Tasking Cell
+    participant Provider as Commercial LEO Provider
+    participant Terminal as Army Edge Terminal
 
-    MP->>SAT: Collect request + product tier
-    SAT->>SAT: Capture raw scene D_r
-    SAT->>STO: Store raw
-    alt Architecture A0_GROUND_ONLY
-        SAT-->>LINK: Wait for contact
-        LINK->>EDGE: Transmit raw
-    else Architecture A2_QUICKLOOK_FIRST / A4_PROGRESSIVE
-        SAT->>PROC: Process to P2_QUICKLOOK / P1_THUMBNAIL
-        PROC->>LINK: Queue small product
-        LINK->>EDGE: Transmit quicklook
-        Note over SAT,EDGE: TFUP = T_capture + T_proc + T_wait_contact + T_tx_small
-        LINK-->>EDGE: Later transmit P4_FULL
-    end
-    EDGE->>MP: TFUP achieved, completeness reported
+    User->>Rear: Request AOI imagery (reachback tasking)
+    Rear->>Provider: Collection request
+    Note over Rear,Provider: tasking_delay_s (docs/MISSION_THREADS.md)
+    Provider->>Provider: Capture, process P3_ROI
+    Note over Provider,Terminal: wait for next contact window
+    Provider->>Terminal: Transmit P3_ROI
+    Terminal->>User: First-needed product delivered
+    Note over User,Terminal: MT-2 first-product success check
+    Provider->>Provider: Process P4_FULL (if not already onboard)
+    Provider->>Terminal: Transmit P4_FULL, if capacity allows
+    Terminal->>User: Complete product delivered
 ```
 
-**TFUP definition:** `tfup_s` = time from capture to first useful product [P1_THUMBNAIL / P2_QUICKLOOK] received at edge.
+**TFUP definition**: elapsed time from user request to the thread's
+first-needed tier arriving at the terminal, including tasking delay and
+wait-for-contact (`docs/MODEL_REFERENCE.md`'s latency accounting).
 
-**TCP definition:** `tcp_s` = time to complete product [P4_FULL] received.
+**TCP definition**: elapsed time from user request to the thread's
+complete product arriving, same accounting. `NaN`/uncompleted when the
+complete product never arrives within the windows evaluated
+(`docs/DECISION_LOG.md` ADR-008).
 
-Operational requirement mapping:
-- REQ-OP-01: System shall deliver P2_QUICKLOOK to edge within 300s of contact start under nominal contact
-- REQ-OP-02: System shall support progressive delivery P0 → P1 → P2 → P3 → P4
-- REQ-OP-03: System shall report product completeness and energy cost per delivery
-
-## Logical View
-
-Logical decomposition of system blocks and product tiers.
-
-### Block Definition
+## Logical View (SV-4-equivalent: function to system allocation)
 
 ```mermaid
 classDiagram
-    class System {
-        +mission()
-        +deliver()
-    }
-    class Satellite {
-        +capture()
+    class CommercialSpaceSegment {
+        +task()
+        +collect()
         +process()
-        +store()
-        +downlink()
+        +prioritize()
+        +transmit()
     }
-    class OnboardProcessing {
-        +compress()
-        +quicklook()
-        +roi_extract()
-    }
-    class OnboardStorage {
-        +bytes
-        +peak_usage()
-    }
-    class DownlinkLink {
-        +rate_R
-        +contact_window()
-    }
-    class GroundProcessing {
-        +process_full()
-    }
-    class EdgeTerminal {
+    class ArmyEdgeSegment {
         +receive()
-        +display()
+        +exploit()
+        +disseminate()
+    }
+    class RearEchelonTaskingCell {
+        +deconflict()
+        +task()
     }
     class Product {
         +tier
         +bytes
-        +processing_time
-        +energy_cost
+        +fidelity_lossy
+        +fidelity_resolution_class
     }
 
-    System --> Satellite
-    Satellite --> OnboardProcessing
-    Satellite --> OnboardStorage
-    Satellite --> DownlinkLink
-    DownlinkLink --> GroundProcessing
-    DownlinkLink --> EdgeTerminal
-    OnboardProcessing --> Product
+    RearEchelonTaskingCell --> CommercialSpaceSegment
+    CommercialSpaceSegment --> ArmyEdgeSegment
+    CommercialSpaceSegment --> Product
 ```
 
-Product tiers:
-- P0_METADATA
-- P1_THUMBNAIL
-- P2_QUICKLOOK
-- P3_ROI
-- P4_FULL
+Product tiers: P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI, P4_FULL
+(`src/leo_edge/products.py`).
 
-Architecture alternatives allocate processing:
-- A0_GROUND_ONLY: no onboard processing
-- A1_COMPRESSED_FULL: onboard compress → P4
-- A2_QUICKLOOK_FIRST: onboard quicklook → P2 first
-- A3_ROI_FIRST: onboard ROI extract → P3 first
-- A4_PROGRESSIVE: P1→P2→P3→P4 pipeline
-- A5_CONTACT_AWARE: schedule based on T_lead and contact prediction
+Architecture alternatives allocate the Process/Prioritize functions within
+the commercial space segment (none of A0-A5 currently allocate any
+processing to the Army edge segment; `docs/ALLOCATION_SPACE.md`'s
+"uncovered regions" section states this as a gap, not a finding):
+
+- A0_GROUND_ONLY: no onboard processing, raw only
+- A1_COMPRESSED_FULL: onboard compress, one atomic product
+- A2_QUICKLOOK_FIRST: onboard quicklook, then full if capacity allows
+- A3_ROI_FIRST: onboard ROI extract, then full if capacity allows
+- A4_PROGRESSIVE: P0->P1->P2->P3->P4, as capacity allows
+- A5_CONTACT_AWARE: margin-gated compressed-or-raw choice, evaluated once
+  per delivery (`src/leo_edge/architectures.py`'s `ContactAware`)
 
 ## Process View
 
-Behavior of image flow through capture, queue, processing, and downlink.
-
-### Activity Diagram - Progressive Delivery
+### Activity Diagram: Progressive Delivery (A4)
 
 ```mermaid
 flowchart TD
-    A[Capture Scene D_r] --> B[Create P0_METADATA]
-    B --> C{Architecture?}
-    C -->|A0_GROUND_ONLY| D[Queue raw for downlink]
-    C -->|A2/A4| E[Process P1_THUMBNAIL]
-    E --> F[Process P2_QUICKLOOK]
-    F --> G[Queue P1,P2 for first contact]
-    G --> H[Contact Start]
-    H --> I[Transmit P1/P2]
-    I --> J[TFUP achieved]
-    J --> K[Transmit P3/P4 if capacity]
-    K --> L[TCP achieved]
-    D --> H
-    H --> M[Transmit raw]
-    M --> L
+    A[Capture Scene] --> B[Create P0_METADATA]
+    B --> C[Process P1_THUMBNAIL]
+    C --> D[Process P2_QUICKLOOK]
+    D --> E[Queue P0-P2 for first contact]
+    E --> F[Contact Start]
+    F --> G[Transmit tiers in priority order]
+    G --> H{Tier target reached this window?}
+    H -->|yes, more tiers remain and capacity left| G
+    H -->|no, capacity exhausted mid-tier| I[Carry remainder to next window]
+    I --> F
+    H -->|P4_FULL reached| J[TCP achieved]
+    G --> K{First tier reached?}
+    K -->|yes| L[TFUP achieved]
 ```
 
-### Sequence - Contact Aware Scheduling
+This mirrors `leo_edge.simulation.simulate_multi_contact`'s actual
+carry-forward logic (`docs/MODEL_REFERENCE.md`), not an idealized version
+of it.
+
+### Sequence: Adaptive (A5) Policy Selection
 
 ```mermaid
 sequenceDiagram
-    participant Scheduler
-    participant Queue
-    participant Power
-    participant Link
-    participant Processor
+    participant Policy as AdaptivePolicy
+    participant Contact as Contact Predictor
+    participant Arch as Selected Architecture
 
-    Scheduler->>Queue: get pending products
-    Scheduler->>Link: predict T_lead
-    Scheduler->>Power: check budget
-    Scheduler->>Processor: schedule T_proc <= T_lead
-    Processor-->>Scheduler: energy_j
-    Scheduler->>Queue: prioritize by tfup_s
-    Link->>Scheduler: contact start
-    Scheduler->>Queue: release for tx
+    Policy->>Contact: get predicted capacity_bytes
+    Policy->>Policy: choose() -> architecture class
+    Note over Policy: margin rule, config/product_sizing.yaml: contact_aware.margin_alpha
+    Policy->>Arch: instantiate and run()
+    Arch-->>Policy: tfup_s, tcp_s, completed, fidelity
 ```
+
+`src/leo_edge/policies/adaptive.py`'s `AdaptivePolicy.choose()` returns a
+real architecture class (`docs/DECISION_LOG.md` ADR-008), not a label with
+no corresponding implementation.
 
 ## Development View
 
@@ -187,7 +189,6 @@ Software module structure in `src/leo_edge/`.
 graph TD
     core[leo_edge]
     core --> architecture
-    core --> mission
     core --> products
     core --> processing
     core --> queues
@@ -196,7 +197,9 @@ graph TD
     core --> storage
     core --> link
     core --> metrics
+    core --> metrics_arch
     core --> simulation
+    core --> analysis
 
     core --> orbit
     orbit --> access
@@ -209,65 +212,69 @@ graph TD
     policies --> adaptive
 ```
 
-Mapping to 4+1:
-- `architecture.py`, `architectures.py` → Logical view
-- `scheduler.py`, `queues.py`, `policies/adaptive.py` → Process view
-- `orbit/*`, `link.py`, `power.py`, `storage.py` → Physical view constraints
-- `metrics.py` → Operational metrics tfup_s, tcp_s, contact_utilization, processing_energy_j, tx_energy_j, storage_peak_bytes, deadline_met, product_completeness
+Mapping to the views above:
+- `architecture.py`, `architectures.py` -> Logical view
+- `policies/adaptive.py`, `simulation.py`'s `simulate_multi_contact` ->
+  Process view, OV-6c event trace
+- `orbit/*`, `link.py`, `power.py`, `storage.py` -> Physical view
+  constraints
+- `metrics.py`, `products.py`'s fidelity fields -> OV-5b/OV-6c success
+  criteria (mission-thread success, `docs/MISSION_THREADS.md`)
+- `experiments/e11_mission_thread_success.py`, `scripts/trade_study.py` ->
+  evidence behind `docs/TRADE_STUDY.md`
 
-## Physical View
-
-Deployment of hardware and communication links with SWaP constraints.
+## Physical View (SV-1-equivalent: system interfaces)
 
 ```mermaid
 graph LR
-    subgraph LEO
-        SAT[Satellite COTS Bus]
+    subgraph CommercialSpaceSegment [Commercial LEO Space Segment]
+        SAT[Satellite Bus]
         CAM[Imager]
         CPU[Onboard CPU]
         MEM[Flash Storage]
         TX[Downlink Transceiver]
     end
 
-    subgraph Ground
-        GS[Ground Terminal]
-        GW[Ground Processing]
+    subgraph RearEchelon [Rear-Echelon Tasking Cell]
+        TASK[Tasking / Deconfliction]
     end
 
-    subgraph Edge
-        EDGE[Edge Terminal / User]
+    subgraph ArmyEdge [Army-Owned Tactical Edge Segment]
+        TERM[Edge Terminal, vehicle or dismounted class]
     end
 
     CAM --> CPU
     CPU --> MEM
     CPU --> TX
-    TX -.RF contact.- GS
-    GS --> GW
-    GW -.IP.- EDGE
-    TX -.direct.- EDGE
+    TASK -.reachback tasking.-> SAT
+    TERM -.direct edge tasking.-> SAT
+    TX -.RF contact, windowed.- TERM
 ```
 
 Constraints:
-- Intermittent LEO contact windows
-- Limited onboard energy budget → processing_energy_j vs tx_energy_j tradeoff
-- Storage_peak_bytes limited
-- Downlink rate R varies per contact
+- Intermittent, windowed LEO contact (the dominant term in
+  `docs/TRADE_STUDY.md`'s mission-thread-success results)
+- Terminal class (`docs/MISSION_THREADS.md`) bounds downlink rate and edge
+  compute, independently of which architecture the space segment runs
+- Limited onboard energy budget: `processing_energy_j` vs `tx_energy_j`
+  tradeoff (`config/product_sizing.yaml`)
+- `storage_peak_bytes` limited; `contact_utilization` bounded to [0, 1]
+  (`docs/DECISION_LOG.md` ADR-008)
 
-Break-even relation used for validation:
+Break-even relation used for the single-window analytical check
+(`paper/hand_calc_break_even.md`, unaffected by this rework):
 ```
 T_proc + D_p/R < D_r/R
 T_proc < (D_r - D_p)/R
-Effective T_proc,exposed = max(0, T_proc - T_lead)
 ```
 
-## Traceability Summary
+## Traceability
 
-| Req ID | Statement | Allocated To | Verified By |
-|---|---|---|---|
-| REQ-OP-01 | System shall deliver P2_QUICKLOOK to edge within 300s of contact start | Satellite.OnboardProcessing, DownlinkLink | tfup_s metric |
-| REQ-OP-02 | System shall support progressive product tiers P0-P4 | Products, Policies | product_completeness |
-| REQ-NF-01 | Processing energy shall not exceed 50 Wh per scene | OnboardProcessing, Power | processing_energy_j |
-| REQ-NF-02 | Storage peak shall stay below 64 GB | OnboardStorage | storage_peak_bytes |
-| REQ-NF-03 | Contact utilization >= 85% for A5_CONTACT_AWARE | Scheduler, Link | contact_utilization |
+The requirement-to-test traceability matrix moved to `docs/REQUIREMENTS.md`
+(it's the primary artifact requirements traceability belongs in, not
+duplicated here). This document's job is describing the views, not
+re-stating the matrix.
 
-Views are maintained in `artifacts/model.md` as the model evolves. Changes to architecture IDs, product tiers, or metrics require update here and in `docs/engineering/ASSUMPTIONS.md`.
+These views are maintained by hand alongside `src/leo_edge/`. Changes to
+architecture IDs, product tiers, or metrics require updating this file,
+`docs/DATA_DICTIONARY.md`, and `docs/ASSUMPTIONS.md` together.

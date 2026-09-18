@@ -5,9 +5,22 @@
 **System concept:** Army COTS LEO Direct-to-Edge Imagery  
 **Primary research project:** `leo-edge-architecture`  
 **Intended use:** IEEE Aerospace Conference architecture development, research scaffolding, systems-engineering documentation, and model traceability  
-**Status:** Conceptual / research baseline  
+**Status:** Superseded (v1 framing) as of `docs/DECISION_LOG.md` ADR-007/ADR-009. Kept for historical reference, not deleted, the same way `results/frozen/v1/` is kept alongside `results/frozen/v2/`.
 **Classification posture:** Public-source, unclassified, notional, non-operational  
 **Important note:** This is **not** intended to be a formally certified DoDAF architecture package. It borrows the structure and discipline of the DoDAF Operational Viewpoint to make the concept coherent, traceable, and analytically useful.
+
+**This document describes the pre-rework research question** (should a
+satellite process imagery onboard versus on the ground) with a single,
+undifferentiated "ground terminal" that is not marked as Army-owned versus
+commercial. It does not reflect the current research question (allocation
+of imagery functions across a commercial-LEO-provider / Army-edge-terminal
+ownership boundary). For the current operational and architectural
+description, read, in order: `docs/OPERATIONAL_CONTEXT.md`,
+`docs/MISSION_THREADS.md`, `docs/STAKEHOLDERS.md`, and
+`docs/ALLOCATION_SPACE.md`. The OV-1 concept image referenced in section 6
+below is likewise retired; see `docs/OV1_SPEC.md` for what a current
+concept graphic should show instead. This document was not rewritten
+section-by-section in this pass; `docs/DECISION_LOG.md` ADR-009 states why.
 
 ---
 
