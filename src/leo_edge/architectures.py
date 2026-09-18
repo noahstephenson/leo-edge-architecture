@@ -1,7 +1,46 @@
-"""Static architecture implementations A0-A6."""
+"""Static architecture implementations A0-A5.
+
+Each class exposes two interfaces:
+
+- `run(...)`: single-contact-window evaluation. Bytes are always capped to
+  the window's capacity; if the required product doesn't fit, the metric
+  fields for the product that didn't arrive are censored (float('nan')) and
+  `completed` is False, rather than reporting a delivery that didn't happen.
+- `tiers(scene_bytes, ...)`: an ordered list of (ProductTier, bytes,
+  processing_time_s) the architecture would deliver given unlimited contact
+  time, used by `leo_edge.simulation.simulate_multi_contact` to carry
+  undelivered bytes forward across a real sequence of contact windows.
+
+Sizing ratios (0.3 / 0.02 / 0.1 and the Progressive tier byte targets) are
+design assumptions, not measurements. See config/product_sizing.yaml and
+docs/ASSUMPTIONS.md.
+"""
+
+from .architecture import (
+    A0_GROUND_ONLY,
+    A1_COMPRESSED_FULL,
+    A2_QUICKLOOK_FIRST,
+    A3_ROI_FIRST,
+    A4_PROGRESSIVE,
+    A5_CONTACT_AWARE,
+)
+from .metrics import contact_utilization as _contact_utilization
+from .products import Fidelity, ProductTier, TIER_FIDELITY
 
 PROCESSING_POWER_W = 15
 RADIO_POWER_W = 25
+
+COMPRESSED_FULL_FRACTION = 0.3
+QUICKLOOK_SIZE_FRACTION = 0.02
+QUICKLOOK_TIME_FRACTION = 0.1
+ROI_SIZE_FRACTION = 0.1
+PROGRESSIVE_METADATA_BYTES = 20 * 1024
+PROGRESSIVE_THUMBNAIL_BYTES = int(0.5 * 1024 * 1024)
+PROGRESSIVE_QUICKLOOK_BYTES = 10 * 1024 * 1024
+PROGRESSIVE_ROI_BYTES = 50 * 1024 * 1024
+CONTACT_AWARE_MARGIN_ALPHA = 0.2
+
+_RAW_FIDELITY = Fidelity(lossy=False, resolution_class="full_res")
 
 
 def _transmit_time_bytes(bytes_count, rate_bps):
@@ -19,266 +58,341 @@ def _finalize_metrics(
     bytes_transmitted,
     processing_energy_j,
     tx_energy_j,
+    completed,
+    fidelity,
 ):
-    """Compute standard metric fields for architecture outputs."""
+    """Compute standard metric fields for a single-window architecture run."""
     contact_duration_s = (
         contact_capacity_bytes * 8 / rate_bps if rate_bps > 0 else float("inf")
     )
-    contact_utilization = (
-        bytes_transmitted / contact_capacity_bytes if contact_capacity_bytes > 0 else 0.0
-    )
+    utilization = _contact_utilization(bytes_transmitted, contact_capacity_bytes)
     storage_peak_bytes = int(scene_bytes)
-    # Simple deadline heuristic: delivery within contact window + processing
-    deadline_met = tcp_s <= contact_duration_s + 1e-9
+    deadline_met = bool(completed) and tcp_s <= contact_duration_s + 1e-9
     product_completeness = (
         min(1.0, bytes_transmitted / scene_bytes) if scene_bytes > 0 else 0.0
     )
     return {
         "tfup_s": tfup_s,
         "tcp_s": tcp_s,
-        "contact_utilization": contact_utilization,
+        "contact_utilization": utilization,
         "processing_energy_j": processing_energy_j,
         "tx_energy_j": tx_energy_j,
         "storage_peak_bytes": storage_peak_bytes,
         "deadline_met": deadline_met,
         "product_completeness": product_completeness,
         "bytes_transmitted": bytes_transmitted,
+        "completed": completed,
+        "fidelity_lossy": fidelity.lossy,
+        "fidelity_resolution_class": fidelity.resolution_class,
     }
 
 
 class GroundOnly:
-    """A0_GROUND_ONLY: no processing, transmit raw if fits."""
+    """A0_GROUND_ONLY: no onboard processing, transmit raw scene if it fits.
+
+    Raw imagery has no usable partial product: a truncated raw file isn't a
+    viewable image, so a truncated delivery is censored, not scored as a
+    smaller success.
+    """
+
+    ARCH_ID = A0_GROUND_ONLY
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         bytes_transmitted = min(scene_bytes, contact_capacity_bytes)
+        completed = bytes_transmitted >= scene_bytes
         tx_time = _transmit_time_bytes(bytes_transmitted, rate_bps)
-        tfup_s = tx_time
-        tcp_s = tx_time
-        processing_energy_j = 0.0
+        tfup_s = tx_time if completed else float("nan")
+        tcp_s = tfup_s
         tx_energy_j = tx_time * RADIO_POWER_W
         return _finalize_metrics(
-            scene_bytes,
-            contact_capacity_bytes,
-            rate_bps,
-            tfup_s,
-            tcp_s,
-            bytes_transmitted,
-            processing_energy_j,
-            tx_energy_j,
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, 0.0, tx_energy_j,
+            completed, _RAW_FIDELITY,
         )
+
+    def tiers(self, scene_bytes):
+        return [(ProductTier.P4_FULL, float(scene_bytes), 0.0)]
 
 
 class CompressedFull:
-    """A1_COMPRESSED_FULL: process then transmit compressed."""
+    """A1_COMPRESSED_FULL: process then transmit one compressed product."""
+
+    ARCH_ID = A1_COMPRESSED_FULL
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
-        compressed_bytes = int(scene_bytes * 0.3)
+        compressed_bytes = int(scene_bytes * COMPRESSED_FULL_FRACTION)
         bytes_transmitted = min(compressed_bytes, contact_capacity_bytes)
+        completed = bytes_transmitted >= compressed_bytes
         tx_time = _transmit_time_bytes(bytes_transmitted, rate_bps)
         total_time = processing_time_s + tx_time
+        tfup_s = total_time if completed else float("nan")
+        tcp_s = tfup_s
         processing_energy_j = processing_time_s * PROCESSING_POWER_W
         tx_energy_j = tx_time * RADIO_POWER_W
         return _finalize_metrics(
-            scene_bytes,
-            contact_capacity_bytes,
-            rate_bps,
-            total_time,
-            total_time,
-            bytes_transmitted,
-            processing_energy_j,
-            tx_energy_j,
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, processing_energy_j, tx_energy_j,
+            completed, TIER_FIDELITY[ProductTier.P4_FULL],
         )
+
+    def tiers(self, scene_bytes):
+        compressed_bytes = float(int(scene_bytes * COMPRESSED_FULL_FRACTION))
+        return [(ProductTier.P4_FULL, compressed_bytes, 20.0)]
 
 
 class QuicklookFirst:
-    """A2_QUICKLOOK_FIRST: quicklook then full if capacity allows."""
+    """A2_QUICKLOOK_FIRST: quicklook first, then the full scene if capacity allows."""
+
+    ARCH_ID = A2_QUICKLOOK_FIRST
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
-        quicklook_bytes = int(scene_bytes * 0.02)
-        quicklook_proc = processing_time_s * 0.1
-        quicklook_tx = _transmit_time_bytes(quicklook_bytes, rate_bps)
-        tfup_s = quicklook_proc + quicklook_tx
+        quicklook_bytes = int(scene_bytes * QUICKLOOK_SIZE_FRACTION)
+        quicklook_proc = processing_time_s * QUICKLOOK_TIME_FRACTION
 
-        bytes_transmitted = quicklook_bytes
-        tx_time_total = quicklook_tx
+        ql_delivered = min(quicklook_bytes, contact_capacity_bytes)
+        ql_complete = ql_delivered >= quicklook_bytes
+        ql_tx = _transmit_time_bytes(ql_delivered, rate_bps)
+        bytes_transmitted = ql_delivered
+        tx_time_total = ql_tx
 
-        remaining_capacity = contact_capacity_bytes - quicklook_bytes
-        if remaining_capacity >= scene_bytes:
-            full_tx = _transmit_time_bytes(scene_bytes, rate_bps)
-            bytes_transmitted += scene_bytes
-            tx_time_total += full_tx
-            tcp_s = quicklook_proc + quicklook_tx + full_tx
+        if not ql_complete:
+            tfup_s = float("nan")
+            tcp_s = float("nan")
+            completed = False
+            fidelity = TIER_FIDELITY[ProductTier.P2_QUICKLOOK]
         else:
-            tcp_s = tfup_s
+            tfup_s = quicklook_proc + ql_tx
+            remaining_capacity = max(contact_capacity_bytes - quicklook_bytes, 0)
+            full_delivered = min(remaining_capacity, scene_bytes)
+            completed = full_delivered >= scene_bytes
+            bytes_transmitted += full_delivered
+            if completed:
+                full_tx = _transmit_time_bytes(scene_bytes, rate_bps)
+                tx_time_total += full_tx
+                tcp_s = quicklook_proc + ql_tx + full_tx
+                fidelity = TIER_FIDELITY[ProductTier.P4_FULL]
+            else:
+                tcp_s = float("nan")
+                fidelity = TIER_FIDELITY[ProductTier.P2_QUICKLOOK]
 
         processing_energy_j = quicklook_proc * PROCESSING_POWER_W
         tx_energy_j = tx_time_total * RADIO_POWER_W
         return _finalize_metrics(
-            scene_bytes,
-            contact_capacity_bytes,
-            rate_bps,
-            tfup_s,
-            tcp_s,
-            bytes_transmitted,
-            processing_energy_j,
-            tx_energy_j,
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, processing_energy_j, tx_energy_j,
+            completed, fidelity,
         )
+
+    def tiers(self, scene_bytes, processing_time_s=20.0):
+        quicklook_bytes = float(int(scene_bytes * QUICKLOOK_SIZE_FRACTION))
+        quicklook_proc = processing_time_s * QUICKLOOK_TIME_FRACTION
+        return [
+            (ProductTier.P2_QUICKLOOK, quicklook_bytes, quicklook_proc),
+            (ProductTier.P4_FULL, float(scene_bytes), 0.0),
+        ]
 
 
 class RoiFirst:
-    """A3_ROI_FIRST: ROI then full if capacity allows."""
+    """A3_ROI_FIRST: region-of-interest crop first, then the full scene."""
+
+    ARCH_ID = A3_ROI_FIRST
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
-        roi_bytes = int(scene_bytes * 0.1)
-        roi_proc = processing_time_s  # ROI generation time
-        roi_tx = _transmit_time_bytes(roi_bytes, rate_bps)
-        tfup_s = roi_proc + roi_tx
+        roi_bytes = int(scene_bytes * ROI_SIZE_FRACTION)
+        roi_proc = processing_time_s
 
-        bytes_transmitted = roi_bytes
+        roi_delivered = min(roi_bytes, contact_capacity_bytes)
+        roi_complete = roi_delivered >= roi_bytes
+        roi_tx = _transmit_time_bytes(roi_delivered, rate_bps)
+        bytes_transmitted = roi_delivered
         tx_time_total = roi_tx
 
-        remaining_capacity = contact_capacity_bytes - roi_bytes
-        if remaining_capacity >= scene_bytes:
-            full_tx = _transmit_time_bytes(scene_bytes, rate_bps)
-            bytes_transmitted += scene_bytes
-            tx_time_total += full_tx
-            tcp_s = roi_proc + roi_tx + full_tx
+        if not roi_complete:
+            tfup_s = float("nan")
+            tcp_s = float("nan")
+            completed = False
+            fidelity = TIER_FIDELITY[ProductTier.P3_ROI]
         else:
-            tcp_s = tfup_s
+            tfup_s = roi_proc + roi_tx
+            remaining_capacity = max(contact_capacity_bytes - roi_bytes, 0)
+            full_delivered = min(remaining_capacity, scene_bytes)
+            completed = full_delivered >= scene_bytes
+            bytes_transmitted += full_delivered
+            if completed:
+                full_tx = _transmit_time_bytes(scene_bytes, rate_bps)
+                tx_time_total += full_tx
+                tcp_s = roi_proc + roi_tx + full_tx
+                fidelity = TIER_FIDELITY[ProductTier.P4_FULL]
+            else:
+                tcp_s = float("nan")
+                fidelity = TIER_FIDELITY[ProductTier.P3_ROI]
 
         processing_energy_j = roi_proc * PROCESSING_POWER_W
         tx_energy_j = tx_time_total * RADIO_POWER_W
         return _finalize_metrics(
-            scene_bytes,
-            contact_capacity_bytes,
-            rate_bps,
-            tfup_s,
-            tcp_s,
-            bytes_transmitted,
-            processing_energy_j,
-            tx_energy_j,
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, processing_energy_j, tx_energy_j,
+            completed, fidelity,
         )
+
+    def tiers(self, scene_bytes, processing_time_s=20.0):
+        roi_bytes = float(int(scene_bytes * ROI_SIZE_FRACTION))
+        return [
+            (ProductTier.P3_ROI, roi_bytes, processing_time_s),
+            (ProductTier.P4_FULL, float(scene_bytes), 0.0),
+        ]
 
 
 class Progressive:
-    """A4_PROGRESSIVE: metadata, thumbnail, quicklook, roi, full in order."""
+    """A4_PROGRESSIVE: metadata, thumbnail, quicklook, ROI, full, in priority order."""
+
+    ARCH_ID = A4_PROGRESSIVE
+
+    def _tier_sizes(self, scene_bytes):
+        return [
+            (ProductTier.P0_METADATA, PROGRESSIVE_METADATA_BYTES),
+            (ProductTier.P1_THUMBNAIL, PROGRESSIVE_THUMBNAIL_BYTES),
+            (ProductTier.P2_QUICKLOOK, PROGRESSIVE_QUICKLOOK_BYTES),
+            (ProductTier.P3_ROI, PROGRESSIVE_ROI_BYTES),
+            (ProductTier.P4_FULL, scene_bytes),
+        ]
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
-        metadata_bytes = 20 * 1024
-        thumbnail_bytes = int(0.5 * 1024 * 1024)
-        quicklook_bytes = int(10 * 1024 * 1024)
-        roi_bytes = int(50 * 1024 * 1024)
-        full_bytes = scene_bytes
-
-        products = [
-            metadata_bytes,
-            thumbnail_bytes,
-            quicklook_bytes,
-            roi_bytes,
-            full_bytes,
-        ]
+        tier_sizes = self._tier_sizes(scene_bytes)
 
         remaining = contact_capacity_bytes
         bytes_transmitted = 0
         total_tx_time = 0.0
         first_tx_time = None
+        last_tier_delivered = None
+        completed = False
 
-        for size in products:
+        for tier, size in tier_sizes:
             if size > remaining:
-                # skip product that does not fit
-                continue
+                # Priority order is monotonically increasing in size, so
+                # once one tier doesn't fit, no later tier will either.
+                break
             tx_time = _transmit_time_bytes(size, rate_bps)
             if first_tx_time is None:
                 first_tx_time = tx_time
             total_tx_time += tx_time
             bytes_transmitted += size
             remaining -= size
+            last_tier_delivered = tier
+            if tier == ProductTier.P4_FULL:
+                completed = True
 
-        first_tx_time = first_tx_time or 0.0
-        tfup_s = processing_time_s + first_tx_time
-        tcp_s = processing_time_s + total_tx_time
+        if last_tier_delivered is None:
+            tfup_s = float("nan")
+            tcp_s = float("nan")
+            fidelity = TIER_FIDELITY[ProductTier.P0_METADATA]
+        else:
+            tfup_s = processing_time_s + first_tx_time
+            tcp_s = (processing_time_s + total_tx_time) if completed else float("nan")
+            fidelity = TIER_FIDELITY[last_tier_delivered]
 
         processing_energy_j = processing_time_s * PROCESSING_POWER_W
         tx_energy_j = total_tx_time * RADIO_POWER_W
-
         return _finalize_metrics(
-            scene_bytes,
-            contact_capacity_bytes,
-            rate_bps,
-            tfup_s,
-            tcp_s,
-            bytes_transmitted,
-            processing_energy_j,
-            tx_energy_j,
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, processing_energy_j, tx_energy_j,
+            completed, fidelity,
         )
+
+    def tiers(self, scene_bytes, processing_time_s=20.0):
+        tier_sizes = self._tier_sizes(scene_bytes)
+        out = []
+        for i, (tier, size) in enumerate(tier_sizes):
+            proc = processing_time_s if i == 0 else 0.0
+            out.append((tier, float(size), proc))
+        return out
 
 
 class ContactAware:
-    """A5_CONTACT_AWARE: rule-based policy using contact margin α and predicted contact time.
+    """A5_CONTACT_AWARE: rule-based policy using contact margin alpha.
 
-    If processor fault or insufficient margin, falls back to raw transmit.
-    Otherwise processes compressed full when processing fits within margin.
+    If there's a processor fault, or processing plus compressed transmit
+    wouldn't finish inside the window with the required margin, it falls
+    back to raw transmit. Otherwise it processes and sends the compressed
+    product.
     """
 
-    def __init__(self, alpha=0.2, processor_fault=False):
+    ARCH_ID = A5_CONTACT_AWARE
+
+    def __init__(self, alpha=CONTACT_AWARE_MARGIN_ALPHA, processor_fault=False):
         self.alpha = alpha
         self.processor_fault = processor_fault
 
-    def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
-        # Graceful fallback on processor fault
-        if self.processor_fault or rate_bps <= 0:
-            bytes_transmitted = min(scene_bytes, contact_capacity_bytes)
-            tx_time = _transmit_time_bytes(bytes_transmitted, rate_bps)
-            tfup_s = tx_time
-            tcp_s = tx_time
-            processing_energy_j = 0.0
-            tx_energy_j = tx_time * RADIO_POWER_W
-            return _finalize_metrics(
-                scene_bytes,
-                contact_capacity_bytes,
-                rate_bps,
-                tfup_s,
-                tcp_s,
-                bytes_transmitted,
-                processing_energy_j,
-                tx_energy_j,
-            )
-
-        contact_duration_s = (
-            contact_capacity_bytes * 8 / rate_bps if rate_bps > 0 else float("inf")
+    def _raw_fallback(self, scene_bytes, contact_capacity_bytes, rate_bps):
+        bytes_transmitted = min(scene_bytes, contact_capacity_bytes)
+        completed = bytes_transmitted >= scene_bytes
+        tx_time = _transmit_time_bytes(bytes_transmitted, rate_bps)
+        tfup_s = tx_time if completed else float("nan")
+        tcp_s = tfup_s
+        tx_energy_j = tx_time * RADIO_POWER_W
+        return _finalize_metrics(
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, 0.0, tx_energy_j,
+            completed, _RAW_FIDELITY,
         )
-        # Rule: need processing to finish with margin α before contact ends
-        # and enough time left to transmit compressed product
-        compressed_bytes = int(scene_bytes * 0.3)
+
+    def _margin_ok(self, contact_duration_s, compressed_tx, processing_time_s):
+        return (
+            processing_time_s <= (1.0 - self.alpha) * contact_duration_s
+            and processing_time_s + compressed_tx <= contact_duration_s
+        )
+
+    def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
+        if self.processor_fault or rate_bps <= 0:
+            return self._raw_fallback(scene_bytes, contact_capacity_bytes, rate_bps)
+
+        contact_duration_s = contact_capacity_bytes * 8 / rate_bps
+        compressed_bytes = int(scene_bytes * COMPRESSED_FULL_FRACTION)
         compressed_tx = _transmit_time_bytes(compressed_bytes, rate_bps)
 
-        # Margin check
-        if processing_time_s <= (1.0 - self.alpha) * contact_duration_s and (
-            processing_time_s + compressed_tx <= contact_duration_s
-        ):
-            # Process onboard
-            bytes_transmitted = min(compressed_bytes, contact_capacity_bytes)
-            tx_time = _transmit_time_bytes(bytes_transmitted, rate_bps)
-            tfup_s = processing_time_s + tx_time
-            tcp_s = tfup_s
-            processing_energy_j = processing_time_s * PROCESSING_POWER_W
-            tx_energy_j = tx_time * RADIO_POWER_W
-        else:
-            # Fallback to raw transmit
-            bytes_transmitted = min(scene_bytes, contact_capacity_bytes)
-            tx_time = _transmit_time_bytes(bytes_transmitted, rate_bps)
-            tfup_s = tx_time
-            tcp_s = tx_time
-            processing_energy_j = 0.0
-            tx_energy_j = tx_time * RADIO_POWER_W
+        if not self._margin_ok(contact_duration_s, compressed_tx, processing_time_s):
+            return self._raw_fallback(scene_bytes, contact_capacity_bytes, rate_bps)
 
+        bytes_transmitted = min(compressed_bytes, contact_capacity_bytes)
+        completed = bytes_transmitted >= compressed_bytes
+        tx_time = _transmit_time_bytes(bytes_transmitted, rate_bps)
+        tfup_s = (processing_time_s + tx_time) if completed else float("nan")
+        tcp_s = tfup_s
+        processing_energy_j = processing_time_s * PROCESSING_POWER_W
+        tx_energy_j = tx_time * RADIO_POWER_W
         return _finalize_metrics(
-            scene_bytes,
-            contact_capacity_bytes,
-            rate_bps,
-            tfup_s,
-            tcp_s,
-            bytes_transmitted,
-            processing_energy_j,
-            tx_energy_j,
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, processing_energy_j, tx_energy_j,
+            completed, TIER_FIDELITY[ProductTier.P4_FULL],
         )
+
+    def tiers(self, scene_bytes, processing_time_s=20.0, rate_bps=None, first_window_duration_s=None):
+        """Tier plan for multi-contact use.
+
+        A5's choice is rule-based per window in `run()`. For a multi-contact
+        delivery, we evaluate the margin rule once against the first contact
+        window and commit to that choice for the whole delivery, since the
+        policy has no mechanism to re-evaluate mid-delivery. This is a
+        stated simplification, not a claim that a fielded A5 would behave
+        this way across many windows; see docs/ASSUMPTIONS.md.
+        """
+        use_compressed = True
+        if rate_bps and first_window_duration_s:
+            contact_duration_s = first_window_duration_s
+            compressed_bytes = int(scene_bytes * COMPRESSED_FULL_FRACTION)
+            compressed_tx = _transmit_time_bytes(compressed_bytes, rate_bps)
+            use_compressed = self._margin_ok(contact_duration_s, compressed_tx, processing_time_s)
+        if use_compressed:
+            compressed_bytes = float(int(scene_bytes * COMPRESSED_FULL_FRACTION))
+            return [(ProductTier.P4_FULL, compressed_bytes, processing_time_s)]
+        return [(ProductTier.P4_FULL, float(scene_bytes), 0.0)]
+
+
+ARCHITECTURE_REGISTRY = {
+    A0_GROUND_ONLY: GroundOnly,
+    A1_COMPRESSED_FULL: CompressedFull,
+    A2_QUICKLOOK_FIRST: QuicklookFirst,
+    A3_ROI_FIRST: RoiFirst,
+    A4_PROGRESSIVE: Progressive,
+    A5_CONTACT_AWARE: ContactAware,
+}
