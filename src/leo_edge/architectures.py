@@ -101,6 +101,7 @@ class GroundOnly:
     # results existed (docs/DECISION_LOG.md ADR-014 explains why A6 below is
     # different: it was proposed after seeing v2 results).
     PROVENANCE = "original_candidate_set"
+    CONDITIONAL_LOGIC = False  # always the same fixed behavior, no per-request branching
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         bytes_transmitted = min(scene_bytes, contact_capacity_bytes)
@@ -124,6 +125,7 @@ class CompressedFull:
 
     ARCH_ID = A1_COMPRESSED_FULL
     PROVENANCE = "original_candidate_set"
+    CONDITIONAL_LOGIC = False
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         compressed_bytes = int(scene_bytes * COMPRESSED_FULL_FRACTION)
@@ -151,6 +153,7 @@ class QuicklookFirst:
 
     ARCH_ID = A2_QUICKLOOK_FIRST
     PROVENANCE = "original_candidate_set"
+    CONDITIONAL_LOGIC = False
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         quicklook_bytes = int(scene_bytes * QUICKLOOK_SIZE_FRACTION)
@@ -204,6 +207,7 @@ class RoiFirst:
 
     ARCH_ID = A3_ROI_FIRST
     PROVENANCE = "original_candidate_set"
+    CONDITIONAL_LOGIC = False
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         roi_bytes = int(scene_bytes * ROI_SIZE_FRACTION)
@@ -256,6 +260,7 @@ class Progressive:
 
     ARCH_ID = A4_PROGRESSIVE
     PROVENANCE = "original_candidate_set"
+    CONDITIONAL_LOGIC = False
 
     def _tier_sizes(self, scene_bytes):
         return [
@@ -356,6 +361,7 @@ class ThreadAwarePriority(Progressive):
     # experiments/e11_mission_thread_success.py's output for this reason,
     # per docs/DECISION_LOG.md.
     PROVENANCE = "proposed_post_v2"
+    CONDITIONAL_LOGIC = True  # priority tier is chosen per request, not fixed
 
     def __init__(self, priority_tier=ProductTier.P2_QUICKLOOK):
         self.priority_tier = priority_tier
@@ -422,6 +428,14 @@ class ContactAware:
 
     ARCH_ID = A5_CONTACT_AWARE
     PROVENANCE = "original_candidate_set"
+    # True for architectures whose provider-side behavior branches at
+    # request time (a margin check here, a priority-tier choice for A6)
+    # rather than always following one fixed pipeline. Used by
+    # scripts/trade_study.py to derive acquisition_lock_in_risk: a
+    # conditional rule is an extra thing to specify and verify in a
+    # multi-vendor contract, on top of however many product tiers the
+    # architecture can produce.
+    CONDITIONAL_LOGIC = True
 
     def __init__(self, alpha=CONTACT_AWARE_MARGIN_ALPHA, processor_fault=False):
         self.alpha = alpha

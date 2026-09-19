@@ -116,6 +116,15 @@ def test_a6_is_tagged_as_proposed_post_v2():
         assert arch_class.PROVENANCE == "original_candidate_set"
 
 
+def test_conditional_logic_flag_matches_per_request_branching():
+    """Used by scripts/trade_study.py to derive acquisition_lock_in_risk
+    from code, not a free-floating rubric number."""
+    for arch_class in [ContactAware, ThreadAwarePriority]:
+        assert arch_class.CONDITIONAL_LOGIC is True
+    for arch_class in [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive]:
+        assert arch_class.CONDITIONAL_LOGIC is False
+
+
 @pytest.mark.parametrize("arch_class", [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive, ThreadAwarePriority])
 def test_fidelity_always_reported(arch_class):
     capacity = _ample_capacity_bytes()
