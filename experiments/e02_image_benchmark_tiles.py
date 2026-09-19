@@ -22,6 +22,15 @@ DATA_DIR.mkdir(parents=True, exist_ok=True)
 BENCH = ImageBenchmark()
 
 def download_tile(tile_id: str, url: str, dest: Path) -> Path:
+    if dest.exists():
+        # Tiles are checked-in input data, not scratch output: once a tile
+        # exists, reuse it rather than re-fetching and overwriting it. A
+        # prior version of this function always re-downloaded and
+        # overwrote dest on every run, silently mutating checked-in
+        # data/imagery/tiles/*.jpg with whatever picsum.photos returned
+        # that moment (confirmed: tile_001.jpg changed from 910,705 to
+        # 630,392 bytes between two runs). See docs/DECISION_LOG.md.
+        return dest
     try:
         # Try download with short timeout
         with urllib.request.urlopen(url, timeout=5) as resp:

@@ -123,17 +123,19 @@ as a single invocation was not itself executed in this environment.
 
 ## Notes
 
-`experiments/e02_image_benchmark_tiles.py` downloads sample imagery over
-the network and falls back to a deterministic synthetic tile if the
-download fails or times out, so its exact runtime and byte counts can vary
-slightly between runs and machines. Running it also re-downloads and
-overwrites `data/imagery/tiles/*.jpg` and
-`results/frozen/image_benchmark*.csv` in place (confirmed this session:
-running it changed `tile_001.jpg` from 910,705 to 630,392 bytes). Those
-files were reverted to their committed versions after this run rather than
-committing a network-dependent regeneration; this is a pre-existing
-reproducibility wart in that script (it mutates its own checked-in input
-data as a side effect), not something fixed in this pass.
+`experiments/e02_image_benchmark_tiles.py` previously re-downloaded and
+overwrote `data/imagery/tiles/*.jpg` on every run regardless of whether a
+tile already existed, silently mutating checked-in input data (confirmed
+in an earlier session: running it changed `tile_001.jpg` from 910,705 to
+630,392 bytes). Fixed this pass: `download_tile()` now reuses an existing
+tile file instead of re-fetching it. Verified by hashing `tile_001.jpg`
+before and after a run (`b2d8cbc4...` both times) and diffing the output
+CSVs: `compressed_bytes`/`quicklook_bytes`/`roi_bytes`/`psnr`/`ssim` are
+now byte-for-byte identical across runs, only the timing columns
+(`comp_time_s`, `ql_time_s`, `roi_time_s`) vary, which is expected since
+those are real wall-clock measurements. The script still falls back to a
+deterministic synthetic tile on first run if a tile doesn't exist yet and
+the network download fails or times out.
 `experiments/e11_mission_thread_success.py` is a Monte Carlo experiment
 seeded at 0, deterministic given the checked-in code; every other
 experiment and figure is fully deterministic.
