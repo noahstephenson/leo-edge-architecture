@@ -13,7 +13,7 @@ study, acquisition implication (`AGENTS.md`).
 3. **Requirements**: `docs/REQUIREMENTS.md` (with a full traceability matrix) and `docs/INTERFACES.md` pin down what the system must do and how its pieces talk to each other.
 4. **Functions and allocation**: `docs/FUNCTIONAL_ARCHITECTURE.md` decomposes the pipeline; `docs/ALLOCATION_SPACE.md` is the central document placing the six candidate architectures within the allocation decision space and stating what isn't covered.
 5. **Model**: `src/leo_edge/` implements the architectures, product tiers, power, storage, link, and orbit models described above.
-6. **Experiment**: `experiments/e00` through `e11` run that model under different conditions and write CSVs to `results/frozen/v2/`.
+6. **Experiment**: `experiments/e00` through `e11` run that model under different conditions and write CSVs to `results/frozen/v3/`.
 7. **Figures**: `figures/scripts/` turn those CSVs into the figures in `figures/`.
 8. **Trade study**: `scripts/trade_study.py` turns experiment output into weighted multi-criteria scores; `docs/TRADE_STUDY.md` states the result.
 9. **Acquisition implication**: `docs/ACQUISITION_IMPLICATIONS.md` ties specific recommendations back to specific trade-study evidence.

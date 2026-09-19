@@ -62,7 +62,7 @@ choose between reachback and direct tasking, that choice is external
 
 `docs/TRADE_STUDY.md` has the full result. In short: A6 achieves the
 highest mission-thread success and resilience scores of any architecture
-in `results/frozen/v2/e11_mission_thread_success.csv` (normalized 1.000 and
+in `results/frozen/v3/e11_mission_thread_success.csv` (normalized 1.000 and
 0.962 respectively, versus Progressive's 0.945 and 1.000), and wins
 outright under the tactical-user-leaning weight profile. It does not
 change the headline finding: contact geometry, not architecture choice,

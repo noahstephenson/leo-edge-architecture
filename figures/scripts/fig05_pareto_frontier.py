@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2" / "e03_results.csv"
+DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v3" / "e03_results.csv"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig05.png"
 
 ARCH_MAP = {

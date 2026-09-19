@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 
-DATA_FILE = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2" / "e01_access_windows.csv"
+DATA_FILE = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v3" / "e01_access_windows.csv"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig06.png"
 
 def load_durations():

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from PIL import Image
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2" / "e03_results.csv"
+DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v3" / "e03_results.csv"
 FIG_DIR = Path(__file__).resolve().parents[1]
 OUT_PATH = FIG_DIR / "infographic_summary.pdf"
 
@@ -75,7 +75,7 @@ def main():
     # Footer notes
     note = ("Notes: TFUP = time to first useful product; TCP = time to complete product.\n"
             "Medians are computed only over completed deliveries within a single contact "
-            "window (see results/frozen/v2); an architecture with no completed deliveries "
+            "window (see results/frozen/v3); an architecture with no completed deliveries "
             "in the sweep shows as NaN. System diagram and regime map are from fig01 and fig04.")
     ax_text.text(0.01, 0.1, note, fontsize=8, va='bottom', wrap=True)
     

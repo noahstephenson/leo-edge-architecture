@@ -31,42 +31,39 @@ result.
 matrix), and `docs/FUNCTIONAL_ARCHITECTURE.md` round out the systems
 architecture; `docs/ARCHITECTURE_VIEWS.md` has the diagrams.
 
-## The headline trade-study result
+## The headline result: buy access first
 
-`docs/TRADE_STUDY.md` evaluates all seven architectures against four
-notional mission threads, two terminal classes, and five contested-link
-conditions, using real SGP4 contact windows and a Monte Carlo mission-
-thread-success metric with bootstrap confidence intervals
-(`experiments/e11_mission_thread_success.py`,
-`scripts/trade_study.py`).
+`experiments/e12_access_sweep.py` swept satellite count (1-32) and Army
+ground-terminal count (1-4) -- 18 access levels -- and tested every pair
+of the seven candidate architectures for a statistically significant
+mission-thread-success difference at each one
+(`src/leo_edge/stats.py::paired_bootstrap_diff_ci`, `figures/fig20.png`).
 
-**Three of the seven architectures (raw downlink, compressed-full, and the
-contact-aware adaptive policy) scored exactly 0% mission-thread success on
-every thread and condition tested**, for a structural reason: none of them
-ever produce anything but a single, full-scene-scale product, and three of
-the four mission threads need an earlier tier. Among the architectures that
-can succeed at all, **contact geometry dominates**: a single ground site
-sees roughly 28 contact opportunities a week, hours apart on average, which
-is longer than every mission thread's latency tolerance. The best-scoring
-architecture, A6 (`ThreadAwarePriority`, which reorders delivery around
-whichever tier the active mission thread actually needs instead of a fixed
-order), still only reaches about a 2% mean mission-thread success rate
-across all threads and conditions, and 5% in its single best cell.
+**17 of 18 access levels show no statistically significant difference
+between any pair of architectures.** Pooled success rate rises about an
+order of magnitude with more satellites (under 0.1% at 1-4 satellites to
+about 1.0% at 16, single terminal) -- access density, not architecture
+choice, drives that rise. Three of the seven architectures (raw downlink,
+compressed-full, the contact-aware adaptive policy) score exactly 0% at
+every access level tested, structurally: they never produce anything but
+a single, full-scene-scale product, and three of the four mission threads
+need an earlier tier. Tiering is necessary to ever succeed; beyond that,
+which tiered architecture is used essentially never makes a statistically
+detectable difference across the range tested.
 
-`docs/ACQUISITION_IMPLICATIONS.md` draws out what that means: requiring
-genuinely tiered products (not just onboard compression) from a commercial
-provider is necessary but not sufficient, because **the acquisition lever
-that actually moves the success number is contact frequency** (more
-satellites reachable from a terminal, or more ground sites), not which
-onboard processing architecture is used.
+`docs/ACQUISITION_IMPLICATIONS.md` draws out what that means: **the
+acquisition lever that actually moves mission-thread success is
+constellation and ground-site access, not which onboard processing
+architecture is required.** An acquisition strategy that specifies
+processing architecture in detail before securing enough access to make
+mission-thread success non-trivial is optimizing a second-order variable.
 
-`docs/V1_VS_V2.md` documents a separate, earlier finding: the original
-single-contact-window simulation had a real bug (uncapped byte counts) that
-silently scored truncated deliveries as complete successes. Fixing it
-changed which architecture "wins" a single contact window; see that
-document for the full before/after. The original buggy results and the v1
-paper draft built on top of them have been deleted, not kept; git history
-has them if needed.
+`docs/V2_VS_V3.md` and `docs/V1_VS_V2.md` document what changed getting
+here: v1 had a real correctness bug (uncapped byte counts scoring failed
+deliveries as successes); v2 fixed that and found contact geometry
+dominated at one access level; v3 fixed a methodology bug (an inverted
+terminal-burden criterion), added real collection timing and statistical
+testing, and confirmed the v2 finding at 18 access levels instead of one.
 
 ## System architecture
 
@@ -81,6 +78,19 @@ and the 4+1 software views); `docs/OV1_SPEC.md` describes what a concept
 graphic for the recommended allocation should show (no image is generated
 by this repository; the old OV-1 concept graphic predates this rework's
 research question and is retired).
+
+## The access/revisit sweep
+
+![Mission-thread success vs. access level, by thread](figures/fig19.png)
+
+![Best statistically-distinguishable architecture by access level](figures/fig20.png)
+
+`docs/V2_VS_V3.md` has the full pooled-success-rate table and every
+ASSUMED value behind these two figures, including a real, documented
+limitation of the phase-offset satellite model used here (single orbital
+plane, not multiple planes) that explains why success rate rises then
+falls at the highest satellite counts even though total contact coverage
+keeps rising.
 
 ## Single-contact-window regime map
 
@@ -114,18 +124,21 @@ make trade_study
 ```
 
 `make experiments` runs `e00` through `e11`, including the mission-thread
-Monte Carlo; `make trade_study` regenerates the weighted scores in
-`docs/TRADE_STUDY.md` from that output. `make reproduce` runs all of the
-above. See `REPRODUCE_LOG.md` for a real run log.
+Monte Carlo; run `experiments/e12_access_sweep.py` directly for the access
+sweep (it isn't in the default `make experiments` loop yet, since it's
+slower than a single experiment). `make trade_study` regenerates the
+weighted scores in `docs/TRADE_STUDY.md` from that output. `make
+reproduce` runs the first four. See `REPRODUCE_LOG.md` for a real run log.
 
 ## Repository map
 
 | Path | What's there |
 |---|---|
-| `src/leo_edge/` | The architecture, orbit, imagery, and metrics model |
-| `experiments/` | `e00` through `e11`, each answering one question about the model |
-| `results/frozen/v2/` | Frozen results from the corrected model (`docs/V1_VS_V2.md` explains the "v2" name; there's no v1 directory anymore, see below) |
-| `figures/` | Figures generated from `results/frozen/v2/`, see `figures/README.md` |
+| `src/leo_edge/` | The architecture, orbit, imagery, metrics, mission-thread, and stats model |
+| `experiments/` | `e00` through `e12`, each answering one question about the model |
+| `results/frozen/v2/` | Frozen results from the v2 pass, kept as a historical record (`docs/V1_VS_V2.md`) |
+| `results/frozen/v3/` | Current frozen results (`docs/V2_VS_V3.md` explains what changed) |
+| `figures/` | Figures generated from `results/frozen/v3/`, see `figures/README.md` |
 | `docs/` | Operational context, stakeholders, requirements, allocation space, trade study, acquisition implications, architecture views, novelty, assumptions, decisions, hand-calculation check |
 | `app/dashboard.py` | A Streamlit dashboard for exploring the architectures interactively |
 

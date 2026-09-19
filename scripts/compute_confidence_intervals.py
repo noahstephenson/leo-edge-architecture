@@ -1,7 +1,7 @@
 """Compute mean and 95% confidence intervals for tfup_s and tcp_s per architecture.
 
-Reads all CSVs in results/frozen/v2/, aggregates rows with tfup_s and tcp_s,
-and writes results/frozen/v2/confidence_intervals.csv. Rows where tfup_s or
+Reads all CSVs in results/frozen/v3/, aggregates rows with tfup_s and tcp_s,
+and writes results/frozen/v3/confidence_intervals.csv. Rows where tfup_s or
 tcp_s is empty (a censored, uncompleted delivery, see docs/DECISION_LOG.md
 ADR-008) are skipped rather than treated as 0, since float("") raises and
 is caught below.
@@ -15,7 +15,7 @@ import random
 from collections import defaultdict
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v2"
+RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v3"
 OUTPUT_PATH = RESULTS_DIR / "confidence_intervals.csv"
 
 ARCH_COLUMNS = ["architecture_name", "architecture", "arch_name"]

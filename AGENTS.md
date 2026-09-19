@@ -216,7 +216,7 @@ When parallel agents are available, divide work by responsibility.
 ### Agent A: Novelty and result claims
 Own:
 - `docs/NOVELTY.md`
-- checking every claim in `docs/TRADE_STUDY.md` and `docs/ACQUISITION_IMPLICATIONS.md` against a real number in `results/frozen/v2/`
+- checking every claim in `docs/TRADE_STUDY.md` and `docs/ACQUISITION_IMPLICATIONS.md` against a real number in `results/frozen/v3/`
 
 No claim should depend on a literature comparison unless a real literature review has actually been done and recorded with real citations, per `docs/NOVELTY.md`.
 

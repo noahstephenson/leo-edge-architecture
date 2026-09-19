@@ -3,7 +3,7 @@
 Runs 10k simulations varying contact prediction error, processor jitter,
 and compression variance. Fixed seed 0 for reproducibility.
 
-Saves results to results/frozen/v2/monte_carlo.csv and generates
+Saves results to results/frozen/v3/monte_carlo.csv and generates
 figures/monte_carlo_distribution.png.
 """
 
@@ -21,7 +21,7 @@ from leo_edge.architectures import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v2"
+RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v3"
 FIGURES_DIR = REPO_ROOT / "figures"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)

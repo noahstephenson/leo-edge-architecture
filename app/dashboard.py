@@ -52,7 +52,7 @@ CONDITIONS = {
     "Combined degraded": {"derate": 0.5, "tasking_delay_s": 180},
 }
 
-CSV_PATH = repo_root / "results" / "frozen" / "v2" / "e03_results.csv"
+CSV_PATH = repo_root / "results" / "frozen" / "v3" / "e03_results.csv"
 
 st.set_page_config(page_title="LEO Edge Dashboard", layout="wide")
 st.title("LEO Edge Architecture: TFUP / TCP Sensitivity")

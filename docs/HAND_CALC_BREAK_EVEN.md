@@ -4,7 +4,7 @@ Worked example of the analytical break-even condition used to sanity-check
 the simulation (`docs/MODEL_REFERENCE.md`, `docs/ARCHITECTURE_VIEWS.md`'s
 Physical View). This math is unaffected by the Part 1 correctness fixes
 (`docs/DECISION_LOG.md` ADR-008); only the "mapping to simulation" section
-below was refreshed to use `results/frozen/v2/e03_results.csv` instead of
+below was refreshed to use `results/frozen/v3/e03_results.csv` instead of
 the retired v1 numbers.
 
 ```
@@ -41,7 +41,7 @@ If processing can start before contact, the exposed processing time is
 `T_proc_exposed = max(0, T_proc - T_lead)`, and the effective break-even
 rate increases.
 
-## Mapping to simulation (results/frozen/v2/e03_results.csv)
+## Mapping to simulation (results/frozen/v3/e03_results.csv)
 
 ```
 CompressedFull, rate_bps=10,000,000:  tfup_s=260.0, tcp_s=260.0, completed=True

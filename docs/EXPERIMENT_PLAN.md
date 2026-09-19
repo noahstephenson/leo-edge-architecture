@@ -1,6 +1,6 @@
 # Experiment Plan
 
-Every experiment lives in `experiments/` and writes its output CSV to `results/raw/`, which gets copied into `results/frozen/v2/` once a result set is frozen. Run any of them with `PYTHONPATH=src python experiments/<name>.py`, or run all of them with `make experiments`.
+Every experiment lives in `experiments/` and writes its output CSV to `results/raw/`, which gets copied into `results/frozen/v3/` once a result set is frozen. Run any of them with `PYTHONPATH=src python experiments/<name>.py`, or run all of them with `make experiments`.
 
 | Script | Question it answers | Output |
 |---|---|---|
