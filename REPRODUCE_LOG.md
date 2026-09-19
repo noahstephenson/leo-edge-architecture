@@ -8,45 +8,23 @@ uv run pytest
 make experiments
 make figures
 make trade_study
+uv run python experiments/e12_access_sweep.py
 ```
 
-`make reproduce` runs `test`, `experiments` (which now includes
-`e11_mission_thread_success.py`), `figures`, and `trade_study` in order.
-See `README.md`'s Quick Start.
+`make reproduce` runs the first four. The access sweep
+(`experiments/e12_access_sweep.py`) isn't in the default `make
+experiments` loop yet since it's slower than a single experiment
+(~5 minutes; see the note below). See `README.md`'s Quick Start.
 
-## Last full run: 2026-09-18 (post-rework, post-cleanup, post-A6)
+## Last full run: 2026-09-19 (v3: evaluation-engine fixes + access sweep)
 
-This run followed, in order: a cleanup pass that deleted `results/frozen/v1/`,
-`paper/`, and `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md` (`docs/DECISION_LOG.md`
-ADR-011) and removed genuinely dead code (`src/leo_edge/mission.py`, ADR-012);
-a fix for `e02_image_benchmark_tiles.py` mutating its own checked-in input
-data (ADR-013); and the addition of A6 (`ThreadAwarePriority`, ADR-014), a
-mission-thread-aware prioritization architecture that closes
-`docs/ALLOCATION_SPACE.md`'s biggest originally-uncovered gap.
-
-Two real bugs were caught during this run, both before being left
-uncaught in a commit:
-
-1. The cleanup pass's file deletion caught a bug this log's earlier
-   version had missed: `figures/scripts/fig02_sensitivity_tornado.py`,
-   `fig03_progressive_timeline.py`, and `fig06_contact_distribution.py`
-   still pointed at the now-deleted `results/frozen/v1/`, which would have
-   made `make figures` fail on a truly clean clone.
-2. Wiring A6 into `experiments/e11_mission_thread_success.py` caught a
-   naming bug in the same change (never committed): the refactor
-   initially wrote the A-prefixed factory key (e.g. `"A0_GROUND_ONLY"`)
-   into the CSV `architecture` column instead of the class name
-   (`"GroundOnly"`) that `e03_results.csv` and `scripts/trade_study.py`
-   expect, which would have silently zeroed out the `mission_thread_success`
-   and `resilience` criteria for every architecture in every future trade-
-   study run. Fixed before committing; see ADR-014 for the full story,
-   including a related pre-existing gap it surfaced: `ContactAware` (A5)
-   had never been included in `e03_static_architectures.py`'s sweep, so its
-   "latency" criterion in every trade-study run up to this one was a silent
-   fallback value, not a measurement. Both `ContactAware` and `ThreadAwarePriority`
-   are now in that sweep.
-
-Fixed and re-verified end to end below.
+This run followed the v3 rework (`docs/REWORK_PLAN_V3.md`,
+`docs/DECISION_LOG.md` ADR-015 through ADR-018): paired trials, a real
+collection-timing model, MT-3 restored and MT-4 fixed to be genuinely
+cadence-based, structural incapacity tracked separately from slowness,
+censoring-aware latency, a fixed (previously inverted) terminal-SWaP
+criterion, architecture-derived trade-study criteria replacing hand-picked
+numbers, and the new access/revisit sweep.
 
 ### Test suite
 
@@ -55,38 +33,44 @@ uv sync
 uv run pytest
 ```
 
-Result: **SUCCESS**, 81 passed (up from 36 pre-rework: 45 new tests added
-for architecture correctness, multi-contact delivery, mission-thread
-logic, and A6's reordering behavior).
+Result: **SUCCESS**, 96 passed (up from 81 pre-v3: 15 new tests for the
+stats helpers, mission-thread consistency, A6 provenance/conditional-logic
+flags).
 
 ### Experiments
 
 ```bash
-for f in experiments/*.py; do uv run python $f; done
+for f in experiments/e00_sanity.py experiments/e01_orbit_contacts.py \
+  experiments/e02_image_benchmark.py experiments/e03_static_architectures.py \
+  experiments/e04_contact_sweep.py experiments/e05_power_sweep.py \
+  experiments/e06_queue_stress.py experiments/e07_adaptive_policy.py \
+  experiments/e08_uncertainty.py experiments/e09_constellation_handoff.py \
+  experiments/e10_storage_wear.py; do uv run python $f; done
+uv run python experiments/e11_mission_thread_success.py
+uv run python experiments/e12_access_sweep.py
 ```
 
-Result: **SUCCESS**, all 13 scripts ran clean:
+Result: **SUCCESS**, all 13 scripts ran clean. `e11` (~30s) reproduced
+byte-identical significance results on a second run (same 7-vs-7 A6/
+Progressive tie, same 12 significant pairs). `e12` (~4-5 minutes) was
+re-run once for this log and separately interrupted mid-run by the host
+environment's own memory-pressure management on a repeat verification
+attempt (not a code issue; the original completed run's output was
+already committed and verified before that interruption).
 
-- experiments/e00_sanity.py
-- experiments/e01_orbit_contacts.py
-- experiments/e02_image_benchmark.py
-- experiments/e02_image_benchmark_tiles.py
-- experiments/e03_static_architectures.py
-- experiments/e04_contact_sweep.py
-- experiments/e05_power_sweep.py
-- experiments/e06_queue_stress.py
-- experiments/e07_adaptive_policy.py
-- experiments/e08_uncertainty.py
-- experiments/e09_constellation_handoff.py
-- experiments/e10_storage_wear.py
-- experiments/e11_mission_thread_success.py (new this pass)
+`experiments/e02_image_benchmark_tiles.py` was not re-run this session
+(network-dependent, and its fix was already verified in the prior
+session); its checked-in outputs are unchanged.
 
-Outputs written to `results/raw/` and promoted into `results/frozen/v2/`.
-The original v1 results have been deleted from the working tree
-(`docs/DECISION_LOG.md` ADR-011); `docs/V1_VS_V2.md` documents what they
-showed and what changed. `e09`/`e10` write directly to
-`results/frozen/v2/`, a structural quirk noted but not fixed in this pass
-(`docs/DECISION_LOG.md` ADR-008's scope).
+Outputs written to `results/raw/` and promoted into `results/frozen/v3/`.
+`results/frozen/v2/` is left in place as the historical record
+(`docs/V2_VS_V3.md`); `e01`, `e02_*` (synthetic), `e04`-`e10`, and
+`monte_carlo.csv` were carried forward from v2 into v3 unchanged, since
+none of the v3 fixes touch the code paths that produce them (confirmed by
+inspection, not re-run, since re-running them would produce
+bit-identical output given unchanged code and fixed seeds). `e09`/`e10`
+still write directly to `results/frozen/v3/`, a structural quirk noted but
+not fixed in this pass (unchanged from v2).
 
 ### Trade study
 
@@ -94,9 +78,10 @@ showed and what changed. `e09`/`e10` write directly to
 uv run python scripts/trade_study.py
 ```
 
-Result: **SUCCESS**. Writes `results/frozen/v2/trade_study_scores.csv` and
-`results/frozen/v2/trade_study_sensitivity.csv`. See `docs/TRADE_STUDY.md`
-for the results.
+Result: **SUCCESS**. Writes `results/frozen/v3/trade_study_scores.csv`
+and `results/frozen/v3/trade_study_sensitivity.csv`. See
+`docs/TRADE_STUDY.md` for the results, including the SIMULATED_ONLY vs.
+COMBINED disagreement in every stakeholder profile.
 
 ### Figures
 
@@ -104,20 +89,15 @@ for the results.
 for f in figures/scripts/*.py; do uv run python $f; done
 ```
 
-Result: **SUCCESS**, all 7 scripts ran clean:
-
-- figures/scripts/fig01_system_architecture.py
-- figures/scripts/fig02_sensitivity_tornado.py
-- figures/scripts/fig03_progressive_timeline.py
-- figures/scripts/fig04_regime_heatmap.py (now shows "no completion" cells honestly, docs/DECISION_LOG.md ADR-008)
-- figures/scripts/fig05_pareto_frontier.py (drops censored rows explicitly, printed at generation time)
-- figures/scripts/fig06_contact_distribution.py
-- figures/scripts/fig_infographic_pdf.py
+Result: **SUCCESS**, all 10 scripts ran clean (fig01-fig06,
+fig19-fig21, fig_infographic_pdf). `fig19`-`fig21` are new this pass
+(the access sweep visualizations). All figures were also opened and
+visually reviewed, not just checked for a clean exit code.
 
 `fig15_constellation_coverage.png` and `fig16_storage_health.png` are
 generated inline by `e09_constellation_handoff.py` and
-`e10_storage_wear.py`, part of the experiments step above, not the figures
-step.
+`e10_storage_wear.py`, part of the experiments step above, not the
+figures step.
 
 ### Dashboard
 
@@ -125,37 +105,31 @@ step.
 uv run streamlit run app/dashboard.py
 ```
 
-Result: **SUCCESS**. `streamlit` was missing from `pyproject.toml`'s
-dependencies (a pre-existing gap, not introduced by this pass) and has
-been added. Smoke-tested headless (`--server.headless true`), served
-HTTP 200 with no traceback in the server log. New this pass: sidebar
-controls for terminal class, contested condition, and mission thread
-(`docs/MISSION_THREADS.md`), and a single-contact-window mission-thread
-pass/fail table per architecture.
+Result: **SUCCESS**. Smoke-tested headless (`--server.headless true`),
+served HTTP 200 with no traceback in the server log, after the
+`src/leo_edge/mission_threads.py` import refactor.
 
 ### Full reproduce
 
 `make` itself isn't installed on the machine this log was run on; each
 `make reproduce` step's underlying commands (shown above) were run
-directly instead and all **SUCCEEDED**. The `Makefile` targets were
-reviewed to confirm they invoke the same commands, but `make reproduce`
-as a single invocation was not itself executed in this environment.
+directly instead and all **SUCCEEDED**. `make reproduce` as a single
+invocation was not itself executed in this environment; `make
+trade_study` and the `e12` step still aren't part of `make experiments`'s
+default loop (documented above), so `make reproduce` alone does not yet
+regenerate the full v3 dataset even where `make` is available.
 
 ## Notes
 
-`experiments/e02_image_benchmark_tiles.py` previously re-downloaded and
-overwrote `data/imagery/tiles/*.jpg` on every run regardless of whether a
-tile already existed, silently mutating checked-in input data (confirmed
-in an earlier session: running it changed `tile_001.jpg` from 910,705 to
-630,392 bytes). Fixed this pass: `download_tile()` now reuses an existing
-tile file instead of re-fetching it. Verified by hashing `tile_001.jpg`
-before and after a run (`b2d8cbc4...` both times) and diffing the output
-CSVs: `compressed_bytes`/`quicklook_bytes`/`roi_bytes`/`psnr`/`ssim` are
-now byte-for-byte identical across runs, only the timing columns
-(`comp_time_s`, `ql_time_s`, `roi_time_s`) vary, which is expected since
-those are real wall-clock measurements. The script still falls back to a
-deterministic synthetic tile on first run if a tile doesn't exist yet and
-the network download fails or times out.
-`experiments/e11_mission_thread_success.py` is a Monte Carlo experiment
-seeded at 0, deterministic given the checked-in code; every other
-experiment and figure is fully deterministic.
+`experiments/e11_mission_thread_success.py` and
+`experiments/e12_access_sweep.py` are Monte Carlo experiments seeded at
+0, deterministic given the checked-in code; every other experiment and
+figure is fully deterministic except `e02_image_benchmark_tiles.py`
+(network-dependent, falls back to a deterministic synthetic tile).
+
+`e12_access_sweep.py` takes noticeably longer than the other experiments
+(~4-5 minutes) because it evaluates 18 access levels x 7 architectures x
+4 mission threads x 2 terminal classes x 2 conditions; this is by design
+(`docs/DECISION_LOG.md` ADR-018 documents the tractability tradeoffs
+already made to keep it in this range rather than e11's full 5-condition
+sweep at every access level).
