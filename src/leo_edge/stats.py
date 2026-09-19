@@ -8,6 +8,8 @@ No scipy dependency; these are hand-rolled but standard techniques
 import random
 from typing import List, Optional, Sequence, Tuple
 
+import numpy as np
+
 
 def paired_bootstrap_diff_ci(
     successes_a: Sequence[int],
@@ -25,23 +27,27 @@ def paired_bootstrap_diff_ci(
 
     Returns (point_diff, ci_lower, ci_upper, significant), where
     `significant` is True iff the 95% CI excludes 0.
+
+    Vectorized with numpy: this gets called for many architecture pairs
+    across many cells (experiments/e11, experiments/e12), and a pure-Python
+    per-resample loop is too slow at the trial counts this repo uses.
     """
     n = len(successes_a)
     if n == 0 or n != len(successes_b):
         return float("nan"), float("nan"), float("nan"), False
 
-    point_diff = (sum(successes_a) - sum(successes_b)) / n
+    a = np.asarray(successes_a, dtype=np.float64)
+    b = np.asarray(successes_b, dtype=np.float64)
+    point_diff = float((a.sum() - b.sum()) / n)
 
-    rng = random.Random(seed)
-    diffs = []
-    for _ in range(n_resamples):
-        sample = [rng.randrange(n) for _ in range(n)]
-        a_rate = sum(successes_a[i] for i in sample) / n
-        b_rate = sum(successes_b[i] for i in sample) / n
-        diffs.append(a_rate - b_rate)
-    diffs.sort()
-    lo = diffs[int(0.025 * n_resamples)]
-    hi = diffs[min(int(0.975 * n_resamples), n_resamples - 1)]
+    rng = np.random.default_rng(seed)
+    idx = rng.integers(0, n, size=(n_resamples, n))
+    a_rates = a[idx].mean(axis=1)
+    b_rates = b[idx].mean(axis=1)
+    diffs = np.sort(a_rates - b_rates)
+
+    lo = float(diffs[int(0.025 * n_resamples)])
+    hi = float(diffs[min(int(0.975 * n_resamples), n_resamples - 1)])
     significant = lo > 0 or hi < 0
     return point_diff, lo, hi, significant
 
