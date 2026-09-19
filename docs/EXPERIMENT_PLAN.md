@@ -1,6 +1,6 @@
 # Experiment Plan
 
-Every experiment lives in `experiments/` and writes its output CSV to `results/raw/`, which gets copied into `results/frozen/v1/` once a result set is frozen for the paper. Run any of them with `PYTHONPATH=src python experiments/<name>.py`, or run all of them with `make experiments`.
+Every experiment lives in `experiments/` and writes its output CSV to `results/raw/`, which gets copied into `results/frozen/v2/` once a result set is frozen. Run any of them with `PYTHONPATH=src python experiments/<name>.py`, or run all of them with `make experiments`.
 
 | Script | Question it answers | Output |
 |---|---|---|
@@ -16,11 +16,12 @@ Every experiment lives in `experiments/` and writes its output CSV to `results/r
 | `e08_uncertainty.py` | How sensitive are the results to uncertainty in predicted contact capacity? | `e08_uncertainty.csv` |
 | `e09_constellation_handoff.py` | How does adding more satellites (phased in a small constellation) change contact availability? | `e09_constellation.csv` |
 | `e10_storage_wear.py` | Does repeated store/free cycling wear out flash storage over a realistic mission timeline? | `e10_storage_wear.csv` |
+| `e11_mission_thread_success.py` | Which architecture, terminal class, and contested condition actually get a mission thread's needed product to the user in time, using real contact windows and a randomized request time? | `e11_mission_thread_success.csv`, `e11_mission_thread_trials.csv` |
 
 ## Research design principle behind the sweeps
 
-The point of e03 through e08 is not to crown one architecture "best." It's to find the conditions, in downlink rate, contact duration, processor power, and contact-capacity uncertainty, under which each architecture wins. `figures/fig04.png` (the regime map) is the direct answer to that question for the rate/duration axes.
+The point of e03 through e08 is not to crown one architecture "best." It's to find the conditions, in downlink rate, contact duration, processor power, and contact-capacity uncertainty, under which each architecture wins within a single contact window. `figures/fig04.png` (the regime map) is the direct answer to that question for the rate/duration axes. `e11` is a different, higher-level question: given a real week-long contact schedule and a mission thread's latency tolerance, does delivery actually succeed at all. `docs/TRADE_STUDY.md` and `scripts/trade_study.py` turn `e11`'s output (plus `e03`'s) into the weighted multi-criteria comparison that's the repository's headline result.
 
 ## What each experiment checks against the analytical model
 
-`e00_sanity.py` and `paper/hand_calc_break_even.md` both check the simulation's timing model against the closed-form break-even relation `T_proc < (D_r - D_p) / R`. `e05_power_sweep.py` extends that check across a range of processor power values.
+`e00_sanity.py` and `docs/HAND_CALC_BREAK_EVEN.md` both check the simulation's timing model against the closed-form break-even relation `T_proc < (D_r - D_p) / R`. `e05_power_sweep.py` extends that check across a range of processor power values.

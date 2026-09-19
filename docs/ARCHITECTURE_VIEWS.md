@@ -6,9 +6,10 @@ should imagery functions be allocated between a commercial LEO space
 segment acquired as a service and an Army-owned tactical edge segment, and
 how does the preferred allocation shift with mission need, terminal class,
 and contested conditions?* This replaces the v1 version of this document,
-which traced to the retired onboard-vs-ground-processing question (see
-`LEO_EDGE_OPERATIONAL_VIEWPOINTS.md`'s header for that framing, kept for
-history).
+which traced to the retired onboard-vs-ground-processing question. The old
+DoDAF-style operational-viewpoint document that also carried that framing
+has been deleted from the working tree, not kept (`docs/DECISION_LOG.md`
+ADR-011); this document is now the sole operational/architecture view.
 
 These views cover both the DoDAF-style operational content this rework
 introduced (OV-2 resource flows, OV-5b activities, OV-6c event trace,
@@ -262,7 +263,7 @@ Constraints:
   (`docs/DECISION_LOG.md` ADR-008)
 
 Break-even relation used for the single-window analytical check
-(`paper/hand_calc_break_even.md`, unaffected by this rework):
+(`docs/HAND_CALC_BREAK_EVEN.md`, unaffected by this rework):
 ```
 T_proc + D_p/R < D_r/R
 T_proc < (D_r - D_p)/R

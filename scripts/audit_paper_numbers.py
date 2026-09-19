@@ -1,6 +1,6 @@
-"""Audit paper numbers from frozen results CSVs.
+"""Audit result numbers from frozen results CSVs.
 
-Scans results/frozen/v1/*.csv, extracts key metrics, computes min/max/mean,
+Scans results/frozen/v2/*.csv, extracts key metrics, computes min/max/mean,
 and checks basic invariants. Deterministic and pathlib-based.
 """
 from pathlib import Path

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig02.png"
-DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v1"
+DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2"
 DATA_FILE = DATA_DIR / "fig02_data.csv"
 
 os.makedirs(DATA_DIR, exist_ok=True)

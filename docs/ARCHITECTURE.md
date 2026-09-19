@@ -1,10 +1,10 @@
 # ARCHITECTURE
 
-System architecture for LEO edge processing placement and progressive direct-to-edge imagery delivery.
+Lower-level SysML-style block/activity/state diagrams for the satellite side of the system, supplementary to `docs/ARCHITECTURE_VIEWS.md`, which is where the commercial-provider/Army-edge ownership boundary (`docs/ALLOCATION_SPACE.md`) is actually drawn. The "GroundTerminal" block below is the Army-owned tactical edge terminal (`docs/MISSION_THREADS.md`'s terminal classes), kept generic here since this diagram is about onboard product-tier flow, not the ownership boundary.
 
 ## Overview
 
-The architecture models a COTS-heavy small satellite with onboard processing, mass memory, and a radio downlink communicating with a generic ground terminal. Processing placement decisions are governed by contact windows and product tier prioritization.
+The architecture models a COTS-heavy small satellite with onboard processing, mass memory, and a radio downlink communicating with the Army-owned edge terminal. Processing placement decisions are governed by contact windows and product tier prioritization.
 
 ## Block Definition Diagram
 

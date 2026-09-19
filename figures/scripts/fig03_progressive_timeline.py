@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v1"
+DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v2"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig03.png"
 DATA_FILE = DATA_DIR / "fig03_data.csv"
 

@@ -1,14 +1,15 @@
 # Public Release
 
-This repository is public source and unclassified. It uses only public/synthetic imagery, generic ground-terminal locations, and synthetic mission requests. It contains no real Army tactical collection plans, no classified data rates, and no real operational terminal locations.
+This repository is public source and unclassified. It uses only public/synthetic imagery, generic ground-terminal locations, and synthetic mission requests. It contains no real Army tactical collection plans, no classified data rates, and no real operational terminal locations. Everything operational is notional and unofficial; nothing here represents an Army requirement, program, or acquisition decision.
 
 ## What's in the public release
 
 - The full `src/leo_edge/` library.
-- All experiment scripts (`experiments/`) and their frozen output (`results/frozen/v1/`).
+- All experiment scripts (`experiments/`) and their frozen output (`results/frozen/v2/`).
 - All figure-generation scripts and the figures themselves (`figures/`).
-- The paper manuscript and hand-calculation validation (`paper/`).
-- The architecture and operational documentation (`docs/`, `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md`).
+- The trade study script (`scripts/trade_study.py`) and its output.
+- The hand-calculation validation (`docs/HAND_CALC_BREAK_EVEN.md`).
+- The full architecture and operational documentation (`docs/`).
 
 ## Built on open source
 

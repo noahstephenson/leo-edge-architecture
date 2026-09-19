@@ -20,7 +20,7 @@ Every major code feature should trace to that chain. See `docs/REQUIREMENTS.md` 
 
 > How should imagery functions (tasking, collection, processing, prioritization, delivery) be allocated between a commercial LEO space segment acquired as a service and an Army-owned tactical edge segment, and how does the preferred allocation shift across mission needs, terminal classes, and contested or DDIL conditions?
 
-This question replaces the repository's original one (onboard vs. ground processing placement, preserved for history in `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md`); the pivot is recorded in `docs/DECISION_LOG.md` ADR-007, per this file's own governance rule below, which is why it was safe to change here.
+This question replaces the repository's original one (onboard vs. ground processing placement). The pivot, and the removal of the v1-only material (the old DoDAF operational-viewpoint document, the v1 paper draft, and the v1 frozen results), is recorded in `docs/DECISION_LOG.md` ADR-007 and ADR-011, per this file's own governance rule below, which is why it was safe to change here.
 
 Do not silently change this question again.
 
@@ -71,7 +71,6 @@ Avoid:
 src/leo_edge/
     architecture.py
     architectures.py
-    mission.py
     products.py
     processing.py
     queues.py
@@ -219,7 +218,7 @@ Own:
 - `docs/NOVELTY.md`
 - checking every claim in `docs/TRADE_STUDY.md` and `docs/ACQUISITION_IMPLICATIONS.md` against a real number in `results/frozen/v2/`
 
-No claim should depend on a literature comparison unless a real literature review has actually been done and recorded with real citations, per `docs/NOVELTY.md`. `paper/manuscript.md` reflects the retired v1 research question (`docs/DECISION_LOG.md` ADR-005, ADR-007) and is not owned by this workstream going forward.
+No claim should depend on a literature comparison unless a real literature review has actually been done and recorded with real citations, per `docs/NOVELTY.md`.
 
 ### Agent B: Architecture and requirements
 Own:

@@ -105,5 +105,5 @@ dmypy.json
 
 # Project results: results/raw/ is regenerated scratch output from running
 # experiments locally; results/frozen/ is the versioned, reproducible dataset
-# the paper and figures depend on, and is intentionally committed.
+# the figures, trade study, and docs depend on, and is intentionally committed.
 results/raw/

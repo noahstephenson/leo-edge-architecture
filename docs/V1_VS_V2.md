@@ -1,7 +1,9 @@
 # v1 vs v2: what changed and which conclusions survive
 
-`results/frozen/v1/` is left untouched as the historical record. This
-document says plainly what was wrong with it, what changed in the code
+`results/frozen/v1/` held the original, buggy results; it has since been
+deleted from the working tree (available in git history if needed) once
+this document and the fixes below were verified against it. This document
+says plainly what was wrong with it, what changed in the code
 (`docs/DECISION_LOG.md` ADR-008 has the full list), and which v1 conclusions
 hold up once the fixes are applied. `results/frozen/v2/` is regenerated from
 the fixed code with the same experiment parameters used in v1 unless noted.

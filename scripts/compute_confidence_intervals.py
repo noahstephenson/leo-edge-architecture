@@ -1,7 +1,10 @@
 """Compute mean and 95% confidence intervals for tfup_s and tcp_s per architecture.
 
-Reads all CSVs in results/frozen/v1/, aggregates rows with tfup_s and tcp_s,
-and writes results/frozen/v1/confidence_intervals.csv.
+Reads all CSVs in results/frozen/v2/, aggregates rows with tfup_s and tcp_s,
+and writes results/frozen/v2/confidence_intervals.csv. Rows where tfup_s or
+tcp_s is empty (a censored, uncompleted delivery, see docs/DECISION_LOG.md
+ADR-008) are skipped rather than treated as 0, since float("") raises and
+is caught below.
 
 Deterministic sampling uses a fixed random seed for bootstrap.
 """
@@ -12,7 +15,7 @@ import random
 from collections import defaultdict
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v1"
+RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v2"
 OUTPUT_PATH = RESULTS_DIR / "confidence_intervals.csv"
 
 ARCH_COLUMNS = ["architecture_name", "architecture", "arch_name"]
@@ -57,13 +60,17 @@ def collect_data():
                     if not arch:
                         continue
                     arch = ARCH_NAME_MAP.get(arch, arch)
-                    try:
-                        tfup_val = float(row["tfup_s"])
-                        tcp_val = float(row["tcp_s"])
-                    except (ValueError, TypeError):
-                        continue
-                    data[arch]["tfup_s"].append(tfup_val)
-                    data[arch]["tcp_s"].append(tcp_val)
+                    for metric in METRICS:
+                        raw = row.get(metric)
+                        if not raw:
+                            continue  # empty cell: a censored delivery
+                        try:
+                            val = float(raw)
+                        except (ValueError, TypeError):
+                            continue
+                        if val != val:
+                            continue  # literal "nan" text: also censored
+                        data[arch][metric].append(val)
         except Exception:
             # Skip unreadable files deterministically
             continue
@@ -108,21 +115,23 @@ def main():
         tcp_vals = data[arch]["tcp_s"]
         tfup_mean, tfup_low, tfup_high = bootstrap_ci(tfup_vals)
         tcp_mean, tcp_low, tcp_high = bootstrap_ci(tcp_vals)
-        n_samples = len(tfup_vals)
-        # If tcp samples differ, use min; they should be same per architecture
+        # tfup_s and tcp_s are censored independently (docs/DECISION_LOG.md
+        # ADR-008: a quicklook can complete without the full scene ever
+        # completing), so their sample counts can genuinely differ.
         rows.append({
             "architecture": arch,
             "tfup_mean": tfup_mean,
             "tfup_ci_lower": tfup_low,
             "tfup_ci_upper": tfup_high,
+            "tfup_n_samples": len(tfup_vals),
             "tcp_mean": tcp_mean,
             "tcp_ci_lower": tcp_low,
             "tcp_ci_upper": tcp_high,
-            "n_samples": n_samples,
+            "tcp_n_samples": len(tcp_vals),
         })
 
-    fieldnames = ["architecture", "tfup_mean", "tfup_ci_lower", "tfup_ci_upper",
-                  "tcp_mean", "tcp_ci_lower", "tcp_ci_upper", "n_samples"]
+    fieldnames = ["architecture", "tfup_mean", "tfup_ci_lower", "tfup_ci_upper", "tfup_n_samples",
+                  "tcp_mean", "tcp_ci_lower", "tcp_ci_upper", "tcp_n_samples"]
     with OUTPUT_PATH.open("w", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=fieldnames)
         writer.writeheader()

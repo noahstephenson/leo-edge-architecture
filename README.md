@@ -60,7 +60,9 @@ onboard processing architecture is used.
 single-contact-window simulation had a real bug (uncapped byte counts) that
 silently scored truncated deliveries as complete successes. Fixing it
 changed which architecture "wins" a single contact window; see that
-document for the full before/after.
+document for the full before/after. The original buggy results and the v1
+paper draft built on top of them have been deleted, not kept; git history
+has them if needed.
 
 ## System architecture
 
@@ -118,11 +120,9 @@ above. See `REPRODUCE_LOG.md` for a real run log.
 |---|---|
 | `src/leo_edge/` | The architecture, orbit, imagery, and metrics model |
 | `experiments/` | `e00` through `e11`, each answering one question about the model |
-| `results/frozen/v1/` | The original (buggy) frozen results, kept as historical record |
-| `results/frozen/v2/` | Current frozen results, from the corrected model (`docs/V1_VS_V2.md`) |
+| `results/frozen/v2/` | Frozen results from the corrected model (`docs/V1_VS_V2.md` explains the "v2" name; there's no v1 directory anymore, see below) |
 | `figures/` | Figures generated from `results/frozen/v2/`, see `figures/README.md` |
-| `docs/` | Operational context, stakeholders, requirements, allocation space, trade study, acquisition implications, architecture views, novelty, assumptions, decisions |
-| `paper/` | The v1 manuscript and hand-calculation check; not updated by this rework |
+| `docs/` | Operational context, stakeholders, requirements, allocation space, trade study, acquisition implications, architecture views, novelty, assumptions, decisions, hand-calculation check |
 | `app/dashboard.py` | A Streamlit dashboard for exploring the architectures interactively |
 
 ## License

@@ -14,7 +14,19 @@ make trade_study
 `e11_mission_thread_success.py`), `figures`, and `trade_study` in order.
 See `README.md`'s Quick Start.
 
-## Last full run: 2026-09-18 (post-rework)
+## Last full run: 2026-09-18 (post-rework, post-cleanup)
+
+This run followed a cleanup pass that deleted `results/frozen/v1/`,
+`paper/`, and `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md` (`docs/DECISION_LOG.md`
+ADR-011) and removed genuinely dead code (`src/leo_edge/mission.py`, ADR-012).
+That deletion caught a real bug this log's earlier version had missed:
+`figures/scripts/fig02_sensitivity_tornado.py`,
+`fig03_progressive_timeline.py`, and `fig06_contact_distribution.py` still
+pointed at the now-deleted `results/frozen/v1/`, which would have made
+`make figures` fail on a truly clean clone despite this log's prior
+"SUCCESS" (those three scripts weren't re-run after the earlier v1->v2
+path fixes in this session, only fig04/fig05 were checked at the time).
+Fixed and re-verified end to end below.
 
 ### Test suite
 
@@ -49,12 +61,12 @@ Result: **SUCCESS**, all 13 scripts ran clean:
 - experiments/e10_storage_wear.py
 - experiments/e11_mission_thread_success.py (new this pass)
 
-Outputs written to `results/raw/` and promoted into `results/frozen/v2/`
-(`results/frozen/v1/` is untouched, kept as the historical pre-fix record;
-see `docs/V1_VS_V2.md`). `e09`/`e10` write directly to
-`results/frozen/v2/`, same structural quirk as v1
-(`results/frozen/v1/experiments_summary.md`'s note, unchanged by this
-pass).
+Outputs written to `results/raw/` and promoted into `results/frozen/v2/`.
+The original v1 results have been deleted from the working tree
+(`docs/DECISION_LOG.md` ADR-011); `docs/V1_VS_V2.md` documents what they
+showed and what changed. `e09`/`e10` write directly to
+`results/frozen/v2/`, a structural quirk noted but not fixed in this pass
+(`docs/DECISION_LOG.md` ADR-008's scope).
 
 ### Trade study
 

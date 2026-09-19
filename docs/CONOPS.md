@@ -1,18 +1,27 @@
 # Concept of Operations
 
-The full concept of operations, with actors, product tiers, and the OV-1 through OV-5a operational viewpoints, lives in `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md`. This page is the short version.
+The full operational picture, with actors, mission threads, and the OV-2/
+OV-5b/OV-6c views, lives in `docs/OPERATIONAL_CONTEXT.md`,
+`docs/MISSION_THREADS.md`, and `docs/ARCHITECTURE_VIEWS.md`. This page is
+the short version. Everything here is notional and unofficial.
 
 ## The idea in one paragraph
 
-A user requests imagery of an area. Mission operations schedules the collection. A small COTS-heavy satellite in low Earth orbit captures the scene, optionally processes it onboard, and downlinks directly to a mobile ground terminal in the field during the next contact window, without needing to route through a centralized ground station first. The ground terminal finishes any remaining processing and hands the product to the user.
-
-## Why direct-to-edge
-
-A centralized processing chain (satellite to a fixed ground station to a data center to the field) adds hops and latency that a mobile user in the field cannot always wait for. Direct-to-edge delivery shortens that path. The tradeoff this project studies is what to do on the satellite before that direct downlink: send the image raw and let the ground terminal do all the work, or spend onboard compute and time to shrink the product first.
+A tactical user requests imagery of an area of interest, either through a
+rear-echelon tasking cell or directly. A commercial LEO provider's
+satellite captures the scene, generates one or more product tiers, and
+downlinks to the Army-owned tactical edge terminal during a contact
+window. The edge terminal receives and exploits whatever arrived. The
+architectural question this project studies is which functions (tasking,
+collection, processing, prioritization, delivery) should sit in the
+commercial space segment versus the Army edge segment, and how the right
+split changes with mission need, terminal class, and contested conditions.
+`docs/ALLOCATION_SPACE.md` is the full answer to "what to do."
 
 ## Product tiers
 
-The satellite can generate five tiers of product, from smallest and fastest to largest and slowest:
+A satellite can generate five tiers of product, from smallest and fastest
+to largest and slowest:
 
 | Tier | What it is | Purpose |
 |---|---|---|
@@ -24,4 +33,8 @@ The satellite can generate five tiers of product, from smallest and fastest to l
 
 ## Scope
 
-This is a research and simulation project, not an operational system. It uses public/synthetic imagery and generic ground-terminal locations, and it does not model target recognition, tracking, weapon cueing, or classified workflows. See `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md` section 2 for the full in-scope/out-of-scope list.
+This is a research and simulation project, not an operational system. It
+uses public/synthetic imagery and generic ground-terminal locations, and
+it does not model target recognition, tracking, weapon cueing, or
+classified workflows. See `AGENTS.md`'s non-negotiable scope boundaries
+for the full list.

@@ -58,4 +58,4 @@ The 30 real image tiles in `data/imagery/tiles/` are described by the manifest s
 
 ## Result CSV files
 
-`results/frozen/v1/` holds one CSV per experiment (e.g. `e03_results.csv` has one row per architecture x downlink-rate combination) plus one CSV per figure that computes its own derived data (e.g. `fig04_data.csv`). Column names match the metric names above plus the experiment's swept parameters (`rate_bps`, `contact_duration_s`, `architecture_name`, and so on).
+`results/frozen/v2/` holds one CSV per experiment (e.g. `e03_results.csv` has one row per architecture x downlink-rate combination) plus one CSV per figure that computes its own derived data (e.g. `fig04_data.csv`). Column names match the metric names above plus the experiment's swept parameters (`rate_bps`, `contact_duration_s`, `architecture_name`, and so on).
