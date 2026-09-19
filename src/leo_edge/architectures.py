@@ -97,6 +97,10 @@ class GroundOnly:
     """
 
     ARCH_ID = A0_GROUND_ONLY
+    # Part of the original A0-A5 candidate set defined before any evaluation
+    # results existed (docs/DECISION_LOG.md ADR-014 explains why A6 below is
+    # different: it was proposed after seeing v2 results).
+    PROVENANCE = "original_candidate_set"
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         bytes_transmitted = min(scene_bytes, contact_capacity_bytes)
@@ -119,6 +123,7 @@ class CompressedFull:
     """A1_COMPRESSED_FULL: process then transmit one compressed product."""
 
     ARCH_ID = A1_COMPRESSED_FULL
+    PROVENANCE = "original_candidate_set"
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         compressed_bytes = int(scene_bytes * COMPRESSED_FULL_FRACTION)
@@ -145,6 +150,7 @@ class QuicklookFirst:
     """A2_QUICKLOOK_FIRST: quicklook first, then the full scene if capacity allows."""
 
     ARCH_ID = A2_QUICKLOOK_FIRST
+    PROVENANCE = "original_candidate_set"
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         quicklook_bytes = int(scene_bytes * QUICKLOOK_SIZE_FRACTION)
@@ -197,6 +203,7 @@ class RoiFirst:
     """A3_ROI_FIRST: region-of-interest crop first, then the full scene."""
 
     ARCH_ID = A3_ROI_FIRST
+    PROVENANCE = "original_candidate_set"
 
     def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
         roi_bytes = int(scene_bytes * ROI_SIZE_FRACTION)
@@ -248,6 +255,7 @@ class Progressive:
     """A4_PROGRESSIVE: metadata, thumbnail, quicklook, ROI, full, in priority order."""
 
     ARCH_ID = A4_PROGRESSIVE
+    PROVENANCE = "original_candidate_set"
 
     def _tier_sizes(self, scene_bytes):
         return [
@@ -340,6 +348,14 @@ class ThreadAwarePriority(Progressive):
     """
 
     ARCH_ID = A6_THREAD_AWARE_PRIORITY
+    # Proposed after seeing v2's mission-thread-success results (which
+    # showed tiered architectures winning and named mission-thread-aware
+    # prioritization as the biggest uncovered allocation-space region);
+    # not part of the original A0-A5 candidate set defined before any
+    # evaluation. Reported separately in docs/TRADE_STUDY.md and
+    # experiments/e11_mission_thread_success.py's output for this reason,
+    # per docs/DECISION_LOG.md.
+    PROVENANCE = "proposed_post_v2"
 
     def __init__(self, priority_tier=ProductTier.P2_QUICKLOOK):
         self.priority_tier = priority_tier
@@ -405,6 +421,7 @@ class ContactAware:
     """
 
     ARCH_ID = A5_CONTACT_AWARE
+    PROVENANCE = "original_candidate_set"
 
     def __init__(self, alpha=CONTACT_AWARE_MARGIN_ALPHA, processor_fault=False):
         self.alpha = alpha

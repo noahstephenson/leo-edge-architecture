@@ -107,6 +107,15 @@ def test_architecture_registry_matches_arch_ids():
         assert arch_class.ARCH_ID == arch_id
 
 
+def test_a6_is_tagged_as_proposed_post_v2():
+    """A6 was proposed after seeing v2's results and must be reported
+    separately, not folded silently into the original candidate set
+    (docs/DECISION_LOG.md)."""
+    assert ThreadAwarePriority.PROVENANCE == "proposed_post_v2"
+    for arch_class in [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive, ContactAware]:
+        assert arch_class.PROVENANCE == "original_candidate_set"
+
+
 @pytest.mark.parametrize("arch_class", [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive, ThreadAwarePriority])
 def test_fidelity_always_reported(arch_class):
     capacity = _ample_capacity_bytes()
