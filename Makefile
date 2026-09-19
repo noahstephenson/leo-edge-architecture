@@ -1,4 +1,4 @@
-.PHONY: reproduce test experiments figures trade_study paper
+.PHONY: reproduce test experiments figures trade_study
 
 reproduce: test experiments figures trade_study
 	@echo "Reproduce complete"
@@ -27,10 +27,3 @@ trade_study:
 	uv sync
 	@echo "Running trade study..."
 	uv run python scripts/trade_study.py
-
-paper: experiments figures
-	uv sync
-	@echo "Generating LaTeX tables..."
-	uv run python scripts/generate_latex_tables.py
-	@echo "Building paper with latexmk..."
-	cd paper && latexmk -pdf ieee_template.tex
