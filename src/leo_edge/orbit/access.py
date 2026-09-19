@@ -46,6 +46,9 @@ def generate_access_windows(
           - end: ISO-8601 UTC end time
           - duration_s: window duration in seconds
           - max_elevation_deg: maximum elevation within window
+          - peak: ISO-8601 UTC time of maximum elevation within the window
+            (closest approach), used by v4's collection-timing model instead
+            of window end (docs/DECISION_LOG.md ADR-019)
     """
     if not _SKYFIELD_AVAILABLE:
         # Skyfield isn't installed; no access windows can be generated
@@ -86,16 +89,31 @@ def generate_access_windows(
     satellite = EarthSatellite(line1, line2, ts=ts)
     observer = wgs84.latlon(ground_lat, ground_lon)
 
-    elevations = []
-    for t in times:
-        diff = satellite - observer
-        topocentric = diff.at(t)
-        alt, az, _distance = topocentric.altaz()
-        elevations.append(float(alt.degrees))
+    # Vectorized: compute all altitudes in one skyfield call instead of one
+    # Python-level call per time step. Same geometry, same results, just
+    # fast enough to make per-satellite propagation of a real multi-satellite
+    # Walker constellation tractable (docs/DECISION_LOG.md ADR-019).
+    topocentric = (satellite - observer).at(times)
+    alt, _az, _distance = topocentric.altaz()
+    elevations = alt.degrees
+
+    def _mk_window(start_idx, end_idx, peak_idx, max_elev):
+        start_time = times[start_idx]
+        end_time = times[end_idx]
+        peak_time = times[peak_idx]
+        duration_s = (end_time.utc_datetime() - start_time.utc_datetime()).total_seconds()
+        return {
+            "start": start_time.utc_iso(),
+            "end": end_time.utc_iso(),
+            "peak": peak_time.utc_iso(),
+            "duration_s": float(duration_s),
+            "max_elevation_deg": float(max_elev),
+        }
 
     windows: List[Dict] = []
     in_window = False
     start_idx = 0
+    peak_idx = 0
     max_elev = -90.0
 
     for i, elev in enumerate(elevations):
@@ -103,35 +121,18 @@ def generate_access_windows(
             if not in_window:
                 in_window = True
                 start_idx = i
+                peak_idx = i
                 max_elev = elev
-            else:
-                if elev > max_elev:
-                    max_elev = elev
+            elif elev > max_elev:
+                max_elev = elev
+                peak_idx = i
         else:
             if in_window:
-                end_idx = i - 1
-                start_time = times[start_idx]
-                end_time = times[end_idx]
-                duration_s = (end_time.utc_datetime() - start_time.utc_datetime()).total_seconds()
-                windows.append({
-                    "start": start_time.utc_iso(),
-                    "end": end_time.utc_iso(),
-                    "duration_s": float(duration_s),
-                    "max_elevation_deg": float(max_elev),
-                })
+                windows.append(_mk_window(start_idx, i - 1, peak_idx, max_elev))
                 in_window = False
                 max_elev = -90.0
 
     if in_window:
-        end_idx = len(elevations) - 1
-        start_time = times[start_idx]
-        end_time = times[end_idx]
-        duration_s = (end_time.utc_datetime() - start_time.utc_datetime()).total_seconds()
-        windows.append({
-            "start": start_time.utc_iso(),
-            "end": end_time.utc_iso(),
-            "duration_s": float(duration_s),
-            "max_elevation_deg": float(max_elev),
-        })
+        windows.append(_mk_window(start_idx, len(elevations) - 1, peak_idx, max_elev))
 
     return windows
