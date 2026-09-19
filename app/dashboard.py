@@ -25,12 +25,21 @@ from leo_edge.architectures import (
 )
 from leo_edge.simulation import simulate_multi_contact
 from leo_edge.products import ProductTier
+from leo_edge.mission_threads import MISSION_THREADS as _MISSION_THREADS_SRC
 
-# Mission threads, terminal classes, and conditions from docs/MISSION_THREADS.md.
+# Display names map to src/leo_edge/mission_threads.py's keys, the single
+# source of truth shared with experiments/e11_mission_thread_success.py
+# and tests/test_mission_thread_consistency.py, so this dashboard can't
+# silently drift from what e11 actually evaluates. MT-3 and the
+# cadence-based MT-4 aren't shown here: MT-3 needs a prior-reference draw
+# and MT-4 needs the whole-horizon cadence walk, neither of which fits this
+# single-contact-window live check (see the caption below).
+_DISPLAY_TO_KEY = {
+    "MT-1 Time-sensitive cueing": "MT1_TIME_SENSITIVE_CUEING",
+    "MT-2 Route reconnaissance (first product)": "MT2_ROUTE_RECON_FIRST",
+}
 MISSION_THREADS = {
-    "MT-1 Time-sensitive cueing": {"needed_tier": ProductTier.P2_QUICKLOOK, "latency_tolerance_s": 120},
-    "MT-2 Route reconnaissance (first product)": {"needed_tier": ProductTier.P3_ROI, "latency_tolerance_s": 900},
-    "MT-4 Persistent monitoring": {"needed_tier": ProductTier.P1_THUMBNAIL, "latency_tolerance_s": 300},
+    display: _MISSION_THREADS_SRC[key] for display, key in _DISPLAY_TO_KEY.items()
 }
 TERMINAL_CLASSES = {
     "Vehicle-mounted": 50_000_000,
@@ -185,8 +194,10 @@ st.dataframe(
 )
 st.caption(
     "This is a single-contact-window check (docs/MODEL_REFERENCE.md), not the full multi-week Monte Carlo "
-    "in experiments/e11_mission_thread_success.py; it will show more successes than the real mission-thread "
-    "success rate, which also accounts for the wait for the next usable contact (docs/TRADE_STUDY.md)."
+    "in experiments/e11_mission_thread_success.py; it will show far more successes than the real mission-thread "
+    "success rate, which also accounts for the wait for the next imaging pass over the target, the wait for the "
+    "next usable downlink contact after that, and (for MT-3/MT-4, not shown here) prior-reference availability "
+    "and per-pass cadence (docs/TRADE_STUDY.md, docs/V2_VS_V3.md)."
 )
 
 st.subheader("Reference frozen data (e03_results.csv)")
