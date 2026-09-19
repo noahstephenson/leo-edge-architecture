@@ -2,8 +2,8 @@
 
 This is the central document of the rework. It defines the decisions that
 make up "how should imagery functions be allocated between the commercial
-LEO space segment and the Army-owned edge segment," places the six
-architectures this repository actually evaluates (A0-A5) as points within
+LEO space segment and the Army-owned edge segment," places the seven
+architectures this repository actually evaluates (A0-A6) as points within
 that space, and states plainly which regions of the space are not covered
 and why.
 
@@ -35,39 +35,43 @@ segment** (the tactical terminal). A third, optional segment, the
    based on predicted contact margin, `docs/MISSION_THREADS.md`'s
    contested-condition parameters).
 
-## The six architectures as points in this space
+## The seven architectures as points in this space
 
 | Architecture | Processing allocation | Tasking path | Product ordering | Policy adaptivity |
 |---|---|---|---|---|
-| A0_GROUND_ONLY | None onboard; raw only | Not modeled (fixed) | N/A, single product | Static |
-| A1_COMPRESSED_FULL | Full onboard compression, one atomic product | Not modeled (fixed) | N/A, single product | Static |
-| A2_QUICKLOOK_FIRST | Onboard quicklook, then full if capacity allows | Not modeled (fixed) | Fixed: quicklook always first | Static |
-| A3_ROI_FIRST | Onboard ROI crop, then full if capacity allows | Not modeled (fixed) | Fixed: ROI always first | Static |
-| A4_PROGRESSIVE | Onboard, all five tiers in fixed order as capacity allows | Not modeled (fixed) | Fixed: metadata, thumbnail, quicklook, ROI, full | Static |
-| A5_CONTACT_AWARE | Onboard compression, chosen only if margin allows; raw fallback otherwise | Not modeled (fixed) | N/A, single product per choice | Adaptive (contact-margin rule) |
+| A0_GROUND_ONLY | None onboard; raw only | Modeled (reachback or direct, `docs/MISSION_THREADS.md`) | N/A, single product | Static |
+| A1_COMPRESSED_FULL | Full onboard compression, one atomic product | Modeled | N/A, single product | Static |
+| A2_QUICKLOOK_FIRST | Onboard quicklook, then full if capacity allows | Modeled | Fixed: quicklook always first | Static |
+| A3_ROI_FIRST | Onboard ROI crop, then full if capacity allows | Modeled | Fixed: ROI always first | Static |
+| A4_PROGRESSIVE | Onboard, all five tiers in fixed order as capacity allows | Modeled | Fixed: metadata, thumbnail, quicklook, ROI, full | Static |
+| A5_CONTACT_AWARE | Onboard compression, chosen only if margin allows; raw fallback otherwise | Modeled | N/A, single product per choice | Adaptive (contact-margin rule) |
+| A6_THREAD_AWARE_PRIORITY | Onboard, same five tiers as A4, reordered around the active thread's needed tier | Modeled | Adaptive: the thread's needed tier is prioritized right after metadata, `src/leo_edge/architectures.py`'s `ThreadAwarePriority` | Static per request (the priority tier is fixed at construction, not re-evaluated mid-delivery) |
 
-Every one of A0-A5 fixes the tasking-path axis (none of them model tasking
-latency at all, prior to this rework) and fixes the product-ordering axis
-to a scene-agnostic priority order (none of them reorder based on which
-mission thread is running). That is exactly what the next section states
-as the space's biggest uncovered region.
+A0-A5 all fix the product-ordering axis to a scene-agnostic priority order
+(none of them reorder based on which mission thread is running). A6 closes
+that specific gap; it's a direct answer to the "most direct next
+experiment" this document originally flagged as missing (see
+`docs/DECISION_LOG.md` for when A6 was added and what it changed).
+Tasking-path latency is modeled for all seven via
+`experiments/e11_mission_thread_success.py`'s tasking-delay parameter,
+applied uniformly regardless of architecture; none of them internally
+choose between reachback and direct tasking, that choice is external
+(`docs/MISSION_THREADS.md`'s tasking-path table).
+
+## What A6 changed, and what it didn't
+
+`docs/TRADE_STUDY.md` has the full result. In short: A6 achieves the
+highest mission-thread success and resilience scores of any architecture
+in `results/frozen/v2/e11_mission_thread_success.csv` (normalized 1.000 and
+0.962 respectively, versus Progressive's 0.945 and 1.000), and wins
+outright under the tactical-user-leaning weight profile. It does not
+change the headline finding: contact geometry, not architecture choice,
+remains the dominant constraint (`docs/ACQUISITION_IMPLICATIONS.md`), and
+A6's raw success rates are still in the low single-digit percent range,
+just the best low single digits among the options tested.
 
 ## Uncovered regions
 
-- **Mission-thread-aware prioritization** is not implemented by any of
-  A0-A5. A3_ROI_FIRST always sends the ROI crop first regardless of
-  whether the active thread is MT-1 (which doesn't want an ROI crop at
-  all, it wants a coarse detection product) or MT-2 (which does).
-  Evaluating this axis requires a seventh-ish "policy," not a new fixed
-  architecture: a thread-aware prioritizer that picks among A2/A3/A4's
-  underlying tier logic based on which mission thread is active. This is
-  the most direct next experiment this repository doesn't yet run.
-- **Tasking-path latency** is not modeled by any of A0-A5's `run()` methods
-  today; `docs/MISSION_THREADS.md` defines the parameter, but no
-  experiment yet adds it to total latency. The mission-thread-success
-  experiments this rework's Part 2/3 work is meant to produce are where
-  that gets wired in; as of this document, it's a defined-but-unused
-  parameter, not yet evidence.
 - **Split processing** (partial tiering onboard, remaining tiering at the
   edge terminal) is not modeled at all. Every architecture here either does
   all its processing onboard or none; there's no architecture where the
@@ -93,9 +97,11 @@ as the space's biggest uncovered region.
 
 Filling all of these would turn this into a much larger simulation project
 than an undergraduate-scope study should attempt (`docs/RESEARCH_DESIGN.md`).
-The trade study (`docs/TRADE_STUDY.md`) evaluates the six architectures that
-exist, honestly, against the mission threads that exist, and states these
-gaps as exactly that: gaps, not findings the data can speak to. A reader
-should not conclude from the trade study's results that mission-thread-aware
-prioritization or split processing would perform worse than what's here;
-that comparison was never run.
+The trade study (`docs/TRADE_STUDY.md`) evaluates the seven architectures
+that exist, honestly, against the mission threads that exist, and states
+these gaps as exactly that: gaps, not findings the data can speak to. A
+reader should not conclude from the trade study's results that split
+processing, terminal-class-dependent allocation, or change-detection
+support would perform worse than what's here; that comparison was never
+run. Mission-thread-aware prioritization is the one item that moved from
+this list to "covered, with a result" (A6, above); the rest remain open.

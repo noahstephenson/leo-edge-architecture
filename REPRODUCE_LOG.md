@@ -14,18 +14,38 @@ make trade_study
 `e11_mission_thread_success.py`), `figures`, and `trade_study` in order.
 See `README.md`'s Quick Start.
 
-## Last full run: 2026-09-18 (post-rework, post-cleanup)
+## Last full run: 2026-09-18 (post-rework, post-cleanup, post-A6)
 
-This run followed a cleanup pass that deleted `results/frozen/v1/`,
+This run followed, in order: a cleanup pass that deleted `results/frozen/v1/`,
 `paper/`, and `LEO_EDGE_OPERATIONAL_VIEWPOINTS.md` (`docs/DECISION_LOG.md`
-ADR-011) and removed genuinely dead code (`src/leo_edge/mission.py`, ADR-012).
-That deletion caught a real bug this log's earlier version had missed:
-`figures/scripts/fig02_sensitivity_tornado.py`,
-`fig03_progressive_timeline.py`, and `fig06_contact_distribution.py` still
-pointed at the now-deleted `results/frozen/v1/`, which would have made
-`make figures` fail on a truly clean clone despite this log's prior
-"SUCCESS" (those three scripts weren't re-run after the earlier v1->v2
-path fixes in this session, only fig04/fig05 were checked at the time).
+ADR-011) and removed genuinely dead code (`src/leo_edge/mission.py`, ADR-012);
+a fix for `e02_image_benchmark_tiles.py` mutating its own checked-in input
+data (ADR-013); and the addition of A6 (`ThreadAwarePriority`, ADR-014), a
+mission-thread-aware prioritization architecture that closes
+`docs/ALLOCATION_SPACE.md`'s biggest originally-uncovered gap.
+
+Two real bugs were caught during this run, both before being left
+uncaught in a commit:
+
+1. The cleanup pass's file deletion caught a bug this log's earlier
+   version had missed: `figures/scripts/fig02_sensitivity_tornado.py`,
+   `fig03_progressive_timeline.py`, and `fig06_contact_distribution.py`
+   still pointed at the now-deleted `results/frozen/v1/`, which would have
+   made `make figures` fail on a truly clean clone.
+2. Wiring A6 into `experiments/e11_mission_thread_success.py` caught a
+   naming bug in the same change (never committed): the refactor
+   initially wrote the A-prefixed factory key (e.g. `"A0_GROUND_ONLY"`)
+   into the CSV `architecture` column instead of the class name
+   (`"GroundOnly"`) that `e03_results.csv` and `scripts/trade_study.py`
+   expect, which would have silently zeroed out the `mission_thread_success`
+   and `resilience` criteria for every architecture in every future trade-
+   study run. Fixed before committing; see ADR-014 for the full story,
+   including a related pre-existing gap it surfaced: `ContactAware` (A5)
+   had never been included in `e03_static_architectures.py`'s sweep, so its
+   "latency" criterion in every trade-study run up to this one was a silent
+   fallback value, not a measurement. Both `ContactAware` and `ThreadAwarePriority`
+   are now in that sweep.
+
 Fixed and re-verified end to end below.
 
 ### Test suite
@@ -35,9 +55,9 @@ uv sync
 uv run pytest
 ```
 
-Result: **SUCCESS**, 74 passed (up from 36 pre-rework: 38 new tests added
-for architecture correctness, multi-contact delivery, and mission-thread
-logic).
+Result: **SUCCESS**, 81 passed (up from 36 pre-rework: 45 new tests added
+for architecture correctness, multi-contact delivery, mission-thread
+logic, and A6's reordering behavior).
 
 ### Experiments
 

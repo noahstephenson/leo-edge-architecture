@@ -20,13 +20,15 @@ study, acquisition implication (`AGENTS.md`).
 
 ## Status
 
-The model, the test suite (74 tests), all 12 core experiments, the
+The model, the test suite (81 tests), all 12 core experiments, the
 mission-thread Monte Carlo (`e11`), all figures, and the trade study run
 clean from a fresh clone (`uv sync && uv run pytest && make experiments &&
 make figures && make trade_study`). The headline result is in
-`docs/TRADE_STUDY.md`: three of six architectures score 0% mission-thread
+`docs/TRADE_STUDY.md`: three of seven architectures score 0% mission-thread
 success structurally; contact geometry, not architecture choice, is the
-binding constraint for the rest.
+binding constraint for the rest, even for A6, the mission-thread-aware
+architecture added to close `docs/ALLOCATION_SPACE.md`'s biggest originally
+uncovered region.
 
 ## History
 

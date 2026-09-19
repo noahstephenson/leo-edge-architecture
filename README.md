@@ -20,10 +20,12 @@ Tactical Terminal) without claiming to model any of them.
 
 `docs/ALLOCATION_SPACE.md` is the central document: it defines the
 decisions (processing allocation, tasking path, product prioritization,
-policy adaptivity), places the six architectures this repository evaluates
-(A0-A5) as points within that space, and states plainly which regions
-(mission-thread-aware prioritization, split processing, terminal-class-
-dependent allocation) aren't covered.
+policy adaptivity), places the seven architectures this repository
+evaluates (A0-A6) as points within that space, and states plainly which
+regions (split processing, terminal-class-dependent allocation,
+change-detection support) still aren't covered. Mission-thread-aware
+prioritization (A6) used to be on that list; it's now covered, with a
+result.
 
 `docs/STAKEHOLDERS.md`, `docs/REQUIREMENTS.md` (with a full traceability
 matrix), and `docs/FUNCTIONAL_ARCHITECTURE.md` round out the systems
@@ -31,23 +33,25 @@ architecture; `docs/ARCHITECTURE_VIEWS.md` has the diagrams.
 
 ## The headline trade-study result
 
-`docs/TRADE_STUDY.md` evaluates all six architectures against four
+`docs/TRADE_STUDY.md` evaluates all seven architectures against four
 notional mission threads, two terminal classes, and five contested-link
 conditions, using real SGP4 contact windows and a Monte Carlo mission-
 thread-success metric with bootstrap confidence intervals
 (`experiments/e11_mission_thread_success.py`,
 `scripts/trade_study.py`).
 
-**Three of the six architectures (raw downlink, compressed-full, and the
+**Three of the seven architectures (raw downlink, compressed-full, and the
 contact-aware adaptive policy) scored exactly 0% mission-thread success on
 every thread and condition tested**, for a structural reason: none of them
 ever produce anything but a single, full-scene-scale product, and three of
 the four mission threads need an earlier tier. Among the architectures that
 can succeed at all, **contact geometry dominates**: a single ground site
 sees roughly 28 contact opportunities a week, hours apart on average, which
-is longer than every mission thread's latency tolerance. Best case, the
-top-scoring architecture (Progressive, a five-tier delivery scheme) still
-only reaches about a 5% mission-thread success rate.
+is longer than every mission thread's latency tolerance. The best-scoring
+architecture, A6 (`ThreadAwarePriority`, which reorders delivery around
+whichever tier the active mission thread actually needs instead of a fixed
+order), still only reaches about a 2% mean mission-thread success rate
+across all threads and conditions, and 5% in its single best cell.
 
 `docs/ACQUISITION_IMPLICATIONS.md` draws out what that means: requiring
 genuinely tiered products (not just onboard compression) from a commercial

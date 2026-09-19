@@ -16,11 +16,25 @@ holds `C = (R / 8) * D` bytes. This is the single formula everything in
 Each architecture's `run()` method answers: given one contact window with
 capacity `C`, what fits, and does the product this architecture cares about
 (a single tier for A0/A1/A5, a two-tier sequence for A2/A3, a five-tier
-sequence for A4) complete within that one window? Bytes are always capped
-to `C`; a tier that doesn't fully fit is not delivered, and `tfup_s`/
+sequence for A4/A6) complete within that one window? Bytes are always
+capped to `C`; a tier that doesn't fully fit is not delivered, and `tfup_s`/
 `tcp_s` are `NaN` for whatever didn't complete (`completed = False`), never
 a fabricated number for a truncated delivery. See `docs/DECISION_LOG.md`
 ADR-008 and `docs/V1_VS_V2.md` for why this matters and what changed.
+
+A6 (`ThreadAwarePriority`) reorders A4's same five tiers around whichever
+one the active mission thread needs (`docs/DECISION_LOG.md` ADR-014), so
+unlike every other architecture, its tier sizes in priority order are not
+monotonically increasing. Its `run()` therefore can't use A4's "stop at
+the first tier that doesn't fit" shortcut; it must try every remaining
+tier, since a smaller, lower-priority one can still fit after a larger,
+higher-priority one didn't. Its `tiers()` method (used by
+`simulate_multi_contact`, below) is inherited unchanged from Progressive
+and does not carry this skip-ahead behavior into the multi-contact case:
+across multiple windows, an undelivered priority tier's bytes still carry
+forward strictly in order before any later tier is attempted, which is a
+real, intentional difference between the single-window and multi-contact
+evaluation of the same architecture, not a bug.
 
 Processing time is charged as elapsed time from collection, not clipped to
 the transmit window; the modeling choice is that processing happens before

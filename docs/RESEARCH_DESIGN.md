@@ -51,7 +51,11 @@ noted, not silently updated to match the result.
    starkly than expected: GroundOnly, CompressedFull, and ContactAware
    scored exactly 0% mission-thread success on every thread tested,
    structurally, because they never produce an early tier at all
-   (`docs/TRADE_STUDY.md`).
+   (`docs/TRADE_STUDY.md`). A follow-on architecture, A6
+   (`ThreadAwarePriority`), was added after this finding specifically to
+   test whether *reordering* an already-tiered architecture's priority
+   around the active thread's need would help further; it did, modestly
+   (`docs/DECISION_LOG.md` ADR-014).
 2. **Terminal class changes which allocation wins.** Not supported by this
    dataset: mission-thread success rates were statistically indistinguishable
    between vehicle-mounted and dismounted terminals
@@ -80,8 +84,9 @@ noted, not silently updated to match the result.
 
 See `docs/TRADE_STUDY.md` for the full write-up and
 `docs/ACQUISITION_IMPLICATIONS.md` for what it implies. In short:
-mission-thread success tops out around 5% for the best architecture
-(Progressive); three of six architectures never succeed at all, for a
-structural reason unrelated to speed; and the dominant constraint across
-the whole dataset is contact frequency, not which onboard processing
-architecture is chosen.
+mission-thread success averages under 2% even for the best architecture
+(A6, `ThreadAwarePriority`, added specifically to test hypothesis 1 below
+after the fact) and tops out around 5% in its single best cell; three of
+seven architectures never succeed at all, for a structural reason
+unrelated to speed; and the dominant constraint across the whole dataset is
+contact frequency, not which onboard processing architecture is chosen.

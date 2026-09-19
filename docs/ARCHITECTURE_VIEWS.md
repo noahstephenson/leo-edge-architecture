@@ -126,7 +126,7 @@ Product tiers: P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI, P4_FULL
 (`src/leo_edge/products.py`).
 
 Architecture alternatives allocate the Process/Prioritize functions within
-the commercial space segment (none of A0-A5 currently allocate any
+the commercial space segment (none of A0-A6 currently allocate any
 processing to the Army edge segment; `docs/ALLOCATION_SPACE.md`'s
 "uncovered regions" section states this as a gap, not a finding):
 
@@ -137,6 +137,9 @@ processing to the Army edge segment; `docs/ALLOCATION_SPACE.md`'s
 - A4_PROGRESSIVE: P0->P1->P2->P3->P4, as capacity allows
 - A5_CONTACT_AWARE: margin-gated compressed-or-raw choice, evaluated once
   per delivery (`src/leo_edge/architectures.py`'s `ContactAware`)
+- A6_THREAD_AWARE_PRIORITY: same five tiers as Progressive, reordered
+  around the active mission thread's needed tier
+  (`src/leo_edge/architectures.py`'s `ThreadAwarePriority`)
 
 ## Process View
 

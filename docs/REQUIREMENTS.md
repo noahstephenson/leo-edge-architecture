@@ -26,6 +26,12 @@ SIM) are retired; the mapping from old to new is in
   (A0-A4).
   Verification: `tests/test_architectures.py::test_architecture_registry_matches_arch_ids`,
   `experiments/e07_adaptive_policy.py`.
+- **REQ-ALLOC-004**: The system shall evaluate at least one
+  mission-thread-aware prioritization policy (A6) that reorders product
+  delivery around the active mission thread's specific needed tier,
+  instead of a single fixed priority order for every thread.
+  Verification: `tests/test_architectures.py::test_thread_aware_priority_reorders_around_priority_tier`,
+  `experiments/e11_mission_thread_success.py`.
 
 ## Mission-thread success
 
@@ -94,11 +100,12 @@ SIM) are retired; the mapping from old to new is in
 
 | Need (stakeholder) | Requirement | Function | Candidate allocation(s) | Experiment | Test |
 |---|---|---|---|---|---|
-| Tactical user: fast first product (MT-1) | REQ-THREAD-001, REQ-ALLOC-001 | process (tiered), transmit | A2, A4, A5 | mission-thread experiment | `test_architectures.py` |
-| Tactical user: full-fidelity route coverage (MT-2) | REQ-THREAD-002, REQ-CORRECT-004 | process (ROI), transmit | A3, A4 | mission-thread experiment | `test_fidelity_always_reported` |
+| Tactical user: fast first product (MT-1) | REQ-THREAD-001, REQ-ALLOC-001 | process (tiered), transmit | A2, A4, A5, A6 | mission-thread experiment | `test_architectures.py` |
+| Tactical user: full-fidelity route coverage (MT-2) | REQ-THREAD-002, REQ-CORRECT-004 | process (ROI), transmit | A3, A4, A6 | mission-thread experiment | `test_fidelity_always_reported` |
 | Tactical user: honest failure when no reference exists (MT-3) | REQ-THREAD-003 | store (reference retention), process (change detection) | not yet allocated, see `docs/ALLOCATION_SPACE.md` gaps | mission-thread experiment | n/a (new) |
-| Tactical user: sustained cadence (MT-4) | REQ-THREAD-004 | task, collect, transmit | A0-A5 evaluated repeatedly | mission-thread experiment | n/a (new) |
+| Tactical user: sustained cadence (MT-4) | REQ-THREAD-004 | task, collect, transmit | A0-A6 evaluated repeatedly | mission-thread experiment | n/a (new) |
 | Terminal operator: SWaP-appropriate processing (dismounted vs. vehicle) | REQ-TERM-001 | process | allocation depends on terminal class | trade study | n/a (analysis) |
 | Rear-echelon tasking cell: deconfliction vs. speed | REQ-ALLOC-002 | task | reachback vs. direct edge | mission-thread experiment | n/a (new) |
 | Acquisition: evidence-based, not fabricated results | REQ-CORRECT-001 through REQ-CORRECT-004 | all | all | Part 1 fixes | `tests/test_architectures.py`, `tests/test_simulation.py` |
 | Provider/acquisition: adaptive policy as real candidate | REQ-ALLOC-003 | task, process, transmit | A5 | `experiments/e07_adaptive_policy.py` | `test_architecture_registry_matches_arch_ids` |
+| Tactical user: mission-thread-aware prioritization beats a fixed order | REQ-ALLOC-004 | process (tiered, reordered), prioritize | A6 | `experiments/e11_mission_thread_success.py`, `scripts/trade_study.py` | `test_thread_aware_priority_reorders_around_priority_tier`, `test_thread_aware_priority_skips_ahead_to_smaller_fitting_tier` |

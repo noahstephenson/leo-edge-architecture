@@ -97,3 +97,25 @@ Real architecture and project decisions, in the order they were made.
 **Rationale**: `mission.py` had no consumer and no test, the two things `AGENTS.md` says justify keeping a module; deleting it is exactly what that rule prescribes, not a new policy. `orbit_validation.py` wasn't dead, just filed in the wrong place in a way that made it invisible to `uv run pytest` (silently not run) and confusing to a reader expecting `tests/` to contain only pytest tests.
 
 **Consequence**: `scheduler.py` and `queues.py` remain as documented, intentionally-kept modules with thin test coverage, not deleted on this pass; a future cleanup that wants to remove them should do so as its own explicit decision, not as a side effect of this one.
+
+## ADR-013: Fix e02_image_benchmark_tiles.py mutating its own checked-in input data
+
+**Decision**: `download_tile()` always re-fetched and overwrote `data/imagery/tiles/*.jpg` on every run regardless of whether the tile already existed, silently mutating checked-in input data (confirmed earlier this session: running it changed `tile_001.jpg` from 910,705 to 630,392 bytes). Fixed to reuse an existing tile file instead of re-fetching it.
+
+**Rationale**: Input data that changes every time you run the script that consumes it isn't input data, it's disguised scratch output. `docs/ASSUMPTIONS.md`'s ASM-BENCH-001 and `docs/V_AND_V.md`'s benchmark-reproducibility claims depend on the tiles being stable across runs.
+
+**Consequence**: Verified by hashing `tile_001.jpg` before and after a run (identical) and diffing the output CSV: `compressed_bytes`, `quicklook_bytes`, `roi_bytes`, `psnr`, and `ssim` are now byte-for-byte reproducible; only the timing columns vary, which is expected since those are real wall-clock measurements.
+
+## ADR-014: Add A6_THREAD_AWARE_PRIORITY, closing the mission-thread-aware-prioritization gap
+
+**Decision**: Added `ThreadAwarePriority` (A6) to `src/leo_edge/architectures.py`: it behaves like Progressive (same five tiers, same sizes) but reorders delivery so the active mission thread's specific needed tier is sent right after metadata, instead of Progressive's fixed metadata-thumbnail-quicklook-ROI-full order regardless of which thread is running. This directly closes the gap `docs/ALLOCATION_SPACE.md` named as "the most direct next experiment this repository doesn't yet run." Wired into `experiments/e11_mission_thread_success.py`, `experiments/e03_static_architectures.py`, `scripts/trade_study.py`, and `app/dashboard.py`.
+
+While wiring A6 into `e11`, caught and fixed a real naming bug in the same change, before it was ever committed: the refactor to support per-thread architecture construction initially used the A-prefixed factory key (e.g. `"A0_GROUND_ONLY"`) as the CSV `architecture` value, instead of the class name (`"GroundOnly"`) that `e03_results.csv` and `scripts/trade_study.py`'s `ARCHITECTURES` list expect. That mismatch would have made `scripts/trade_study.py`'s `mission_thread_success` and `resilience` criteria silently fall back to 0 for every architecture, every future run, with no error. Fixed by deriving the CSV name from `type(architecture).__name__`.
+
+Also discovered and fixed while adding A6: `ContactAware` (A5) had never been included in `e03_static_architectures.py`'s rate sweep, meaning its "latency" criterion in every prior trade-study run (including the version committed to `docs/TRADE_STUDY.md` before this ADR) was silently a fallback fill value (the worst observed latency among the other architectures), not a real measurement. Both `ContactAware` and the new `ThreadAwarePriority` were added to the `e03` sweep so all seven architectures now have real single-window latency data.
+
+Note on the ID: `A6` previously named `A6_GROUND_CENTRIC_HYBRID`, deleted in ADR-003 as undocumented scope creep. Reusing `A6` for this unrelated architecture is intentional, not confusion between the two; this one is fully documented, tested, and evaluated, which is exactly what the deleted one wasn't.
+
+**Rationale**: `docs/ALLOCATION_SPACE.md` explicitly named this as the highest-value next step, and it was tractable to implement well within this session rather than leaving it as a permanent stated gap.
+
+**Consequence**: `docs/ALLOCATION_SPACE.md`, `docs/TRADE_STUDY.md`, and `docs/ACQUISITION_IMPLICATIONS.md` are updated with A6's real results: it achieves the highest mission-thread success (1.92% mean) and resilience (1.04% mean under degraded conditions) of any architecture tested, and wins the trade study outright under the tactical-user-leaning weight profile, while Progressive still wins the acquisition- and terminal-operator-leaning profiles because a fixed pipeline is simpler to specify in a multi-vendor contract than a per-request reordering rule. The headline finding (contact geometry, not architecture, is the binding constraint) is unchanged: A6's best-case success rate is still under 2% on average.

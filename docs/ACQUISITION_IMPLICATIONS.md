@@ -9,17 +9,22 @@ finding; none is asserted without that link.
 **Evidence**: GroundOnly, CompressedFull, and ContactAware scored exactly
 0% mission-thread success on every thread and every condition tested
 (`docs/TRADE_STUDY.md`), for a structural reason: none of them ever
-produce anything but a single, full-scene-scale product. Progressive and
-RoiFirst, the only architectures with a real early tier matching a
-thread's need, are the only ones that ever succeed.
+produce anything but a single, full-scene-scale product. QuicklookFirst,
+RoiFirst, Progressive, and ThreadAwarePriority, the only architectures
+with a real early tier matching a thread's need, are the only ones that
+ever succeed, and ThreadAwarePriority (which reorders around whichever
+tier the active thread actually needs, instead of a fixed order) scores
+highest of the four.
 
 **Implication**: a commercial imagery service the Army buys into should be
 required to produce genuinely tiered products (at minimum a coarse
-detection tier and an ROI tier, distinct from the full scene), not just an
-onboard-compressed version of the same single product. "Onboard
+detection tier and an ROI tier, distinct from the full scene) AND support
+requesting a specific tier first, not just a fixed delivery order. "Onboard
 processing" as a checkbox requirement is not the same as "onboard
-tiering," and this data shows only the latter has any chance of serving a
-time-sensitive or fidelity-differentiated mission thread.
+tiering," and tiering alone is not the same as "tiering the Army can
+prioritize per request": this data shows the latter has the best, though
+still small, chance of serving a time-sensitive or fidelity-differentiated
+mission thread.
 
 ## Require: direct edge tasking as an available path, not just reachback
 
@@ -43,8 +48,8 @@ failure.
 
 **Evidence**: `docs/MISSION_THREADS.md`'s terminal classes did not produce
 a measurable difference in mission-thread success rate in this dataset
-(`docs/TRADE_STUDY.md`'s overall-by-terminal-class breakdown: 0.31% vs.
-0.37%, both near the noise floor). That is not evidence that terminal
+(overall-by-terminal-class breakdown: 0.44% dismounted vs. 0.49%
+vehicle-mounted, both near the noise floor). That is not evidence that terminal
 class doesn't matter; it's evidence that, in this dataset, contact
 scarcity dominates so completely that neither terminal class's extra
 downlink rate or compute made a visible difference. `docs/ALLOCATION_SPACE.md`
@@ -60,13 +65,16 @@ that isn't in view.
 ## The headline finding: contact frequency, not architecture, is the binding constraint
 
 **Evidence**: mission-thread success rates topped out around 5% for the
-best architecture under the best condition (`docs/TRADE_STUDY.md`). A
-single ground site sees about 28 contact opportunities per week
+best single architecture/thread/condition cell, and averaged under 2% even
+for the best architecture (ThreadAwarePriority) across all threads and
+conditions (`docs/TRADE_STUDY.md`). A single ground site sees about 28
+contact opportunities per week
 (`results/frozen/v2/e01_access_windows.csv`), several hours apart on
 average. Every mission thread's latency tolerance (2-15 minutes) is far
 shorter than that gap, so unless a request happens to land right before an
-already-scheduled pass, no architecture choice changes the outcome. This
-repository's separate constellation-handoff experiment
+already-scheduled pass, no architecture choice, mission-thread-aware or
+not, changes the outcome much. This repository's separate
+constellation-handoff experiment
 (`experiments/e09_constellation_handoff.py`) already shows a 3-satellite
 constellation roughly doubling ground-contact coverage fraction (1.7% to
 3.7%) versus a single satellite over the same site.
@@ -93,10 +101,13 @@ competitive once lock-in-risk avoidance is weighted heavily, purely
 because there's nothing proprietary to lock into.
 
 **Implication**: specify the tiered-product interface (what tiers exist,
-what each one's fidelity floor is, how to request one directly) as the
+what each one's fidelity floor is, how to request one directly, and how to
+request which tier is prioritized first for a given collection) as the
 acquisition requirement, not a specific onboard compression algorithm or
-processing architecture. That gets the mission-thread benefit of tiering
-(the first, most load-bearing requirement above) without locking the Army
+processing architecture. That gets the mission-thread benefit of both
+tiering and mission-thread-aware prioritization (the first, most
+load-bearing requirement above, and the small-but-real edge
+ThreadAwarePriority showed over a fixed order) without locking the Army
 into one provider's specific onboard implementation, which is exactly the
 tension `docs/STAKEHOLDERS.md` identifies between the commercial provider
 and the acquisition office.
