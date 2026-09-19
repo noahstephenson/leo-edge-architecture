@@ -1,4 +1,4 @@
-"""Static architecture implementations A0-A5.
+"""Static architecture implementations A0-A6.
 
 Each class exposes two interfaces:
 
@@ -23,6 +23,7 @@ from .architecture import (
     A3_ROI_FIRST,
     A4_PROGRESSIVE,
     A5_CONTACT_AWARE,
+    A6_THREAD_AWARE_PRIORITY,
 )
 from .metrics import contact_utilization as _contact_utilization
 from .products import Fidelity, ProductTier, TIER_FIDELITY
@@ -308,6 +309,92 @@ class Progressive:
         return out
 
 
+class ThreadAwarePriority(Progressive):
+    """A6_THREAD_AWARE_PRIORITY: like Progressive, but the mission thread's
+    specific first-needed tier is prioritized immediately after metadata,
+    instead of always sending tiers in the fixed P0-P4 order regardless of
+    which thread is being served.
+
+    This is the "mission-thread-aware prioritization" axis
+    docs/ALLOCATION_SPACE.md names as uncovered by A0-A5: none of them
+    reorder based on which mission thread (docs/MISSION_THREADS.md) is
+    active. A3_ROI_FIRST, for example, always sends the ROI crop first even
+    when the active thread needs a quicklook, not an ROI. This class picks
+    a priority tier at construction time and reorders around it.
+
+    Unlike Progressive, tier sizes here are NOT monotonically increasing in
+    priority order (a big priority tier can be followed by a smaller
+    deprioritized one), so `run()` cannot break out of the loop the moment
+    one tier doesn't fit; it must keep trying every remaining tier.
+
+    `fidelity_resolution_class` reports the last tier delivered in
+    transmission order, same as Progressive. Since a smaller,
+    lower-priority tier can still fit and transmit after the priority
+    tier, this can understate the best fidelity actually delivered (e.g.
+    the priority ROI tier arrived, then a small thumbnail arrived after
+    it, and the fidelity field reports "coarse" even though the richer ROI
+    is also in hand). For mission-thread evaluation, use
+    `simulation.simulate_multi_contact`'s per-tier `tier_completion_s`
+    instead of this field, which is exactly what
+    `experiments/e11_mission_thread_success.py` does.
+    """
+
+    ARCH_ID = A6_THREAD_AWARE_PRIORITY
+
+    def __init__(self, priority_tier=ProductTier.P2_QUICKLOOK):
+        self.priority_tier = priority_tier
+
+    def _tier_sizes(self, scene_bytes):
+        base = super()._tier_sizes(scene_bytes)
+        metadata = [t for t in base if t[0] == ProductTier.P0_METADATA]
+        priority = [t for t in base if t[0] == self.priority_tier]
+        rest = [t for t in base if t[0] not in (ProductTier.P0_METADATA, self.priority_tier)]
+        return metadata + priority + rest
+
+    def run(self, scene_bytes, contact_capacity_bytes, rate_bps, processing_time_s):
+        tier_sizes = self._tier_sizes(scene_bytes)
+
+        remaining = contact_capacity_bytes
+        bytes_transmitted = 0
+        total_tx_time = 0.0
+        first_tx_time = None
+        last_tier_delivered = None
+        completed = False
+
+        for tier, size in tier_sizes:
+            if size > remaining:
+                # Sizes aren't monotonic in this priority order, so a
+                # later, smaller tier may still fit even if this one
+                # didn't; keep checking instead of breaking.
+                continue
+            tx_time = _transmit_time_bytes(size, rate_bps)
+            if first_tx_time is None:
+                first_tx_time = tx_time
+            total_tx_time += tx_time
+            bytes_transmitted += size
+            remaining -= size
+            last_tier_delivered = tier
+            if tier == ProductTier.P4_FULL:
+                completed = True
+
+        if last_tier_delivered is None:
+            tfup_s = float("nan")
+            tcp_s = float("nan")
+            fidelity = TIER_FIDELITY[ProductTier.P0_METADATA]
+        else:
+            tfup_s = processing_time_s + first_tx_time
+            tcp_s = (processing_time_s + total_tx_time) if completed else float("nan")
+            fidelity = TIER_FIDELITY[last_tier_delivered]
+
+        processing_energy_j = processing_time_s * PROCESSING_POWER_W
+        tx_energy_j = total_tx_time * RADIO_POWER_W
+        return _finalize_metrics(
+            scene_bytes, contact_capacity_bytes, rate_bps,
+            tfup_s, tcp_s, bytes_transmitted, processing_energy_j, tx_energy_j,
+            completed, fidelity,
+        )
+
+
 class ContactAware:
     """A5_CONTACT_AWARE: rule-based policy using contact margin alpha.
 
@@ -395,4 +482,5 @@ ARCHITECTURE_REGISTRY = {
     A3_ROI_FIRST: RoiFirst,
     A4_PROGRESSIVE: Progressive,
     A5_CONTACT_AWARE: ContactAware,
+    A6_THREAD_AWARE_PRIORITY: ThreadAwarePriority,
 }

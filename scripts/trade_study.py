@@ -24,6 +24,7 @@ RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v2"
 
 ARCHITECTURES = [
     "GroundOnly", "CompressedFull", "QuicklookFirst", "RoiFirst", "Progressive", "ContactAware",
+    "ThreadAwarePriority",
 ]
 
 # Qualitative rubric, 0 (worst) to 1 (best) per architecture. Stated design
@@ -44,6 +45,12 @@ RUBRIC = {
     "RoiFirst":        {"fidelity_when_complete": 1.0, "terminal_swap_burden": 0.5, "acquisition_lock_in_risk": 0.8},
     "Progressive":      {"fidelity_when_complete": 1.0, "terminal_swap_burden": 0.4, "acquisition_lock_in_risk": 0.6},
     "ContactAware":    {"fidelity_when_complete": 0.6, "terminal_swap_burden": 0.5, "acquisition_lock_in_risk": 0.4},
+    # Same onboard processing burden as Progressive (all tiers still
+    # generated upfront), but a per-request reordering rule is more
+    # complex to specify in a multi-vendor contract than Progressive's
+    # fixed pipeline, so lock-in-risk avoidance scores lower than
+    # Progressive but higher than the opaque margin-based ContactAware.
+    "ThreadAwarePriority": {"fidelity_when_complete": 1.0, "terminal_swap_burden": 0.4, "acquisition_lock_in_risk": 0.5},
 }
 
 # Stakeholder-leaning weight profiles (docs/STAKEHOLDERS.md), all summing to 1.0.

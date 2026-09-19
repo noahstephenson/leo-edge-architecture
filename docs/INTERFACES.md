@@ -48,7 +48,7 @@ geometry; as of that document, none does reliably.
 | Task | Rear-echelon cell or Army edge terminal (both paths modeled) | `docs/MISSION_THREADS.md` tasking-path table |
 | Collect | Commercial space segment | Not owned or influenced by the Army in this model beyond the tasking request |
 | Process (tiering) | Commercial space segment, in every architecture this repository evaluates today | `docs/ALLOCATION_SPACE.md`'s uncovered-regions section: no architecture here allocates any processing to the Army edge segment |
-| Prioritize | Commercial space segment | Fixed priority order in every architecture (A0-A5); no mission-thread-aware reordering yet |
+| Prioritize | Commercial space segment | Fixed priority order in A0-A5; A6 reorders around the active mission thread's needed tier (`docs/ALLOCATION_SPACE.md`) |
 | Transmit | Commercial space segment (satellite radio) | Contact-windowed, not continuous |
 | Receive, Exploit, Disseminate | Army edge segment | Terminal-class-dependent capability, `docs/MISSION_THREADS.md` |
 

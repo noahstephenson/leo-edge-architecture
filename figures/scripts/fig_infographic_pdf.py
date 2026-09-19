@@ -24,9 +24,14 @@ def load_metrics():
         "QuicklookFirst": "A2_QUICKLOOK_FIRST",
         "RoiFirst": "A3_ROI_FIRST",
         "Progressive": "A4_PROGRESSIVE",
+        "ContactAware": "A5_CONTACT_AWARE",
+        "ThreadAwarePriority": "A6_THREAD_AWARE_PRIORITY",
     }
     med = med.copy()
-    med.index = med.index.map(arch_map)
+    # .map() with no fallback silently produces NaN for anything not in
+    # arch_map, which then breaks sorted() below by mixing str and float;
+    # fall back to the original name instead of guessing an ID.
+    med.index = med.index.map(lambda name: arch_map.get(name, name))
     return med
 
 def main():

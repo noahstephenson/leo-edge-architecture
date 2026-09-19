@@ -16,9 +16,11 @@ from leo_edge.architectures import (
     RoiFirst,
     Progressive,
     ContactAware,
+    ThreadAwarePriority,
 )
+from leo_edge.products import ProductTier
 
-ALL_ARCHITECTURES = [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive, ContactAware]
+ALL_ARCHITECTURES = [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive, ContactAware, ThreadAwarePriority]
 
 SCENE_BYTES = 1_000_000_000  # 1 GB
 PROCESSING_TIME_S = 20.0
@@ -105,7 +107,7 @@ def test_architecture_registry_matches_arch_ids():
         assert arch_class.ARCH_ID == arch_id
 
 
-@pytest.mark.parametrize("arch_class", [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive])
+@pytest.mark.parametrize("arch_class", [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive, ThreadAwarePriority])
 def test_fidelity_always_reported(arch_class):
     capacity = _ample_capacity_bytes()
     arch = arch_class()
@@ -114,3 +116,38 @@ def test_fidelity_always_reported(arch_class):
     assert out["fidelity_resolution_class"] in {
         "metadata", "coarse", "reduced", "roi_full_res", "full_res",
     }
+
+
+def test_thread_aware_priority_reorders_around_priority_tier():
+    """A6 must deliver its chosen priority tier before other, lower-priority
+    tiers, unlike Progressive's fixed P0-P4 order (docs/ALLOCATION_SPACE.md's
+    mission-thread-aware-prioritization gap)."""
+    # Capacity for metadata + ROI (50 MB) with only a sliver left over,
+    # not enough for the 512 KB thumbnail on top, so the last tier
+    # delivered is unambiguously the ROI, not something after it.
+    rate_bps = 10_000_000
+    capacity = 20 * 1024 + 50 * 1024 * 1024 + 100_000
+
+    roi_first = ThreadAwarePriority(priority_tier=ProductTier.P3_ROI)
+    out = roi_first.run(SCENE_BYTES, capacity, rate_bps, PROCESSING_TIME_S)
+    assert out["fidelity_resolution_class"] == "roi_full_res"
+
+    # Progressive, by contrast, tries P1_THUMBNAIL and P2_QUICKLOOK before
+    # P3_ROI and never reaches ROI at this capacity (10.5 MB for P1+P2,
+    # leaving only ~40 MB, less than the 50 MB ROI tier needs).
+    prog = Progressive()
+    prog_out = prog.run(SCENE_BYTES, capacity, rate_bps, PROCESSING_TIME_S)
+    assert prog_out["fidelity_resolution_class"] != "roi_full_res"
+
+
+def test_thread_aware_priority_skips_ahead_to_smaller_fitting_tier():
+    """Unlike Progressive, A6 must not stop at the first tier that doesn't
+    fit if a smaller, lower-priority tier still could."""
+    rate_bps = 10_000_000
+    # Enough for metadata + thumbnail, not enough for the 50 MB ROI
+    # priority tier.
+    capacity = 20 * 1024 + 600 * 1024
+
+    arch = ThreadAwarePriority(priority_tier=ProductTier.P3_ROI)
+    out = arch.run(SCENE_BYTES, capacity, rate_bps, PROCESSING_TIME_S)
+    assert out["fidelity_resolution_class"] == "coarse"  # thumbnail, not ROI

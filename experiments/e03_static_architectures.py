@@ -18,6 +18,8 @@ from leo_edge.architectures import (
     QuicklookFirst,
     RoiFirst,
     Progressive,
+    ContactAware,
+    ThreadAwarePriority,
 )
 
 
@@ -27,12 +29,22 @@ def main():
     processing_time_s = 20
     rates_bps = [1e6, 5e6, 10e6, 25e6, 50e6, 100e6]
 
+    # ContactAware and ThreadAwarePriority were missing from this sweep
+    # until now, which meant scripts/trade_study.py's "latency" criterion
+    # for both silently fell back to the worst observed value instead of a
+    # real measurement (docs/DECISION_LOG.md). Both take zero-arg
+    # construction with their default parameters here (ContactAware's
+    # default margin alpha; ThreadAwarePriority's default priority tier,
+    # quicklook), since this sweep has no notion of an active mission
+    # thread to prioritize around.
     arch_classes = [
         GroundOnly,
         CompressedFull,
         QuicklookFirst,
         RoiFirst,
         Progressive,
+        ContactAware,
+        ThreadAwarePriority,
     ]
 
     results = sweep_rate(

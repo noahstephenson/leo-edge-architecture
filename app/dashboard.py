@@ -21,6 +21,7 @@ from leo_edge.architectures import (
     RoiFirst,
     Progressive,
     ContactAware,
+    ThreadAwarePriority,
 )
 from leo_edge.simulation import simulate_multi_contact
 from leo_edge.products import ProductTier
@@ -96,6 +97,7 @@ processing_time_s = baseline_processing_time_s * (baseline_processor_power_w / m
 st.sidebar.metric("Contact capacity (MB)", f"{contact_capacity_bytes/1e6:.1f}")
 st.sidebar.metric("Effective processing time (s)", f"{processing_time_s:.2f}")
 
+selected_thread = MISSION_THREADS[thread_name]
 arch_map = {
     "A0_GROUND_ONLY": ("GroundOnly", GroundOnly()),
     "A1_COMPRESSED_FULL": ("CompressedFull", CompressedFull()),
@@ -103,6 +105,10 @@ arch_map = {
     "A3_ROI_FIRST": ("RoiFirst", RoiFirst()),
     "A4_PROGRESSIVE": ("Progressive", Progressive()),
     "A5_CONTACT_AWARE": ("ContactAware", ContactAware(alpha=0.2)),
+    "A6_THREAD_AWARE_PRIORITY": (
+        "ThreadAwarePriority",
+        ThreadAwarePriority(priority_tier=selected_thread["needed_tier"]),
+    ),
 }
 
 results = []

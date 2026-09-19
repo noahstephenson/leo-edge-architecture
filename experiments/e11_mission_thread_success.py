@@ -1,6 +1,6 @@
 """Experiment 11: Mission-thread success under terminal class and contested conditions.
 
-Evaluates each architecture (A0-A5) against each mission thread
+Evaluates each architecture (A0-A6) against each mission thread
 (docs/MISSION_THREADS.md), each terminal class, and each degradation
 condition, over real SGP4 contact windows with the tasking-path delay
 added to total latency (time measured from user need, not capture). Success
@@ -25,6 +25,7 @@ from leo_edge.architectures import (
     RoiFirst,
     Progressive,
     ContactAware,
+    ThreadAwarePriority,
 )
 from leo_edge.orbit.access import generate_access_windows
 from leo_edge.simulation import contact_windows_from_access_windows, simulate_multi_contact
@@ -33,13 +34,17 @@ from leo_edge.products import ProductTier
 SCENE_BYTES = 1_000_000_000  # 1 GB notional area-of-interest scene
 PROCESSING_TIME_S = 20.0
 
-ARCHITECTURES = {
-    "A0_GROUND_ONLY": GroundOnly,
-    "A1_COMPRESSED_FULL": CompressedFull,
-    "A2_QUICKLOOK_FIRST": QuicklookFirst,
-    "A3_ROI_FIRST": RoiFirst,
-    "A4_PROGRESSIVE": Progressive,
-    "A5_CONTACT_AWARE": ContactAware,
+# Each factory takes the active mission thread's spec and returns a fresh
+# architecture instance. A6 needs the thread's needed_tier at construction
+# time (its whole point is reordering around it); the others ignore it.
+ARCHITECTURE_FACTORIES = {
+    "A0_GROUND_ONLY": lambda thread: GroundOnly(),
+    "A1_COMPRESSED_FULL": lambda thread: CompressedFull(),
+    "A2_QUICKLOOK_FIRST": lambda thread: QuicklookFirst(),
+    "A3_ROI_FIRST": lambda thread: RoiFirst(),
+    "A4_PROGRESSIVE": lambda thread: Progressive(),
+    "A5_CONTACT_AWARE": lambda thread: ContactAware(),
+    "A6_THREAD_AWARE_PRIORITY": lambda thread: ThreadAwarePriority(priority_tier=thread["needed_tier"]),
 }
 
 # MT-1/MT-2/MT-4 first-needed tiers and latency tolerances from
@@ -107,7 +112,7 @@ def _tier_index_for(architecture, needed_tier, scene_bytes, processing_time_s):
 HORIZON_S = 168 * 3600.0  # matches the 1-week access-window generation
 
 
-def run_trial(arch_class, thread_key, terminal_key, condition_key, rng, base_windows):
+def run_trial(factory, thread_key, terminal_key, condition_key, rng, base_windows):
     thread = MISSION_THREADS[thread_key]
     terminal = TERMINAL_CLASSES[terminal_key]
     condition = CONDITIONS[condition_key]
@@ -115,7 +120,15 @@ def run_trial(arch_class, thread_key, terminal_key, condition_key, rng, base_win
     rate_bps = terminal["rate_bps"] * condition["interference_derate"]
     tasking_delay_s = condition["tasking_delay_s"]
 
-    architecture = arch_class()
+    architecture = factory(thread)
+    # Use the class name (e.g. "GroundOnly"), not the A-prefixed factory
+    # key, so this matches e03_results.csv's architecture_name column and
+    # scripts/trade_study.py's ARCHITECTURES list. Using the A-prefixed
+    # key here was tried and caught during this same change (before ever
+    # being committed): it would have silently never matched e03/
+    # trade_study.py, making mission_thread_success and resilience always
+    # fall back to 0 for every architecture.
+    arch_name = type(architecture).__name__
     architecture_supports_tier = _tier_index_for(architecture, thread["needed_tier"], SCENE_BYTES, PROCESSING_TIME_S)
 
     # The user's request can land at any point in the week's contact
@@ -148,7 +161,7 @@ def run_trial(arch_class, thread_key, terminal_key, condition_key, rng, base_win
         success = architecture_supports_tier and latency_s <= thread["latency_tolerance_s"]
 
     return {
-        "architecture": arch_class.__name__ if hasattr(arch_class, "__name__") else type(arch_class).__name__,
+        "architecture": arch_name,
         "thread": thread_key,
         "terminal_class": terminal_key,
         "condition": condition_key,
@@ -179,12 +192,12 @@ def main():
     print(f"Base contact windows (1 week, before degradation): {len(base_windows)}")
 
     rows = []
-    for arch_id, arch_class in ARCHITECTURES.items():
+    for factory_id, factory in ARCHITECTURE_FACTORIES.items():
         for thread_key in MISSION_THREADS:
             for terminal_key in TERMINAL_CLASSES:
                 for condition_key in CONDITIONS:
                     for _ in range(N_TRIALS):
-                        rows.append(run_trial(arch_class, thread_key, terminal_key, condition_key, rng, base_windows))
+                        rows.append(run_trial(factory, thread_key, terminal_key, condition_key, rng, base_windows))
 
     trial_out = Path("results/raw/e11_mission_thread_trials.csv")
     trial_out.parent.mkdir(parents=True, exist_ok=True)

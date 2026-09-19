@@ -13,6 +13,8 @@ ARCH_MAP = {
     "QuicklookFirst": "A2_QUICKLOOK_FIRST",
     "RoiFirst": "A3_ROI_FIRST",
     "Progressive": "A4_PROGRESSIVE",
+    "ContactAware": "A5_CONTACT_AWARE",
+    "ThreadAwarePriority": "A6_THREAD_AWARE_PRIORITY",
 }
 
 
