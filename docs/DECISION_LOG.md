@@ -205,3 +205,11 @@ While validating the sweep (checking why some very-high-access cells showed 0% s
 **Rationale**: a sweep that silently places satellites on top of each other reports the flattest possible access curve and would have supported a false "nothing works up to 24 satellites" headline (that run's best cell was ~13%).
 
 **Consequence**: all v4 e12 numbers come from the corrected rerun. Success reaches ~31% (best architecture, pooled) at 24 satellites/8 planes/4 terminals, the sweep's stopping point (ADR-023).
+
+## ADR-025: Delete the v2 and v3 frozen results and the history docs
+
+**Decision**: `results/frozen/v2/`, `results/frozen/v3/`, and the six history documents (rework plans and the v1-v2, v2-v3, v3-v4 comparisons) were deleted. `results/frozen/v4/` is the only frozen result set. This log is the retained record of what each version claimed and what was retracted.
+
+**Rationale**: with the comparison documents gone, the old result sets had no reader, and two of them (v2, v3) were produced by models later shown to be wrong (ADR-019, ADR-020, ADR-024). Keeping them invited citing numbers the log says not to trust.
+
+**Consequence**: older numbers quoted in ADRs cannot be re-derived from the working tree; `git log` recovers every deleted file.
