@@ -112,20 +112,22 @@ wait disappears. Time limits run from 2 to 15 minutes, which is why access matte
     st.graphviz_chart(
         """
 digraph G {
-  rankdir=LR; node [shape=box, style="rounded,filled", fontname="Helvetica"];
-  subgraph cluster_a { label="Army: requesting side"; style=filled; color="#e3efe3";
-    user [label="Tactical user", fillcolor="#cfe5cf"]; rear [label="Rear-echelon\\ntasking cell", fillcolor="#cfe5cf"]; }
-  subgraph cluster_c { label="Commercial provider (bought as a service)"; style=filled; color="#e0e9f7";
-    sat [label="LEO satellites\\ncollect, tier, prioritize, transmit", fillcolor="#c6d9f2"]; }
-  subgraph cluster_e { label="Army: edge"; style=filled; color="#e3efe3";
-    term [label="Edge terminal\\nvehicle or dismounted", fillcolor="#cfe5cf"]; }
-  user -> rear [label="1 request"]; rear -> sat [label="2 collection request"];
-  user -> sat [label="1b direct tasking", style=dashed];
-  sat -> term [label="3 tiered product\\nonly in contact windows", penwidth=3];
-  term -> user [label="4 actionable product"];
+  rankdir=LR; nodesep=0.6; ranksep=1.0;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", margin="0.2,0.12"];
+  edge [fontname="Helvetica", fontsize=10];
+  user [label="Tactical user\n(Army)", fillcolor="#cfe5cf"];
+  rear [label="Rear-echelon tasking cell\n(Army)", fillcolor="#cfe5cf"];
+  sat  [label="LEO satellites\n(commercial provider)", fillcolor="#c6d9f2"];
+  term [label="Edge terminal\n(Army)", fillcolor="#cfe5cf"];
+  user -> rear [label="1 request"];
+  rear -> sat  [label="2 collection request"];
+  sat  -> term [label="3 tiered product,\nonly in contact windows", penwidth=3, color="#2f5a94"];
+  term -> user [label="4 actionable product", constraint=false, style=dashed];
+  user -> sat  [label="1b direct tasking", constraint=false, style=dotted];
 }
 """
     )
+    st.caption("Green boxes are Army-owned, the blue box is the commercial provider.")
     st.markdown(
         """
 **The thick arrow is the ownership boundary.** It is the only place the Army depends on a provider's
