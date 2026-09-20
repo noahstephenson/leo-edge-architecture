@@ -7,6 +7,24 @@ are sourced Army requirements. Requirement IDs from the v1 pass (MR/SR/GR/
 SIM) are retired; the mapping from old to new is in
 `docs/DECISION_LOG.md` ADR-007's consequence.
 
+## The traceability chain
+
+```mermaid
+flowchart TD
+    N["Operational need<br/>get imagery to a tactical unit in time"] --> V["Stakeholder value<br/>docs/STAKEHOLDERS"]
+    V --> R["Requirement<br/>this document"]
+    R --> F["Function<br/>docs/FUNCTIONAL_ARCHITECTURE"]
+    F --> A["Allocation<br/>docs/ALLOCATION_SPACE, A0 to A6"]
+    A --> X["Experiment<br/>e03, e11, e12"]
+    X --> TS["Trade study<br/>docs/TRADE_STUDY"]
+    TS --> AI["Acquisition implication<br/>docs/ACQUISITION_IMPLICATIONS"]
+```
+
+Example: the need for a fast cue (MT-1) becomes a value ("speed over
+resolution"), then REQ-ALLOC-001 (deliver a reduced tier first), which needs
+the Process and Prioritize functions, which A2 to A6 allocate in different
+ways, which `e11` and `e12` test, which the trade study ranks.
+
 ## Allocation and tasking
 
 - **REQ-ALLOC-001**: The system shall support delivering at least one

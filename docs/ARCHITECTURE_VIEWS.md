@@ -1,284 +1,218 @@
 # Architecture Views
 
-Software/systems views for the LEO Edge Architecture repository, tracing to
-the current research question (`docs/DECISION_LOG.md` ADR-007): *how
-should imagery functions be allocated between a commercial LEO space
-segment acquired as a service and an Army-owned tactical edge segment, and
-how does the preferred allocation shift with mission need, terminal class,
-and contested conditions?* This replaces the v1 version of this document,
-which traced to the retired onboard-vs-ground-processing question. The old
-DoDAF-style operational-viewpoint document that also carried that framing
-has been deleted from the working tree, not kept (`docs/DECISION_LOG.md`
-ADR-011); this document is now the sole operational/architecture view.
+The system from several angles: who talks to whom, what happens in what
+order, which function lives in which segment, how the code is organized, and
+what physically connects. All views answer one question: how should imagery
+functions be split between a commercial LEO provider and an Army-owned edge
+terminal (`docs/DECISION_LOG.md` ADR-007). Everything here is notional.
 
-These views cover both the DoDAF-style operational content this rework
-introduced (OV-2 resource flows, OV-5b activities, OV-6c event trace,
-folded into the Operational/Scenario view below rather than a separate
-document) and the 4+1 software views already in this repository, since
-both describe the same system from different angles and keeping them in
-one document is easier to keep consistent than two.
+Where to go next: `docs/FUNCTIONAL_ARCHITECTURE.md` (what each function
+does), `docs/ALLOCATION_SPACE.md` (who owns each function, and the seven
+candidate architectures), `docs/ARCHITECTURE.md` (inside the satellite),
+`docs/INTERFACES.md` (what crosses the ownership boundary).
 
-## Operational / Scenario View (OV-2, OV-5b, OV-6c)
-
-Actors: Tactical User, Rear-Echelon Tasking Cell, Commercial LEO Provider
-(space segment), Army Edge Terminal. See `docs/STAKEHOLDERS.md` for what
-each actor values.
-
-### OV-2: Resource flow
+## System context
 
 ```mermaid
-graph TD
-    User((Tactical User))
-    Rear[Rear-Echelon Tasking Cell]
-    Provider([Commercial LEO Provider])
-    Terminal([Army Edge Terminal])
-
-    User -->|reachback tasking request| Rear
-    Rear -->|collection request| Provider
-    User -.direct edge tasking.-> Provider
-    Provider -->|tiered product, contact-windowed| Terminal
-    Terminal -->|actionable product| User
+flowchart LR
+    subgraph REQ["Army: requesting side"]
+        User(["Tactical user"])
+        Rear["Rear-echelon<br/>tasking cell"]
+    end
+    subgraph COM["Commercial provider: bought as a service"]
+        Sat["LEO satellites<br/>collect, tier, prioritize, transmit"]
+    end
+    subgraph EDGE["Army: edge"]
+        Term["Edge terminal<br/>vehicle or dismounted"]
+    end
+    User -->|"1 reachback request"| Rear
+    Rear -->|"2 collection request"| Sat
+    User -.->|"1b direct edge tasking"| Sat
+    Sat ==>|"3 tiered product P0 to P4<br/>only in contact windows"| Term
+    Term -->|"4 actionable product"| User
+    classDef army fill:#dfeadf,stroke:#3b6b3b,color:#111
+    classDef com fill:#dde7f5,stroke:#2f5a94,color:#111
+    class User,Term,Rear army
+    class Sat com
 ```
 
-The ownership boundary is the arrow from Provider to Terminal: everything
-left of it is commercial-segment-owned, everything right of it is
-Army-owned. `docs/ALLOCATION_SPACE.md` is about what crosses that boundary
-and in what form.
+How to read it: green is Army-owned, blue is commercial. The thick arrow is
+the ownership boundary and the only place the Army depends on a provider's
+implementation. Everything the study varies (which tiers exist, in what
+order they are sent, how a satellite decides) happens to the left of that
+arrow; everything the terminal can do with what arrives happens to the right.
 
-### OV-5b: Activities per mission thread
+## Operational view
 
-Each mission thread (`docs/MISSION_THREADS.md`) walks the same function
-sequence (`docs/FUNCTIONAL_ARCHITECTURE.md`: Task, Collect, Store, Process,
-Prioritize, Transmit, Receive, Exploit, Disseminate) but stops at a
-different point for "first actionable":
+Actors: tactical user, rear-echelon tasking cell, commercial provider, Army
+edge terminal (`docs/STAKEHOLDERS.md` says what each values).
 
-| Thread | First-needed function completes at | Complete-product function completes at |
+### What each mission thread needs
+
+Every thread walks the same function chain (`docs/FUNCTIONAL_ARCHITECTURE.md`)
+and stops at a different point for "first actionable":
+
+| Thread | First-needed product is ready when | Complete product |
 |---|---|---|
-| MT-1 (cueing) | Process (P2 quicklook) -> Transmit -> Receive -> Exploit | N/A, no complete product required |
-| MT-2 (route recon) | Process (P3 ROI) -> Transmit -> Receive -> Exploit | Process (P4 full) -> Transmit -> Receive -> Exploit |
-| MT-3 (BDA / change detection) | Store (prior) + Process (change product) -> Exploit | Process (P4 full) -> Transmit -> Receive -> Exploit |
-| MT-4 (persistent monitoring) | Process (P1 thumbnail), repeated per contact | Process (P4 full), when capacity allows, per contact |
+| MT-1 cueing | P2 quicklook is processed, transmitted, received, exploited | Not required |
+| MT-2 route recon | P3 ROI arrives and is exploited | P4 full scene arrives |
+| MT-3 damage assessment | Change product from stored prior plus new collection | P4 full scene arrives |
+| MT-4 persistent monitoring | P1 thumbnail arrives, repeated per pass | P4 when capacity allows |
 
-### OV-6c: Event trace, MT-2 (route reconnaissance) nominal case
+### Event trace: MT-2 route reconnaissance, nominal case
 
 ```mermaid
 sequenceDiagram
-    participant User as Tactical User
-    participant Rear as Rear-Echelon Tasking Cell
-    participant Provider as Commercial LEO Provider
-    participant Terminal as Army Edge Terminal
+    participant User as Tactical user
+    participant Rear as Tasking cell
+    participant Sat as Satellite X
+    participant Term as Edge terminal
 
-    User->>Rear: Request AOI imagery (reachback tasking)
-    Rear->>Provider: Collection request
-    Note over Rear,Provider: tasking_delay_s (docs/MISSION_THREADS.md)
-    Provider->>Provider: Capture, process P3_ROI
-    Note over Provider,Terminal: wait for next contact window
-    Provider->>Terminal: Transmit P3_ROI
-    Terminal->>User: First-needed product delivered
-    Note over User,Terminal: MT-2 first-product success check
-    Provider->>Provider: Process P4_FULL (if not already onboard)
-    Provider->>Terminal: Transmit P4_FULL, if capacity allows
-    Terminal->>User: Complete product delivered
+    User->>Rear: request imagery of the area (reachback)
+    Rear->>Sat: collection request
+    Note over Rear,Sat: tasking delay, 60 s nominal
+    Note over Sat: waits for its next pass over the area
+    Sat->>Sat: collect at closest approach, process P3 ROI
+    Note over Sat,Term: any of X's downlink windows still open can be used,<br/>including the rest of this pass
+    Sat->>Term: transmit P3 ROI
+    Term->>User: first-needed product delivered
+    Note over User,Term: MT-2 success check: within 900 s of the request
+    Sat->>Term: transmit P4 full, if capacity allows
+    Term->>User: complete product delivered
 ```
 
-**TFUP definition**: elapsed time from user request to the thread's
-first-needed tier arriving at the terminal, including tasking delay and
-wait-for-contact (`docs/MODEL_REFERENCE.md`'s latency accounting).
+**TFUP** (time to first useful product) is the time from the user's request
+to the thread's first-needed tier arriving, including the tasking delay, the
+wait for a collection pass, and the wait for a downlink window. **TCP** (time
+to complete product) is the same for the complete product, and is `NaN` when
+that product never arrives in the windows evaluated (`docs/DECISION_LOG.md`
+ADR-008). `docs/MODEL_REFERENCE.md` has the exact accounting.
 
-**TCP definition**: elapsed time from user request to the thread's
-complete product arriving, same accounting. `NaN`/uncompleted when the
-complete product never arrives within the windows evaluated
-(`docs/DECISION_LOG.md` ADR-008).
+## Logical view: who owns which function
 
-## Logical View (SV-4-equivalent: function to system allocation)
+The function-to-segment allocation is drawn in `docs/ALLOCATION_SPACE.md`
+(the ownership-boundary diagram) and tabulated in `docs/INTERFACES.md`. In
+short, Task is shared with a rear-echelon cell, Collect through Transmit are
+commercial, and Receive, Exploit, and Disseminate are Army.
 
-```mermaid
-classDiagram
-    class CommercialSpaceSegment {
-        +task()
-        +collect()
-        +process()
-        +prioritize()
-        +transmit()
-    }
-    class ArmyEdgeSegment {
-        +receive()
-        +exploit()
-        +disseminate()
-    }
-    class RearEchelonTaskingCell {
-        +deconflict()
-        +task()
-    }
-    class Product {
-        +tier
-        +bytes
-        +fidelity_lossy
-        +fidelity_resolution_class
-    }
+The seven candidate architectures differ only in how the commercial side
+processes and orders products. No architecture here moves any processing to
+the Army edge; `docs/ALLOCATION_SPACE.md` lists that as a gap, not a finding.
 
-    RearEchelonTaskingCell --> CommercialSpaceSegment
-    CommercialSpaceSegment --> ArmyEdgeSegment
-    CommercialSpaceSegment --> Product
-```
+Product tiers (`src/leo_edge/products.py`): P0 metadata, P1 thumbnail, P2
+quicklook, P3 ROI, P4 full.
 
-Product tiers: P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI, P4_FULL
-(`src/leo_edge/products.py`).
+## Process view
 
-Architecture alternatives allocate the Process/Prioritize functions within
-the commercial space segment (none of A0-A6 currently allocate any
-processing to the Army edge segment; `docs/ALLOCATION_SPACE.md`'s
-"uncovered regions" section states this as a gap, not a finding):
-
-- A0_GROUND_ONLY: no onboard processing, raw only
-- A1_COMPRESSED_FULL: onboard compress, one atomic product
-- A2_QUICKLOOK_FIRST: onboard quicklook, then full if capacity allows
-- A3_ROI_FIRST: onboard ROI extract, then full if capacity allows
-- A4_PROGRESSIVE: P0->P1->P2->P3->P4, as capacity allows
-- A5_CONTACT_AWARE: margin-gated compressed-or-raw choice, evaluated once
-  per delivery (`src/leo_edge/architectures.py`'s `ContactAware`)
-- A6_THREAD_AWARE_PRIORITY: same five tiers as Progressive, reordered
-  around the active mission thread's needed tier
-  (`src/leo_edge/architectures.py`'s `ThreadAwarePriority`)
-
-## Process View
-
-### Activity Diagram: Progressive Delivery (A4)
+### Progressive delivery (A4)
 
 ```mermaid
 flowchart TD
-    A[Capture Scene] --> B[Create P0_METADATA]
-    B --> C[Process P1_THUMBNAIL]
-    C --> D[Process P2_QUICKLOOK]
-    D --> E[Queue P0-P2 for first contact]
-    E --> F[Contact Start]
-    F --> G[Transmit tiers in priority order]
-    G --> H{Tier target reached this window?}
-    H -->|yes, more tiers remain and capacity left| G
-    H -->|no, capacity exhausted mid-tier| I[Carry remainder to next window]
+    A["Capture scene"] --> B["Create P0 metadata"]
+    B --> C["Process P1 thumbnail, then P2 quicklook"]
+    C --> D["Queue P0 to P2 for the next contact"]
+    D --> F["Contact window opens"]
+    F --> G["Transmit tiers in priority order"]
+    G --> H{"Tier finished<br/>in this window?"}
+    H -->|"yes, more tiers and capacity left"| G
+    H -->|"no, window ran out mid-tier"| I["Carry the remainder to the next window"]
     I --> F
-    H -->|P4_FULL reached| J[TCP achieved]
-    G --> K{First tier reached?}
-    K -->|yes| L[TFUP achieved]
+    H -->|"P4 full finished"| J["Complete product delivered (TCP)"]
+    G --> K{"First tier finished?"}
+    K -->|"yes"| L["First useful product delivered (TFUP)"]
 ```
 
-This mirrors `leo_edge.simulation.simulate_multi_contact`'s actual
-carry-forward logic (`docs/MODEL_REFERENCE.md`), not an idealized version
-of it.
+This mirrors `leo_edge.simulation.simulate_multi_contact`'s carry-forward
+logic, not an idealized version of it.
 
-### Sequence: Adaptive (A5) Policy Selection
+### Adaptive policy (A5)
 
 ```mermaid
 sequenceDiagram
     participant Policy as AdaptivePolicy
-    participant Contact as Contact Predictor
-    participant Arch as Selected Architecture
+    participant Contact as Contact predictor
+    participant Arch as Chosen architecture
 
-    Policy->>Contact: get predicted capacity_bytes
-    Policy->>Policy: choose() -> architecture class
-    Note over Policy: margin rule, config/product_sizing.yaml: contact_aware.margin_alpha
+    Policy->>Contact: predicted capacity in bytes
+    Policy->>Policy: choose() using the margin rule
+    Note over Policy: config/product_sizing.yaml, contact_aware.margin_alpha
     Policy->>Arch: instantiate and run()
     Arch-->>Policy: tfup_s, tcp_s, completed, fidelity
 ```
 
-`src/leo_edge/policies/adaptive.py`'s `AdaptivePolicy.choose()` returns a
-real architecture class (`docs/DECISION_LOG.md` ADR-008), not a label with
-no corresponding implementation.
+`AdaptivePolicy.choose()` returns a real architecture class, not a label
+(`docs/DECISION_LOG.md` ADR-008).
 
-## Development View
-
-Software module structure in `src/leo_edge/`.
+## Development view
 
 ```mermaid
-graph TD
-    core[leo_edge]
-    core --> architecture
-    core --> products
-    core --> processing
-    core --> queues
-    core --> scheduler
-    core --> power
-    core --> storage
-    core --> link
-    core --> metrics
-    core --> metrics_arch
-    core --> simulation
-    core --> analysis
-
-    core --> orbit
-    orbit --> access
-    orbit --> constellation
-
-    core --> imagery
-    imagery --> benchmark
-
-    core --> policies
-    policies --> adaptive
+flowchart TD
+    subgraph Model["src/leo_edge: the model"]
+        arch["architecture.py, architectures.py, products.py"]
+        sim["simulation.py: single-window and multi-contact delivery"]
+        phys["link.py, power.py, storage.py, processing.py"]
+        orbit["orbit/: access windows, Walker-delta constellations"]
+        mt["mission_threads.py: thread tiers and tolerances"]
+        stats["stats.py: paired bootstrap, Wilson, Kaplan-Meier"]
+        pol["policies/adaptive.py"]
+    end
+    subgraph Exp["experiments/ and scripts/"]
+        e07["e07: adaptive policy"]
+        e11["e11: baseline mission-thread trials"]
+        e12["e12: access sweep"]
+        ts["trade_study.py"]
+    end
+    orbit --> e11
+    phys --> sim
+    pol --> e07
+    arch --> sim
+    sim --> e11
+    mt --> e11
+    stats --> e11
+    e11 --> e12
+    e11 --> ts
+    e12 --> ts
 ```
 
-Mapping to the views above:
-- `architecture.py`, `architectures.py` -> Logical view
-- `policies/adaptive.py`, `simulation.py`'s `simulate_multi_contact` ->
-  Process view, OV-6c event trace
-- `orbit/*`, `link.py`, `power.py`, `storage.py` -> Physical view
-  constraints
-- `metrics.py`, `products.py`'s fidelity fields -> OV-5b/OV-6c success
-  criteria (mission-thread success, `docs/MISSION_THREADS.md`)
-- `experiments/e11_mission_thread_success.py`, `scripts/trade_study.py` ->
-  evidence behind `docs/TRADE_STUDY.md`
+`docs/EXPERIMENT_PLAN.md` lists every experiment and what it answers.
 
-## Physical View (SV-1-equivalent: system interfaces)
+## Physical view
 
 ```mermaid
-graph LR
-    subgraph CommercialSpaceSegment [Commercial LEO Space Segment]
-        SAT[Satellite Bus]
-        CAM[Imager]
-        CPU[Onboard CPU]
-        MEM[Flash Storage]
-        TX[Downlink Transceiver]
+flowchart LR
+    subgraph COM["Commercial LEO space segment"]
+        CAM["Imager"] --> CPU["Onboard CPU"]
+        CPU --> MEM["Flash storage"]
+        MEM --> TX["Downlink transceiver"]
     end
-
-    subgraph RearEchelon [Rear-Echelon Tasking Cell]
-        TASK[Tasking / Deconfliction]
+    subgraph RE["Rear-echelon tasking cell"]
+        TASK["Tasking and deconfliction"]
     end
-
-    subgraph ArmyEdge [Army-Owned Tactical Edge Segment]
-        TERM[Edge Terminal, vehicle or dismounted class]
+    subgraph EDGE["Army edge segment"]
+        TERM["Edge terminal, vehicle or dismounted class"]
     end
-
-    CAM --> CPU
-    CPU --> MEM
-    CPU --> TX
-    TASK -.reachback tasking.-> SAT
-    TERM -.direct edge tasking.-> SAT
-    TX -.RF contact, windowed.- TERM
+    TASK -.->|"reachback tasking"| CPU
+    TERM -.->|"direct edge tasking"| CPU
+    TX ==>|"RF, windowed"| TERM
 ```
 
-Constraints:
-- Intermittent, windowed LEO contact (the dominant term in
-  `docs/TRADE_STUDY.md`'s mission-thread-success results)
-- Terminal class (`docs/MISSION_THREADS.md`) bounds downlink rate and edge
-  compute, independently of which architecture the space segment runs
-- Limited onboard energy budget: `processing_energy_j` vs `tx_energy_j`
-  tradeoff (`config/product_sizing.yaml`)
-- `storage_peak_bytes` limited; `contact_utilization` bounded to [0, 1]
-  (`docs/DECISION_LOG.md` ADR-008)
+Constraints that shape every result:
 
-Break-even relation used for the single-window analytical check
-(`docs/HAND_CALC_BREAK_EVEN.md`, unaffected by this rework):
-```
-T_proc + D_p/R < D_r/R
-T_proc < (D_r - D_p)/R
-```
+- Contact is intermittent and windowed. This dominates the mission-thread
+  results (`docs/TRADE_STUDY.md`).
+- Terminal class bounds downlink rate and edge compute, independently of
+  which architecture the satellite runs (`docs/MISSION_THREADS.md`).
+- Onboard energy is limited: `processing_energy_j` against `tx_energy_j`
+  (`config/product_sizing.yaml`).
+- `storage_peak_bytes` is limited and `contact_utilization` stays in [0, 1]
+  (`docs/DECISION_LOG.md` ADR-008).
 
-## Traceability
+The single-window analytical check (`docs/HAND_CALC_BREAK_EVEN.md`) is
+`T_proc + D_p/R < D_r/R`, equivalently `T_proc < (D_r - D_p)/R`.
 
-The requirement-to-test traceability matrix moved to `docs/REQUIREMENTS.md`
-(it's the primary artifact requirements traceability belongs in, not
-duplicated here). This document's job is describing the views, not
-re-stating the matrix.
+## Keeping these views current
 
-These views are maintained by hand alongside `src/leo_edge/`. Changes to
-architecture IDs, product tiers, or metrics require updating this file,
-`docs/DATA_DICTIONARY.md`, and `docs/ASSUMPTIONS.md` together.
+The requirement-to-test matrix lives in `docs/REQUIREMENTS.md`. These views
+are maintained by hand; a change to architecture IDs, product tiers, or
+metrics means updating this file, `docs/DATA_DICTIONARY.md`, and
+`docs/ASSUMPTIONS.md` together.

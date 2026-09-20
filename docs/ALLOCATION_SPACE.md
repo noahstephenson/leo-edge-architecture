@@ -35,6 +35,44 @@ segment** (the tactical terminal). A third, optional segment, the
    based on predicted contact margin, `docs/MISSION_THREADS.md`'s
    contested-condition parameters).
 
+## Where the ownership boundary falls
+
+```mermaid
+flowchart LR
+    T["Task"] --> C["Collect"]
+    C --> P["Process<br/>tiers P0 to P4"]
+    C --> S["Store"]
+    P --> Pr["Prioritize"]
+    S --> Pr
+    Pr --> Tx["Transmit"]
+    Tx ==>|"ownership boundary:<br/>contact-windowed downlink"| R["Receive"]
+    R --> E["Exploit"]
+    S -.->|"prior reference, MT-3"| E
+    E --> D["Disseminate"]
+    subgraph COMMERCIAL["Commercial space segment: Collect to Transmit, in every architecture A0 to A6"]
+        C
+        P
+        S
+        Pr
+        Tx
+    end
+    subgraph EDGE["Army edge segment"]
+        R
+        E
+        D
+    end
+    classDef com fill:#dde7f5,stroke:#2f5a94,color:#111
+    classDef army fill:#dfeadf,stroke:#3b6b3b,color:#111
+    class C,P,S,Pr,Tx com
+    class R,E,D army
+```
+
+Every architecture here puts Process and Prioritize on the commercial side.
+That is the first thing to notice: the seven architectures differ in how
+the commercial side processes and orders products, not in which segment
+owns the work. Moving Process across the boundary (split processing) is
+the largest region this repository does not cover (see "Uncovered regions").
+
 ## The seven architectures as points in this space
 
 | Architecture | Processing allocation | Tasking path | Product ordering | Policy adaptivity |
@@ -60,15 +98,17 @@ choose between reachback and direct tasking, that choice is external
 
 ## What A6 changed, and what it didn't
 
-`docs/TRADE_STUDY.md` has the full result. In short: A6 achieves the
-highest mission-thread success and resilience scores of any architecture
-in `results/frozen/v3/e11_mission_thread_success.csv` (normalized 1.000 and
-0.962 respectively, versus Progressive's 0.945 and 1.000), and wins
-outright under the tactical-user-leaning weight profile. It does not
-change the headline finding: contact geometry, not architecture choice,
-remains the dominant constraint (`docs/ACQUISITION_IMPLICATIONS.md`), and
-A6's raw success rates are still in the low single-digit percent range,
-just the best low single digits among the options tested.
+`docs/TRADE_STUDY.md` has the full result. At the single-satellite baseline
+(`results/frozen/v4/e11_significance_tests.csv`), A6 (ThreadAwarePriority)
+had the most mission-thread successes (142 of 9,000 paired trials), ahead of
+Progressive (129) and RoiFirst (109), and every one of those gaps is
+statistically significant. At the one informative cell of the access sweep
+(24 satellites, 8 planes, 4 terminals) A6 and Progressive are tied (31.2% vs.
+30.8%) and both beat RoiFirst by about 7 points. A6 also has the largest
+interface to specify (6 on the lock-in score, because it decides its
+priority tier per request), which is why RoiFirst still wins the combined
+trade-study ranking. Access, not architecture, still moves success the most
+(`docs/ACQUISITION_IMPLICATIONS.md`).
 
 ## Uncovered regions
 

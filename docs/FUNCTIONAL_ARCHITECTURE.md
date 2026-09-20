@@ -6,6 +6,27 @@ performs each one. `docs/ALLOCATION_SPACE.md` is where these functions get
 assigned to segments; this document only says what each function does and
 what it needs from its neighbors.
 
+## The flow at a glance
+
+```mermaid
+flowchart LR
+    T["1 Task"] --> C["2 Collect"]
+    C --> P["4 Process<br/>tiers P0 to P4"]
+    C --> S["3 Store"]
+    P --> Pr["5 Prioritize"]
+    S --> Pr
+    Pr --> Tx["6 Transmit"]
+    Tx --> R["7 Receive"]
+    R --> E["8 Exploit"]
+    S -.->|"stored prior reference, MT-3 only"| E
+    E --> D["9 Disseminate"]
+```
+
+Read left to right. Store feeds Exploit directly for change detection (MT-3),
+because a prior reference image is already on hand; it does not come down
+the downlink again. `docs/ALLOCATION_SPACE.md` colors the same nine boxes
+by which segment owns them.
+
 ## Functions
 
 1. **Task**: turn a user need into a collection request against a specific

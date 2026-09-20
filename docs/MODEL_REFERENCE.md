@@ -20,7 +20,7 @@ sequence for A4/A6) complete within that one window? Bytes are always
 capped to `C`; a tier that doesn't fully fit is not delivered, and `tfup_s`/
 `tcp_s` are `NaN` for whatever didn't complete (`completed = False`), never
 a fabricated number for a truncated delivery. See `docs/DECISION_LOG.md`
-ADR-008 and `docs/V1_VS_V2.md` for why this matters and what changed.
+ADR-008 for why this matters.
 
 A6 (`ThreadAwarePriority`) reorders A4's same five tiers around whichever
 one the active mission thread needs (`docs/DECISION_LOG.md` ADR-014), so
@@ -74,26 +74,49 @@ check whether a mission thread's specific first-needed tier (not just
 ## Mission-thread latency accounting
 
 Total latency for a mission-thread trial is measured from the user's
-request, not from image capture:
+request, not from image capture. The model has three time steps: wait for
+a collection opportunity, collect, then deliver.
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Request
+    participant A as AOI pass, satellite X
+    participant D as Downlink window, satellite X
+    participant T as Terminal
+    U->>U: request time + tasking delay (60 s or 180 s)
+    U->>A: wait for the next AOI overflight of ANY satellite
+    Note over A: collection happens at closest approach (peak), not at pass end
+    A->>D: same satellite only, no crosslink
+    Note over D: v3 rule: window must START after collection<br/>v4 rule: window only has to still be OPEN
+    D->>D: onboard processing time, then transmit at the link rate
+    D->>T: use the remaining part of the window, carry leftovers to X's next window
+    Note over T: latency = (collection - request) + time until the needed tier arrives<br/>success if latency is within the thread tolerance
 ```
-request_time  (random point in the simulated week)
-  + tasking_delay_s          (docs/MISSION_THREADS.md tasking-path table)
-  = earliest_usable_s        (collection cannot begin before this)
 
-contact windows before earliest_usable_s are excluded entirely; the
-remaining windows are re-based so time 0 = request_time, then walked by
-simulate_multi_contact as above. The resulting tier_completion_s values
-are therefore already measured from request_time, with the tasking delay
-and the wait for the first usable contact both included, with no further
-addition needed.
-```
+How to read it: the satellite that reaches the area of interest first is
+the one that collects, and only that satellite can deliver the image. Any
+of its downlink windows still open after collection can be used, including
+the rest of the same pass, clipped to the time that is left
+(`experiments/e11_mission_thread_success.py::usable_downlink_same_satellite`).
+Before this change (v3), a window had to start after collection finished,
+which ruled out delivery on the collecting pass altogether
+(`docs/DECISION_LOG.md` ADR-020).
 
-This is why `docs/TRADE_STUDY.md`'s mission-thread success rates are
-dominated by contact-gap statistics, not by architecture-specific
-processing speed: the wait-for-next-contact term is usually much larger
-than any difference in `simulate_multi_contact`'s per-tier transmit time
-between architectures.
+`simulate_multi_contact` (above) then walks those clipped windows and
+returns each tier's completion time, measured from collection, so total
+latency is `(collection_time - request_time) + tier_completion_time`.
+
+Access windows come from real SGP4 propagation of every satellite. For
+constellations, `orbit/constellation.py::generate_walker_delta_tles` builds
+one TLE per satellite (RAAN spread across planes, mean anomaly spread within
+a plane) and `per_satellite_access_windows` propagates each one. Each window
+carries its time of closest approach (`peak`).
+
+This is why `docs/TRADE_STUDY.md`'s mission-thread success rates are driven
+by overflight and contact-gap statistics far more than by architecture
+processing speed: the wait for the next usable pass is usually much larger
+than any per-tier transmit-time difference.
 
 ## Energy
 
@@ -112,10 +135,8 @@ constants and all sizing ratios live in `config/product_sizing.yaml`; see
 - **Contact denial** drops a random fraction of the candidate contact
   windows (per-window Bernoulli trial) before they're passed in, modeling
   EMCON/displacement/on-the-move contact loss.
-- **Reachback loss** is modeled by forcing the tasking delay to the
-  (longer) direct-edge value regardless of which path would otherwise be
-  preferred, since reachback is unavailable by definition when this
-  condition is active.
+- **Reachback loss** is modeled by using the longer 180 s tasking delay,
+  as if the reachback path were unavailable.
 
 These compose independently (e.g., `COMBINED_DEGRADED` in
 `experiments/e11_mission_thread_success.py` applies interference derate

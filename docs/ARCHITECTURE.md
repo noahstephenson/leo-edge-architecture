@@ -1,125 +1,65 @@
-# ARCHITECTURE
+# Satellite-Side Architecture
 
-Lower-level SysML-style block/activity/state diagrams for the satellite side of the system, supplementary to `docs/ARCHITECTURE_VIEWS.md`, which is where the commercial-provider/Army-edge ownership boundary (`docs/ALLOCATION_SPACE.md`) is actually drawn. The "GroundTerminal" block below is the Army-owned tactical edge terminal (`docs/MISSION_THREADS.md`'s terminal classes), kept generic here since this diagram is about onboard product-tier flow, not the ownership boundary.
+This document zooms into the commercial satellite: what happens to an
+image between capture and delivery. It is the inside of the "Commercial
+provider" box in `docs/ARCHITECTURE_VIEWS.md`, which is where the
+ownership boundary with the Army edge is drawn. Read that first if you want
+the whole system; read this if you want to know what an architecture such
+as Progressive or ContactAware actually does on the satellite.
 
-## Overview
+## Product flow inside the satellite
 
-The architecture models a COTS-heavy small satellite with onboard processing, mass memory, and a radio downlink communicating with the Army-owned edge terminal. Processing placement decisions are governed by contact windows and product tier prioritization.
-
-## Block Definition Diagram
-
-Logical blocks and key ports.
-
-```mermaid
-classDiagram
-    class SatelliteBus {
-        <<Block>>
-        + powerPort : Power
-        + dataPort : DataBus
-        + commPort : RF
-    }
-    class Payload {
-        <<Block>>
-        + imagePort : Image
-        + ctrlPort : Cmd
-    }
-    class OnboardProcessor {
-        <<Block>>
-        + procInPort : Image
-        + procOutPort : Product
-        + memPort : DataBus
-    }
-    class MassMemory {
-        <<Block>>
-        + storePort : DataBus
-        + retrievePort : DataBus
-    }
-    class Downlink {
-        <<Block>>
-        + txPort : RF
-        + dataInPort : DataBus
-    }
-    class GroundTerminal {
-        <<Block>>
-        + rxPort : RF
-        + procPort : DataBus
-    }
-
-    SatelliteBus *-- Payload : contains
-    SatelliteBus *-- OnboardProcessor : contains
-    SatelliteBus *-- MassMemory : contains
-    SatelliteBus *-- Downlink : contains
-    Downlink --> GroundTerminal : communicates with
-```
-
-## Internal Block Diagram
-
-Data flows for product tiers between onboard elements.
+An image is captured, reduced to one or more product tiers, stored, and sent
+in priority order whenever a contact window is open. Nothing is delivered
+until an acknowledgement comes back.
 
 ```mermaid
-graph LR
-    subgraph Satellite
-        OP[Onboard Processor]
-        MM[Mass Memory]
-        Radio[Radio / Downlink]
-    end
-    Ground[Ground Terminal]
-
-    OP -->|Metadata P0| MM
-    OP -->|Thumbnail P1| MM
-    OP -->|Quicklook P2| MM
-    OP -->|ROI P3| MM
-    OP -->|Full P4| MM
-
-    MM -->|Metadata| Radio
-    MM -->|Thumbnail| Radio
-    MM -->|Quicklook| Radio
-    MM -->|ROI| Radio
-    MM -->|Full| Radio
-
-    Radio --> Ground
+flowchart LR
+    Cap(["Image captured"]) --> Proc["Process into tiers<br/>P0 metadata to P4 full"]
+    Proc --> Mem[("Mass memory")]
+    Mem --> Pri{"Prioritize<br/>(architecture policy)"}
+    Pri -->|"contact window open"| Tx["Transmit until<br/>the window closes"]
+    Pri -->|"no contact"| Wait["Wait for next window"]
+    Wait --> Pri
+    Tx --> Ack{"Acknowledged?"}
+    Ack -->|"yes"| Done(["Delivered"])
+    Ack -->|"no or window lost"| Mem
 ```
 
-## Activity Diagram
+How to read it: the loop from "Transmit" back to "Mass memory" is the point
+of the whole study. A window that closes mid-tier does not lose the bytes
+already sent; the remainder carries into the next window
+(`simulation.simulate_multi_contact`, `docs/MODEL_REFERENCE.md`).
 
-Progressive delivery pipeline with Contact-Aware policy decisions.
+What differs between architectures is only the "Process" and "Prioritize"
+boxes:
 
-```mermaid
-flowchart TD
-    Start([Image Captured])
-    Start --> Acquire
-    Acquire --> GenerateProducts
-    GenerateProducts --> CheckContact
-    CheckContact -->|Contact imminent| Prioritize
-    CheckContact -->|No contact| Store
-    Prioritize --> SelectTier
-    SelectTier -->|P0 Metadata| Transmit
-    SelectTier -->|P1 Thumbnail| Transmit
-    SelectTier -->|P2 Quicklook| Transmit
-    SelectTier -->|P3 ROI| Transmit
-    SelectTier -->|P4 Full| Queue
-    Store --> WaitContact
-    WaitContact --> ContactArrived
-    ContactArrived --> Prioritize
-    Queue --> WaitContact
-    Transmit --> Ack
-    Ack -->|Ack received| Done([Delivered])
-    Ack -->|No ack| Store
-    Done --> End([End])
-```
+| Architecture | What it does in those two boxes |
+|---|---|
+| A0 GroundOnly | No processing; sends the raw scene |
+| A1 CompressedFull | Compresses once; sends one product |
+| A2 QuicklookFirst | Makes a quicklook first, then the full scene |
+| A3 RoiFirst | Crops a region of interest first, then the full scene |
+| A4 Progressive | Sends P0, P1, P2, P3, P4 in fixed order |
+| A5 ContactAware | Checks contact margin once; sends compressed or raw |
+| A6 ThreadAwarePriority | Like A4, but the tier the active mission thread needs goes first |
 
-## State Machine
+## Product lifecycle
 
-ProductQueue lifecycle.
+Each queued product moves through these states.
 
 ```mermaid
 stateDiagram-v2
     [*] --> queued
-    queued --> processing : start processing
-    processing --> stored : processing complete
-    stored --> transmitting : contact available and policy permits
-    transmitting --> delivered : ack received
-    transmitting --> stored : contact lost
-    stored --> queued : reprioritize
+    queued --> processing: start processing
+    processing --> stored: processing complete
+    stored --> transmitting: contact open and policy permits
+    transmitting --> delivered: acknowledgement received
+    transmitting --> stored: contact lost, remainder kept
+    stored --> queued: reprioritize
     delivered --> [*]
 ```
+
+The invariants behind this diagram (bytes sent never exceed window capacity,
+storage never goes negative, an unfinished product is censored rather than
+scored as complete) are listed in `docs/V_AND_V.md`.
