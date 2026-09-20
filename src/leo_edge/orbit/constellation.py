@@ -41,11 +41,14 @@ def _build_synthetic_tle(altitude_km: float, inclination_deg: float, raan_deg: f
     mean_motion_rev_per_day = n_rad_per_s * 86400.0 / (2.0 * math.pi)
 
     line1 = "1 00001U 00001A   20001.00000000  .00000000  00000-0  00000-0 0  9999"
-    incl_str = f"{inclination_deg:8.4f}"
-    raan_str = f"{raan_deg % 360.0:8.4f}"
-    ma_str = f"{mean_anomaly_deg % 360.0:8.4f}"
-    mean_motion_str = f"{mean_motion_rev_per_day:11.8f}"
-    line2 = f"2 00001 {incl_str}{raan_str} 0000000  0.0000{ma_str} {mean_motion_str}  00000"
+    # Exact fixed-width TLE columns: SGP4 parses by column position, so a
+    # missing separator silently mis-reads a field (an earlier version
+    # dropped the space before mean anomaly and every satellite parsed as
+    # mean anomaly 0, co-locating all satellites in a plane).
+    line2 = (
+        f"2 00001 {inclination_deg:8.4f} {raan_deg % 360.0:8.4f} 0000000 "
+        f"{0.0:8.4f} {mean_anomaly_deg % 360.0:8.4f} {mean_motion_rev_per_day:11.8f}    10"
+    )
     return line1, line2
 
 
