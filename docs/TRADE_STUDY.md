@@ -29,7 +29,7 @@ not hand-picked judgment numbers.
 | Fidelity | Derived | Fraction of `e03_results.csv` rows delivered lossless (real `fidelity_lossy` field) |
 | Space-segment processing burden | Derived | Real mean `processing_energy_j` from `e03_results.csv`: higher energy = more provider-side compute burden = worse |
 | Terminal processing burden | Derived | Fraction of `e03_results.csv` rows with `processing_energy_j == 0`, i.e. raw/unprocessed delivery that pushes interpretation work onto the terminal = worse |
-| Acquisition lock-in risk | Derived | Non-metadata tier count (named data-format interfaces in `docs/INTERFACES.md`) plus 2 (not 1) if the architecture has per-request conditional logic (`CONDITIONAL_LOGIC`), since a runtime decision is a non-standard interface in a way a fixed format spec isn't -- see ADR-021 |
+| Acquisition lock-in risk | Derived | Non-metadata tier count (named data-format interfaces in `docs/INTERFACES.md`) plus 2 (not 1) if the architecture has per-request conditional logic (`CONDITIONAL_LOGIC`), since a runtime decision is a non-standard interface in a way a fixed format spec isn't (ADR-021) |
 
 Rankings are reported two ways: **SIMULATED_ONLY** (the three simulated
 criteria only, renormalized to sum to 1.0) and **COMBINED** (all seven).
@@ -59,7 +59,7 @@ Mission-thread success roughly doubled to tripled across the tiered
 architectures compared to v3's single-satellite baseline (v3: 0.078% tied
 across RoiFirst/Progressive/ThreadAwarePriority; v4: 1.2%/1.4%/1.6%
 respectively), driven entirely by the same-pass collect-and-downlink fix
-(`docs/DECISION_LOG.md` ADR-020) -- not by any change to the architectures
+(`docs/DECISION_LOG.md` ADR-020), not by any change to the architectures
 themselves.
 
 ## Mission-thread success at the single-satellite baseline: real separation, not a tie
@@ -97,9 +97,9 @@ From `results/frozen/v4/trade_study_scores.csv`, `WITH_A6` architecture set:
 | BALANCED | ThreadAwarePriority (1.000, vs. Progressive 0.943) | **RoiFirst** (0.611) | RoiFirst, Progressive, ThreadAwarePriority, GroundOnly, QuicklookFirst, ContactAware, CompressedFull |
 
 **`SIMULATED_ONLY` and `COMBINED` disagree on the top architecture in
-every single profile, exactly as in v3.** Unlike v3 -- where
+every single profile, exactly as in v3.** Unlike v3, where
 ThreadAwarePriority's `SIMULATED_ONLY` edge over Progressive was a
-rounding-level artifact of two statistically tied architectures -- v4's
+rounding-level artifact of two statistically tied architectures, v4's
 `SIMULATED_ONLY` edge (1.000 vs. 0.943 or lower) reflects a real,
 statistically significant mission-thread-success and latency advantage
 (see the baseline table above). `RoiFirst` still wins the `COMBINED` view
@@ -112,7 +112,7 @@ smaller latency disadvantage (35,587s vs. ~19,400-19,900s KM median).
 ADR-021 replaced the bare tier-count proxy with one explicitly tied to
 `docs/INTERFACES.md`'s ownership boundary (named data-format interfaces
 plus a doubled weight for runtime conditional logic), and RoiFirst still
-wins `COMBINED` in every profile -- its `COMBINED` gap over
+wins `COMBINED` in every profile, and its `COMBINED` gap over
 ThreadAwarePriority is now *wider* than under the old proxy, since A6's
 score got worse (6, up from 5) while RoiFirst's stayed the same (2).
 
@@ -126,7 +126,7 @@ COMBINED view, WITH_A6 set) varies each criterion's weight by up to
   architecture moves among GroundOnly, Progressive, RoiFirst, and
   ThreadAwarePriority depending on profile.
 - **Fidelity**, swept under ACQUISITION_LEANING and BALANCED: flips
-  between GroundOnly and RoiFirst -- GroundOnly is the only architecture
+  between GroundOnly and RoiFirst. GroundOnly is the only architecture
   that ever delivers a lossless product, despite never succeeding a
   mission thread at all. Under TACTICAL_USER_LEANING and
   TERMINAL_OPERATOR_LEANING, it flips between GroundOnly and
@@ -135,7 +135,7 @@ COMBINED view, WITH_A6 set) varies each criterion's weight by up to
   sensitivity flip points in v4 (not in v3, where these three
   architectures were tied): under BALANCED and TERMINAL_OPERATOR_LEANING,
   sweeping either criterion's weight moves the top architecture among
-  Progressive, RoiFirst, and ThreadAwarePriority -- a direct consequence
+  Progressive, RoiFirst, and ThreadAwarePriority, a direct consequence
   of the real separation the same-pass fix produced.
 - **Space-segment processing burden**, swept under ACQUISITION_LEANING,
   BALANCED, and TERMINAL_OPERATOR_LEANING: flips between GroundOnly (or
@@ -149,7 +149,7 @@ profile.
 
 Nominal and degraded success rates remain close together for every
 architecture at the single-satellite baseline (e.g. ThreadAwarePriority:
-1.6% mean success, 1.2% mean resilience-under-degraded -- a real but
+1.6% mean success, 1.2% mean resilience-under-degraded, a real but
 small gap, not the collapse-to-zero v3 showed at this access level). See
 `docs/ACQUISITION_IMPLICATIONS.md` for whether this pattern holds across
 the real Walker sweep.

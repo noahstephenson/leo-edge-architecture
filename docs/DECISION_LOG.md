@@ -60,11 +60,19 @@ Real architecture and project decisions, in the order they were made.
 
 ## ADR-008: Fix architecture correctness bugs before building on top of them
 
-**Decision**: Before any allocation-space work began, eight confirmed correctness bugs in `src/leo_edge/architectures.py` and `simulation.py` were fixed: uncapped `bytes_transmitted` in `QuicklookFirst`/`RoiFirst` (the exact cause of `contact_utilization` reaching 2.667 in the v1 audit), three divergent and mostly-unclamped `contact_utilization` implementations collapsed into one clamped one, `tcp_s` no longer silently set equal to `tfup_s` when a product didn't fully deliver (now censored: `tcp_s = NaN`, `completed = False`), a new multi-contact delivery simulator (`simulate_multi_contact`) that carries undelivered bytes across real SGP4 contact windows instead of evaluating only a single window, a `fidelity_lossy`/`fidelity_resolution_class` field added to every architecture's output, sizing ratios moved to `config/product_sizing.yaml`, `AdaptivePolicy` (A5) rewired to return and run a real architecture class instead of a string label that was approximated with `Progressive` for two different cases, and `scripts/audit_paper_numbers.py` fixed to emit relative paths and to treat `contact_utilization > 1` as a failure instead of a tolerated warning. The v1-to-v2 comparison document was deleted later; git history has it.
+**Decision**: Eight confirmed bugs in `architectures.py` and `simulation.py` were fixed before any allocation work began:
+- QuicklookFirst and RoiFirst did not cap bytes sent at window capacity (the cause of `contact_utilization` reaching 2.667 in the v1 audit).
+- Three different `contact_utilization` implementations were collapsed into one clamped version.
+- `tcp_s` was silently set equal to `tfup_s` when a product did not fully deliver; it is now `NaN` with `completed = False`.
+- `simulate_multi_contact` was added so undelivered bytes carry across real SGP4 windows instead of being judged in one window.
+- A `fidelity_lossy` / `fidelity_resolution_class` field was added to every architecture's output.
+- Sizing ratios moved to `config/product_sizing.yaml`.
+- `AdaptivePolicy` (A5) now returns and runs a real architecture class instead of a label approximated with Progressive.
+- `scripts/audit_paper_numbers.py` now uses relative paths and fails on `contact_utilization > 1`.
 
-**Rationale**: A trade study and acquisition guidance built on top of an evaluation engine that scores failed deliveries as instant successes would be worthless regardless of how good the surrounding architecture work is.
+**Rationale**: a trade study built on an engine that scores failed deliveries as instant successes is worthless however good the surrounding architecture work is.
 
-**Consequence**: `results/frozen/v1/` is left untouched as the historical record. All new results are in `results/frozen/v2/`, generated with the fixed code. Several v1 conclusions do not survive the fix.
+**Consequence**: results were regenerated with the fixed code, and several v1 conclusions did not survive.
 
 ## ADR-009: Mark LEO_EDGE_OPERATIONAL_VIEWPOINTS.md superseded rather than rewrite it section-by-section (superseded by ADR-011)
 
@@ -106,49 +114,53 @@ Real architecture and project decisions, in the order they were made.
 
 **Consequence**: Verified by hashing `tile_001.jpg` before and after a run (identical) and diffing the output CSV: `compressed_bytes`, `quicklook_bytes`, `roi_bytes`, `psnr`, and `ssim` are now byte-for-byte reproducible; only the timing columns vary, which is expected since those are real wall-clock measurements.
 
-## ADR-014: Add A6_THREAD_AWARE_PRIORITY, closing the mission-thread-aware-prioritization gap
+## ADR-014: Add A6_THREAD_AWARE_PRIORITY
 
-**Decision**: Added `ThreadAwarePriority` (A6) to `src/leo_edge/architectures.py`: it behaves like Progressive (same five tiers, same sizes) but reorders delivery so the active mission thread's specific needed tier is sent right after metadata, instead of Progressive's fixed metadata-thumbnail-quicklook-ROI-full order regardless of which thread is running. This directly closes the gap `docs/ALLOCATION_SPACE.md` named as "the most direct next experiment this repository doesn't yet run." Wired into `experiments/e11_mission_thread_success.py`, `experiments/e03_static_architectures.py`, `scripts/trade_study.py`, and `app/dashboard.py`.
+**Decision**: Added `ThreadAwarePriority` (A6). It has Progressive's five tiers but sends the active mission thread's needed tier right after metadata, instead of Progressive's fixed order. It closes the gap `docs/ALLOCATION_SPACE.md` named as the most direct missing experiment. It is wired into `e11`, `e03`, `trade_study.py`, and the dashboard.
 
-While wiring A6 into `e11`, caught and fixed a real naming bug in the same change, before it was ever committed: the refactor to support per-thread architecture construction initially used the A-prefixed factory key (e.g. `"A0_GROUND_ONLY"`) as the CSV `architecture` value, instead of the class name (`"GroundOnly"`) that `e03_results.csv` and `scripts/trade_study.py`'s `ARCHITECTURES` list expect. That mismatch would have made `scripts/trade_study.py`'s `mission_thread_success` and `resilience` criteria silently fall back to 0 for every architecture, every future run, with no error. Fixed by deriving the CSV name from `type(architecture).__name__`.
+Two bugs were found and fixed while adding it, before it was committed:
+- An early refactor wrote the A-prefixed factory key (`"A0_GROUND_ONLY"`) into the CSV `architecture` column instead of the class name (`"GroundOnly"`). That would have made the trade study's success and resilience criteria silently fall back to 0 for every architecture.
+- ContactAware (A5) had never been in `e03`'s rate sweep, so its latency criterion in every earlier trade study was a fallback fill value, not a measurement. Both A5 and A6 are now in the sweep.
 
-Also discovered and fixed while adding A6: `ContactAware` (A5) had never been included in `e03_static_architectures.py`'s rate sweep, meaning its "latency" criterion in every prior trade-study run (including the version committed to `docs/TRADE_STUDY.md` before this ADR) was silently a fallback fill value (the worst observed latency among the other architectures), not a real measurement. Both `ContactAware` and the new `ThreadAwarePriority` were added to the `e03` sweep so all seven architectures now have real single-window latency data.
+The ID `A6` once named `A6_GROUND_CENTRIC_HYBRID`, deleted in ADR-003. Reusing it is intentional: this A6 is documented, tested, and evaluated, which the deleted one was not.
 
-Note on the ID: `A6` previously named `A6_GROUND_CENTRIC_HYBRID`, deleted in ADR-003 as undocumented scope creep. Reusing `A6` for this unrelated architecture is intentional, not confusion between the two; this one is fully documented, tested, and evaluated, which is exactly what the deleted one wasn't.
+**Consequence**: A6 was later re-evaluated under the corrected model (ADR-020); see `docs/TRADE_STUDY.md` for current numbers.
 
-**Rationale**: `docs/ALLOCATION_SPACE.md` explicitly named this as the highest-value next step, and it was tractable to implement well within this session rather than leaving it as a permanent stated gap.
+## ADR-015: A6 provenance, shared mission-thread module, MT-3 restored, MT-4 as a cadence thread
 
-**Consequence**: `docs/ALLOCATION_SPACE.md`, `docs/TRADE_STUDY.md`, and `docs/ACQUISITION_IMPLICATIONS.md` are updated with A6's real results: it achieves the highest mission-thread success (1.92% mean) and resilience (1.04% mean under degraded conditions) of any architecture tested, and wins the trade study outright under the tactical-user-leaning weight profile, while Progressive still wins the acquisition- and terminal-operator-leaning profiles because a fixed pipeline is simpler to specify in a multi-vendor contract than a per-request reordering rule. The headline finding (contact geometry, not architecture, is the binding constraint) is unchanged: A6's best-case success rate is still under 2% on average.
+**Decision**:
+- `ThreadAwarePriority.PROVENANCE = "proposed_post_v2"`; every other architecture is `"original_candidate_set"`, enforced by a test, so A6 is always reported separately from A0-A5.
+- `src/leo_edge/mission_threads.py` is the single source of truth for thread tiers and tolerances, replacing copies in `e11` and the dashboard.
+- MT-3 (battle damage assessment) is restored. Its change product is modeled as a P3_ROI-sized product, gated on a per-trial prior-reference draw (`PRIOR_REFERENCE_PROB = 0.5`, ASSUMED). Without a reference it falls back to MT-2's 15-minute tolerance.
+- MT-4 is now evaluated as a cadence: every collection pass across the horizon is checked against the per-pass tolerance, and two misses in a row fail the thread.
 
-## ADR-015: v3 Part 1 -- A6 provenance tag, shared mission-thread module, MT-3 restored, MT-4 cadence fix
+**Rationale**: v2's MT-4 used the same single-request machinery as the other threads, even though `docs/MISSION_THREADS.md` defines its tolerance as measured per collection. The code was changed to match the doc, not the reverse.
 
-**Decision**: `ThreadAwarePriority.PROVENANCE = "proposed_post_v2"`; every other architecture gets `PROVENANCE = "original_candidate_set"`, enforced by a test. `src/leo_edge/mission_threads.py` is now the single source of truth for mission-thread tier/tolerance parameters, replacing hand-duplicated copies in `e11_mission_thread_success.py` and `app/dashboard.py`. MT-3 (battle damage assessment) is restored: its change/difference product is modeled as needing a P3_ROI-sized product (a documented proxy, not a new product type in `products.py`), gated on a per-trial `prior_reference_available` draw at `PRIOR_REFERENCE_PROB = 0.5` (ASSUMED); without a reference it degrades to MT-2's 15-minute tolerance per the doc's own dependency note. MT-4 is now genuinely cadence-based: `evaluate_cadence()` walks every real AOI overflight pass across the full mission horizon and checks whether a coarse product from that specific pass arrives within its tolerance, failing the thread on 2+ consecutive misses, instead of the v2 code's single-request evaluation that was mechanically identical to MT-1/MT-2 despite `docs/MISSION_THREADS.md` defining MT-4's tolerance as "measured from each collection," not from one request.
+**Consequence**: `tests/test_mission_thread_consistency.py` checks the module against the doc's tables independently. Single-request and cadence results go to separate CSVs because they track different fields.
 
-**Rationale**: The v3 task required a test that MT-4's code and the doc actually agree, and the honest answer on inspection was that v2's MT-4 code didn't implement the doc's cadence concept at all -- it just used a different `needed_tier`/`latency_tolerance_s` on the same single-request machinery as every other thread. Fixing the code to match the doc (rather than loosening the doc to match the code) was the right direction because MT-4's whole operational point, "persistent monitoring... defined by repeat collections... not a single request/response cycle," is unmet by a single-request evaluation regardless of what tolerance number is plugged in.
+## ADR-016: Paired trials, collection timing, structural incapacity
 
-**Consequence**: `tests/test_mission_thread_consistency.py` hand-transcribes the doc's tables independently and checks the module against them, including a dedicated assertion that MT-4 is flagged `cadence=True` and the other three are not. `experiments/e11_mission_thread_success.py` now writes separate summary files for single-request threads (`e11_mission_thread_success.csv`) and the cadence thread (`e11_cadence_success.csv`), since they track different fields (a per-pass cadence rate has no equivalent in a single request/response evaluation) and forcing them into one schema either loses information or crashes on the field mismatch (caught before committing: an early version of this change tried to merge both into one CSV and `csv.DictWriter` raised on the cadence-only `mean_cadence_rate` field).
+**Decision**:
+- Every architecture in a trial now shares one draw (request time, denial rolls, prior-reference roll), so paired bootstrap comparisons are valid. v2 gave each architecture independent draws.
+- A request must wait for a real overflight of a notional AOI (45N, 5E, ASSUMED) before any downlink window is usable. v2 treated collection as instant.
+- Each trial row separately records `structural_incapacity` (the architecture never produces the needed tier) and slowness (produced it, too late).
 
-## ADR-016: v3 Part 1 items 3, 6, 7 -- paired trials, collection timing, definitional zeros
+**Consequence**: honest collection timing pushed success down sharply (7 of 9,000 for the best architectures under the v3 model). ADR-020 later corrected part of that model.
 
-**Decision**: `experiments/e11_mission_thread_success.py` now draws one shared trial context (`request_time_s`, a per-downlink-window denial roll, and a prior-reference roll) per trial index per (thread, terminal, condition) cell, and evaluates every architecture against that same draw (`draw_request_context`), instead of v2's architecture-outer loop where each architecture got its own independent random draws. This makes architecture comparisons genuinely paired, which is what `paired_bootstrap_diff_ci` (`src/leo_edge/stats.py`) requires to be a valid paired test rather than a mislabeled one.
+## ADR-017: Fix the terminal-SWaP inversion, derive criteria from code, censor latency properly
 
-Added a real collection-opportunity model: a request must wait for the next actual SGP4 overflight of a notional AOI location (45N, 5E, offset from the 40N/0E ground terminal, documented ASSUMED) before any downlink window becomes usable, computed the same way as the existing ground-terminal access windows (`generate_access_windows`, just at a different lat/lon). v2 treated collection as instantaneous at request time, which was never stated as an assumption anywhere and was simply an omission.
+**Decision**: `scripts/trade_study.py` was rewritten.
+- v2's `terminal_swap_burden` scored GroundOnly best, which is backwards: GroundOnly does no onboard processing, so the Army terminal does all the interpretation. It is replaced by `space_segment_processing_burden` and `terminal_processing_burden`, both derived from real `e03` data.
+- `fidelity` comes from the real `fidelity_lossy` field instead of a hand-picked split.
+- `acquisition_lock_in_risk` is derived from tier count and a `CONDITIONAL_LOGIC` flag (redefined in ADR-021).
+- Latency is a Kaplan-Meier median over `e11`'s per-trial data, censoring non-completions at the 168 h horizon, instead of a mean over completed rows only.
+- Rankings are printed twice, SIMULATED_ONLY and COMBINED, and every disagreement is reported. A6 is always scored in a separate table.
 
-Every trial row now separately records `structural_incapacity` (the architecture's `.tiers()` never includes the thread's needed tier at all) versus `produced_tier` combined with missing the latency tolerance (produced the tier, too slowly), instead of collapsing both into a single `success=False`.
-
-**Rationale**: All three were named explicitly in the reopened v3 task as confirmed problems, not open design choices.
-
-**Consequence**: Re-running `e11` with the collection-timing model added pushes mission-thread success rates down further than v2's already-low numbers (v2: best architecture ~1.9% mean; v3 first run: 7 successes out of 9000 paired trials for the best architectures, i.e. under 0.1%), because a second real SGP4 wait (for the AOI pass) now stacks on top of the downlink wait v2 already modeled. This is a real, if severe, consequence of modeling collection honestly, not a bug; ADR-020 and ADR-024 give the later corrections.
-
-## ADR-017: v3 Part 1 items 1, 2, 8 -- fix terminal SWaP inversion, derive criteria from code, censoring-aware latency
-
-**Decision**: `scripts/trade_study.py` rewritten. `terminal_swap_burden` (v2: GroundOnly scored 1.0/best, which was backwards -- GroundOnly does zero onboard processing, so it pushes ALL interpretation work onto the Army terminal) is replaced by two criteria derived from real `e03_results.csv` fields: `space_segment_processing_burden` (mean `processing_energy_j`, higher energy = more provider-side burden = worse) and `terminal_processing_burden` (fraction of rows with `processing_energy_j == 0`, i.e. raw/unprocessed delivery = worse for the terminal). `fidelity` is now derived from the real `fidelity_lossy` field instead of a hand-picked 1.0/0.6 split. `acquisition_lock_in_risk` is now derived from each architecture's actual tier count (`.tiers()`) plus a new `CONDITIONAL_LOGIC` class flag (true for ContactAware and ThreadAwarePriority, which branch per request) instead of a hand-picked number. `latency` now comes from a Kaplan-Meier-style censored median over `e11_mission_thread_trials.csv`'s per-trial latency data (`src/leo_edge/stats.py::kaplan_meier_median`) instead of a mean over completed-only `e03` rows, which silently dropped every non-completion. Every ranking is now printed twice: `SIMULATED_ONLY` (mission_thread_success, latency, resilience -- the three criteria that come directly from simulation) and `COMBINED` (all seven), with every case where the two disagree on the top architecture reported explicitly. A6 is scored in a separate `WITH_A6` table alongside the original `ORIGINAL_SET` table in every view, never silently merged into one ranking.
-
-**Rationale**: All three were named as confirmed problems in the reopened v3 task, not open design choices. The terminal-SWaP inversion in particular was a real methodological bug (docs/TRADE_STUDY.md v2 recommended GroundOnly as best-in-class on a criterion it should have scored worst on), not a modeling simplification.
-
-**Consequence**: With real v3 data (`results/frozen/v3/e03_results.csv`, `e11_mission_thread_trials.csv`), `SIMULATED_ONLY` picks Progressive (or A6, when included) as the top architecture in every profile, while `COMBINED` picks RoiFirst in every single profile and architecture set -- a materially different, and now honestly-labeled, result from v2's Progressive-wins-everything story. RoiFirst's smaller tier count (2, vs. Progressive's 4) gives it a real, code-derived advantage on `acquisition_lock_in_risk` that outweighs Progressive's edge on the simulated criteria once acquisition/lock-in concerns are weighted at all. See `docs/TRADE_STUDY.md` for the full result and ADR-021 for the later lock-in proxy fix.
+**Consequence**: SIMULATED_ONLY picks Progressive (or A6), while COMBINED picks RoiFirst in every profile. That RoiFirst result survives the later corrections (ADR-021).
 
 ## ADR-018 (superseded by ADR-019 and ADR-024): v3 access/revisit sweep and its single-plane-phasing explanation
+
+**Superseded.** The explanation below was built on a time-shift constellation model and is retracted; it is kept so the reasoning trail is visible.
 
 **Decision**: Added `experiments/e12_access_sweep.py`, sweeping satellite count (1/2/4/8/16/32) and Army ground-terminal count (1/2/4) as the independent variable, extending `orbit/constellation.py`'s existing phase-offset approach (cheap time-shifting of one real SGP4-computed base access-window set per site, not a second propagation per satellite) rather than duplicating it, and reusing `e11_mission_thread_success.py`'s Part-1-fixed evaluation functions directly via import. Downlink windows from multiple terminal sites are unioned (merged into non-overlapping intervals) under the stated assumption that the tactical unit has one logical delivery pipe, not parallel simultaneous radios to every visible satellite/terminal pair. For tractability across 18 access-level cells (documented, not silent): 2 conditions (NOMINAL and COMBINED_DEGRADED) instead of e11's 5, and fewer trials per cell.
 

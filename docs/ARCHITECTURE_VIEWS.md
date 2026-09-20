@@ -180,21 +180,19 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph COM["Commercial LEO space segment"]
-        CAM["Imager"] --> CPU["Onboard CPU"]
-        CPU --> MEM["Flash storage"]
-        MEM --> TX["Downlink transceiver"]
+    Rear["Rear-echelon<br/>tasking cell"]
+    Term["Army edge terminal<br/>vehicle or dismounted"]
+    subgraph SAT["Commercial satellite"]
+        direction LR
+        CAM["Imager"] --> CPU["Onboard CPU"] --> MEM["Flash storage"] --> TX["Transceiver"]
     end
-    subgraph RE["Rear-echelon tasking cell"]
-        TASK["Tasking and deconfliction"]
-    end
-    subgraph EDGE["Army edge segment"]
-        TERM["Edge terminal, vehicle or dismounted class"]
-    end
-    TASK -.->|"reachback tasking"| CPU
-    TERM -.->|"direct edge tasking"| CPU
-    TX ==>|"RF, windowed"| TERM
+    Rear -.->|"tasking (reachback)"| CPU
+    Term -.->|"tasking (direct)"| CPU
+    TX ==>|"RF, contact windows only"| Term
 ```
+
+The dotted lines are tasking commands going up to the satellite; the thick
+line is imagery coming down to the terminal.
 
 Constraints that shape every result:
 

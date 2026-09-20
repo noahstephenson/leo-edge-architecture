@@ -13,17 +13,12 @@ tradeoffs to show instead of one thread trivially dominating every metric.
 
 ## The four threads at a glance
 
-```mermaid
-flowchart LR
-    subgraph SR["Single request: latency measured from the request"]
-        MT1["MT-1 cueing<br/>needs P2 quicklook<br/>within 120 s"]
-        MT2["MT-2 route recon<br/>needs P3 ROI<br/>within 900 s"]
-        MT3["MT-3 damage assessment<br/>needs a P3-sized change product<br/>600 s with a prior reference, else 900 s"]
-    end
-    subgraph CAD["Cadence: latency measured from every collection pass"]
-        MT4["MT-4 persistent monitoring<br/>needs P1 thumbnail<br/>within 300 s per pass<br/>fails on 2 misses in a row"]
-    end
-```
+| Thread | Needs first | Tolerance | Measured from |
+|---|---|---|---|
+| MT-1 cueing | P2 quicklook | 120 s | the request |
+| MT-2 route recon | P3 ROI | 900 s | the request |
+| MT-3 damage assessment | a P3-sized change product | 600 s with a prior reference, else 900 s | the request |
+| MT-4 persistent monitoring | P1 thumbnail | 300 s per pass; fails on 2 misses in a row | each collection pass |
 
 The values are the code's source of truth (`src/leo_edge/mission_threads.py`),
 checked against the tables below by `tests/test_mission_thread_consistency.py`.
