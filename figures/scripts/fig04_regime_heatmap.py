@@ -5,7 +5,7 @@ at a fixed 300 s contact, e04 sweeps contact duration at a fixed 10 Mbps),
 so neither has the full rate x duration grid a regime map needs. This script
 builds that grid directly from the same simulation code those experiments
 use (leo_edge.simulation.run_static_architecture) and caches the result to
-results/frozen/v3/fig04_data.csv for reproducibility.
+results/frozen/v4/fig04_data.csv for reproducibility.
 
 tcp_s is NaN wherever an architecture didn't complete full delivery within
 that single contact window (see architectures.py's `completed` flag); a
@@ -26,7 +26,7 @@ if str(SRC_DIR) not in sys.path:
 from leo_edge.architectures import GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive
 from leo_edge.simulation import run_static_architecture
 
-DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v3"
+DATA_DIR = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v4"
 DATA_FILE = DATA_DIR / "fig04_data.csv"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig04.png"
 

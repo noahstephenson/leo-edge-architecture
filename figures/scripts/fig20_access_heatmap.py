@@ -22,7 +22,7 @@ OUT_PATH = Path(__file__).resolve().parents[1] / "fig20.png"
 def main():
     df = pd.read_csv(DATA_PATH)
     # Keep only the highest-plane-count row per satellite count (main
-    # multi-plane Walker sweep; see fig19's same filter and docs/V3_VS_V4.md
+    # multi-plane Walker sweep; see fig19 same filter
     # for the single-plane comparison points this drops from the heatmap).
     df = df.sort_values("planes").groupby(["satellites", "terminals"], as_index=False).tail(1)
     pivot_status = df.pivot(index="terminals", columns="satellites", values="status")

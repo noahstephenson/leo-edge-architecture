@@ -52,7 +52,7 @@ CONDITIONS = {
     "Combined degraded": {"derate": 0.5, "tasking_delay_s": 180},
 }
 
-CSV_PATH = repo_root / "results" / "frozen" / "v3" / "e03_results.csv"
+CSV_PATH = repo_root / "results" / "frozen" / "v4" / "e03_results.csv"
 
 st.set_page_config(page_title="LEO Edge Dashboard", layout="wide")
 st.title("LEO Edge Architecture: TFUP / TCP Sensitivity")
@@ -197,7 +197,7 @@ st.caption(
     "in experiments/e11_mission_thread_success.py; it will show far more successes than the real mission-thread "
     "success rate, which also accounts for the wait for the next imaging pass over the target, the wait for the "
     "next usable downlink contact after that, and (for MT-3/MT-4, not shown here) prior-reference availability "
-    "and per-pass cadence (docs/TRADE_STUDY.md, docs/V2_VS_V3.md)."
+    "and per-pass cadence (docs/TRADE_STUDY.md, docs/MISSION_THREADS.md)."
 )
 
 st.subheader("Reference frozen data (e03_results.csv)")

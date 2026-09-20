@@ -31,7 +31,7 @@ def main():
     # 1-plane and 4-plane both exist). This figure shows the main
     # multi-plane Walker sweep, so keep only the highest-plane-count row
     # per satellite count; the single-plane comparison is a separate,
-    # smaller point made in docs/V3_VS_V4.md, not this line chart.
+    # smaller point, not this line chart.
     df = df.sort_values("planes").groupby(["satellites", "architecture", "thread"], as_index=False).tail(1)
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharex=True)

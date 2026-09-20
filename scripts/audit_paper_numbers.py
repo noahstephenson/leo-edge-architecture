@@ -1,6 +1,6 @@
 """Audit result numbers from frozen results CSVs.
 
-Scans results/frozen/v3/*.csv, extracts key metrics, computes min/max/mean,
+Scans results/frozen/v4/*.csv, extracts key metrics, computes min/max/mean,
 and checks basic invariants. Deterministic and pathlib-based.
 """
 from pathlib import Path
@@ -9,7 +9,7 @@ import statistics
 from collections import defaultdict
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v3"
+RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v4"
 OUTPUT_PATH = RESULTS_DIR / "audit_report.md"
 
 METRICS = ["tfup_s", "tcp_s", "contact_utilization", "processing_energy_j", "deadline_met"]

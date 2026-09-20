@@ -1,13 +1,13 @@
-"""Multi-criteria trade study (v3) over the candidate architectures.
+"""Multi-criteria trade study (v4) over the candidate architectures.
 
-Fixes applied vs. v2 (docs/DECISION_LOG.md has the ADRs):
+Fixes applied vs. v2 and v3 (docs/DECISION_LOG.md has the ADRs):
 - terminal_swap_burden (which scored GroundOnly best, backwards: GroundOnly
   puts ALL processing burden on the Army terminal) is replaced by two
   correctly-signed, code-derived criteria: space_segment_processing_burden
   and terminal_processing_burden.
 - Every criterion that can be derived from a real simulated field or an
   architecture property now is: fidelity from the real fidelity_lossy
-  field (results/frozen/v3/e03_results.csv), both burden criteria from
+  field (results/frozen/v4/e03_results.csv), both burden criteria from
   real processing_energy_j data, and acquisition_lock_in_risk from each
   architecture's actual tier count plus whether it has per-request
   conditional logic (src/leo_edge/architectures.py's CONDITIONAL_LOGIC
@@ -18,7 +18,7 @@ Fixes applied vs. v2 (docs/DECISION_LOG.md has the ADRs):
   Carlo/SGP4 simulation) and COMBINED (all seven, including the four
   derived-from-architecture-properties criteria), with every rank flip
   between the two reported explicitly.
-- Latency now comes from results/frozen/v3/e11_mission_thread_trials.csv
+- Latency now comes from results/frozen/v4/e11_mission_thread_trials.csv
   via a Kaplan-Meier-style censored median (src/leo_edge/stats.py), not a
   mean over completed-only e03 rows, which silently dropped every
   non-completion instead of counting it as "took longer than observed."
