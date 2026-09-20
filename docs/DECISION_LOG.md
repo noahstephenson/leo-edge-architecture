@@ -197,3 +197,11 @@ While validating the sweep (checking why some very-high-access cells showed 0% s
 **Rationale**: the v4 task explicitly allows stopping the satellite-count extension short of the 80-90% ideal and documenting why, rather than requiring it be reached regardless of cost; real per-satellite SGP4 propagation at 32+ satellites, run alongside whatever else is using memory on this machine, is not reliably completable in one session. Incremental writes were added regardless of the config-size decision, since losing an entire run's output to one late-stage kill is a real robustness gap independent of how large the sweep gets.
 
 **Consequence**: `results/frozen/v4/e12_*.csv` reflect real Walker-delta configurations up to 24 satellites / 8 planes. `docs/V3_VS_V4.md` states this as the stopping point and why, per the task's own instruction, rather than presenting 24 as if it were always the intended ceiling.
+
+## ADR-024: v4 first sweep invalidated by a TLE column bug; rerun
+
+**Decision**: `orbit/constellation.py::_build_synthetic_tle` dropped the separator column before the mean-anomaly field, so SGP4 (which parses fixed columns) read every satellite's mean anomaly as 0. RAAN was correct, but all satellites within a plane were co-located. Noticed because two satellites 180 degrees apart in one plane returned identical access windows. The first full e12 sweep was discarded, the TLE builder now uses exact fixed-width columns, and `tests/test_walker_tle.py` parses generated TLEs back with `sgp4` and checks RAAN, mean anomaly, and distinct in-plane ground tracks. The single-satellite baseline (e11) is unaffected (its mean anomaly is 0 by design).
+
+**Rationale**: a sweep that silently places satellites on top of each other reports the flattest possible access curve and would have supported a false "nothing works up to 24 satellites" headline (that run's best cell was ~13%).
+
+**Consequence**: all v4 e12 numbers come from the corrected rerun. Success reaches ~31% (best architecture, pooled) at 24 satellites/8 planes/4 terminals, the sweep's stopping point (ADR-023).

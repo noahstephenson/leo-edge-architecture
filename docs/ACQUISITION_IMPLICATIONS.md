@@ -1,112 +1,125 @@
 # Acquisition Implications
 
 Notional guidance derived from `docs/TRADE_STUDY.md` and
-`docs/V2_VS_V3.md`'s v3 evidence, not a real acquisition recommendation.
-Every item below is tied to a specific finding; none is asserted without
-that link.
+`docs/V3_VS_V4.md`'s v4 evidence, not a real acquisition recommendation.
+Every item below is tied to a specific finding. All numbers come from
+`results/frozen/v4/`; access-sweep cells use 40 trials per thread, so treat
+differences under ~3 percentage points as noise.
 
-## The headline finding: buy access first; processing allocation only matters above an access threshold, and even there, barely
+## The headline finding: access moves mission-thread success most; tiering is necessary; among tiered designs the differences are real but smaller
 
-**Evidence**: `experiments/e12_access_sweep.py` swept satellite count
-(1-32) and Army ground-terminal count (1-4), 18 cells, and tested every
-pair of the seven candidate architectures for a statistically significant
-difference in mission-thread success at each cell
-(`src/leo_edge/stats.py::paired_bootstrap_diff_ci`, `figures/fig20.png`).
-**17 of 18 cells show no statistically significant difference between any
-pair of architectures.** Pooled mission-thread success rate (single
-terminal) rises from under 0.1% at 1-4 satellites to about 1.0% at 16
-satellites, an order-of-magnitude improvement driven entirely by access
-density, not by which architecture was used (`docs/V2_VS_V3.md` has the
-full table). The one cell that does show a significant difference (16
-satellites, 1 terminal) favors ThreadAwarePriority (A6), the
-mission-thread-aware design proposed after seeing v2's results, not any of
-the original A0-A5 candidates -- and even there, the underlying rate is
-still about 1%, not a working system.
+**Evidence**: `experiments/e12_access_sweep.py` swept real Walker-delta
+constellations (each satellite propagated individually with SGP4) from 1 to
+24 satellites and 1 to 4 ground terminals, with same-pass
+collect-and-downlink allowed. The best architecture's pooled success rate
+rose from about **3%** (1 satellite) to about **31%** (24 satellites in 8
+planes, 4 terminals). It never reached 50%, and it had not flattened when
+the sweep stopped at 24 satellites (a 32-satellite run was killed by host
+memory pressure, `docs/DECISION_LOG.md` ADR-023), so the access level at
+which success becomes "substantial" (50% or more) is **not found in this
+sweep**, and is not extrapolated.
 
-**Implication**: this is the single most load-bearing finding in this
-repository, replacing v2's "contact frequency dominates at one access
-level" with the stronger "contact frequency dominates at essentially every
-access level tested, up to 32 satellites and 4 ground terminals." An
-acquisition strategy that specifies an onboard processing architecture in
-detail before securing enough constellation access to make mission-thread
-success non-trivial is optimizing a second-order variable. Access --
-number of satellites reachable from a terminal, and number of terminal
-sites -- should be the primary acquisition lever; which processing
-architecture the provider uses should be a secondary, much lower-stakes
-requirement, at least until real-world evidence (not this notional model)
-establishes where a real access threshold sits.
+Architectures could only be compared where success was high enough to be
+meaningful (best architecture above 30%). That happens in **one of 21
+cells**: 24 satellites, 8 planes, 4 terminals (504 paired trials). There,
+ThreadAwarePriority (31.2%) and Progressive (30.8%) are statistically tied,
+and both beat RoiFirst by about 7 points (significant) and every other
+architecture by 24-31 points. RoiFirst never sustains MT-4 (0 of 24 trials,
+versus 12 of 24 for the other two). The other 20 cells are uninformative:
+nothing worked well enough to test.
 
-## Require: tiered product generation, not just compression -- necessary but nowhere near sufficient
+**Implication**: v3's claim that processing architecture is "second-order"
+is not supported as stated. By magnitude, adding access (about 3% to 31%)
+still matters more than choosing among tiered architectures (about 7
+points), and tiering itself is decisive (0% versus roughly 31%). But once
+access is high enough that anything works, the choice among tiered designs
+does matter, and it favors the full-tier designs over RoiFirst. An
+acquisition strategy should therefore secure access first, require tiered
+products, and expect the architecture choice to start to matter only after
+access approaches the level where success passes about 30% (here, roughly
+16-24 satellites with 4 ground terminals in this notional model). That one
+informative cell is thin evidence and should be re-tested with more trials
+and a larger constellation before anyone leans on it.
 
-**Evidence**: GroundOnly, CompressedFull, and ContactAware scored exactly
-0% mission-thread success at every access level tested, for a structural
-reason: none of them ever produce anything but a single, full-scene-scale
-product. Only QuicklookFirst, RoiFirst, Progressive, and ThreadAwarePriority
--- the architectures with a real early tier matching a thread's need --
-ever succeed at all. But per the headline finding above, which *of those
-four* is used essentially never makes a statistically detectable
-difference across the swept access range.
+## Require: tiered product generation, not just compression
 
-**Implication**: requiring tiered product generation from a commercial
-provider is a real, load-bearing requirement (it's the difference between
-"can ever succeed" and "structurally cannot"), but it is not where the
-acquisition effort should concentrate once that baseline is met. Beyond
-"produce more than one tier," further refining which specific tiered
-architecture is used is not supported by this evidence as a priority.
+**Evidence**: GroundOnly, CompressedFull, and ContactAware score exactly 0%
+at every access level tested, because none produces an early tier. Only
+QuicklookFirst, RoiFirst, Progressive, and ThreadAwarePriority can ever
+succeed, and QuicklookFirst almost never does (about 0-1%).
+
+**Implication**: requiring tiered product generation is the difference
+between "can ever succeed" and "structurally cannot." At the
+single-satellite baseline, the ordering among tiered designs is already
+statistically significant (ThreadAwarePriority 142, Progressive 129, RoiFirst
+109 successes of 9,000 paired trials), so the choice among them is not
+irrelevant, only smaller than tiering itself.
+
+## Require: same-pass delivery, as an explicit service term
+
+**Evidence**: allowing an image to be downlinked on the same pass that
+collected it (v4, `docs/DECISION_LOG.md` ADR-020) moved ThreadAwarePriority
+from 7 of 9,000 baseline successes (v3) to 142 of 9,000, with no change to
+any architecture.
+
+**Implication**: whether a provider can deliver on the collecting pass is a
+larger lever in this model than any processing-architecture difference at
+the baseline. It should be a stated requirement, not an assumed capability.
 
 ## Require: direct edge tasking as an available path, not just reachback
 
-**Evidence**: `docs/MISSION_THREADS.md` models both a reachback tasking
-path and a direct edge path, the former adding more latency. Across the
-v3 sweep, this added delay is consistently small relative to the wait for
-the next usable contact, so it rarely changes a trial's outcome on its
-own.
+**Evidence**: `docs/MISSION_THREADS.md` models reachback and direct-edge
+tasking paths; the reachback path adds a tasking delay (180 s versus 60 s).
+That delay is small compared with the wait for the next overflight
+(median gaps of roughly 700-5,700 s across the swept constellations).
 
-**Implication**: unchanged from v2's assessment. A service architecture
-that *only* supports reachback tasking has no fallback if that link is
-lost; requiring a direct-edge tasking interface as a standard,
-always-available capability costs little given how small its measured
-effect is here, and removes a real single point of failure.
+**Implication**: unchanged from earlier versions. Direct-edge tasking costs
+little in measured effect and removes a single point of failure if
+reachback is lost.
 
-## Build: terminal-side capability -- not a priority until access is addressed
+## Note on the shortest-tolerance threads
 
-**Evidence**: neither terminal class (vehicle-mounted vs.
-dismounted/manpack) nor terminal count (1 vs. 2 vs. 4 sites) produced a
-consistent, significant difference in mission-thread success across the
-v3 sweep. Some cells favor more terminals, some show no difference, and
-`docs/V2_VS_V3.md`'s cost-tradeoff figure (`figures/fig21.png`) shows the
-4-terminal curve is not uniformly better than 1 or 2 terminals -- it's
-noisier, including cells that drop to zero success despite higher notional
-cost, a combination of the single-orbital-plane clustering effect
-(`docs/DECISION_LOG.md` ADR-018) and sampling variance at these still-low
-rates.
+**Evidence**: MT-1 (120 s) and MT-4 (300 s) are flagged infeasible at every
+constellation swept on the revisit-aware floor (`docs/V3_VS_V4.md`); no
+thread is structurally infeasible. MT-1 reached only about 1% at 24
+satellites and 0% at one satellite even with 4x the tolerance.
 
-**Implication**: don't over-invest in terminal-side upgrades (compute,
-additional sites) as the primary lever; satellite access density is the
-stronger, more consistent driver in this data. This doesn't mean terminal
-investment is worthless, only that it's not where the evidence says to
-spend first.
+**Implication**: do not expect these two thread types to be met by
+constellation size alone within the range studied; they depend on
+overflight timing more than on architecture. This is a limit of the swept
+range and the assumed tolerances (all ASSUMED), not a proven impossibility.
+
+## Build: terminal-side capability is secondary to satellite access
+
+**Evidence**: at 24 satellites, success rose from 19.8% (1 terminal) to
+27.4% (2) to 31.2% (4), a real but smaller gain than satellite count
+provides. At smaller sizes the terminal effect is inside sampling noise
+(for example 8 satellites: 7.9%, 10.5%, 6.2% for 1, 2, 4 terminals).
+
+**Implication**: satellite access is the stronger driver; extra terminal
+sites help mainly once the constellation is already large.
 
 ## Standardize: the tasking and product-tier interface, not the onboard implementation
 
-**Evidence**: `docs/STAKEHOLDERS.md`'s acquisition/commercial-provider
-conflict, and `docs/TRADE_STUDY.md`'s v3 finding that `RoiFirst` beats
-`Progressive` on the `COMBINED` (simulated + derived) ranking specifically
-because it requires fewer distinct provider-side functions
-(`acquisition_lock_in_risk`, derived from real tier counts, not a
-hand-picked number) -- a genuine, code-derived acquisition-relevant
-tradeoff, distinct from and additional to the access-dominates finding
-above.
+**Evidence**: `docs/TRADE_STUDY.md`. Under the v4 lock-in proxy (tier count
+plus a doubled weight for per-request conditional logic, tied to
+`docs/INTERFACES.md`), RoiFirst wins the COMBINED ranking in every
+stakeholder profile, even though ThreadAwarePriority and Progressive beat
+it on mission-thread success and latency with statistical significance.
+The RoiFirst flip is not an artifact of the earlier proxy: it persists
+under the ownership-boundary version.
 
-**Implication**: specify the tiered-product interface (what tiers exist,
-what each one's fidelity floor is, how to request one directly, and how to
-request which tier is prioritized first) as the acquisition requirement,
-not a specific onboard compression algorithm or processing architecture.
-Given the access-dominates finding, favor the *simplest* tiered
-architecture that clears the "produces the needed tier" bar (e.g.
-`RoiFirst`'s two tiers) over a more elaborate one (`Progressive`'s five,
-or `ThreadAwarePriority`'s reordering logic) unless a specific,
-demonstrated need justifies the added acquisition complexity -- since this
-data shows the more elaborate options don't reliably buy back
-statistically detectable mission-thread performance at the access levels
-tested.
+**Implication**: specify the tiered-product interface (which tiers exist,
+their fidelity floor, how to request one, how to prioritize) rather than an
+onboard algorithm. Choosing RoiFirst buys a simpler interface but costs
+roughly 7 points of success in the one informative cell and cannot sustain
+MT-4; choosing Progressive or ThreadAwarePriority buys that performance
+with a larger, and for ThreadAwarePriority a runtime-conditional, interface
+to specify. That is a real tradeoff for the requirement owner to weigh, not
+one this model resolves.
+
+## Notional cost tradeoff
+
+`figures/fig21.png` plots success against a relative cost proxy
+(satellites x10, terminals x3, processing tiers x1). These weights are
+ASSUMED relative units, not dollars.

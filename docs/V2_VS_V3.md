@@ -1,5 +1,7 @@
 # v2 vs v3: what changed and which conclusions survive
 
+> **Superseded in part by `docs/V3_VS_V4.md`.** The access-sweep table, the "single-plane clustering" explanation, and the "architecture is second-order" headline below were built on a time-shift constellation approximation and are retracted.
+
 `results/frozen/v2/` is left untouched. `results/frozen/v3/` is
 regenerated with the Part 1 fixes (`docs/DECISION_LOG.md` ADR-015 through
 ADR-017) and adds the access/revisit sweep (`experiments/e12_access_sweep.py`,

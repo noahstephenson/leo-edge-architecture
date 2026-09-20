@@ -16,7 +16,22 @@ uv run python experiments/e12_access_sweep.py
 experiments` loop yet since it's slower than a single experiment
 (~5 minutes; see the note below). See `README.md`'s Quick Start.
 
-## Last full run: 2026-09-19 (v3: evaluation-engine fixes + access sweep)
+## Last full run: 2026-09-20 (v4: real constellations + same-pass delivery)
+
+`uv run pytest`: 102 passed. `experiments/e11_mission_thread_success.py`
+(~30s) and `experiments/e12_access_sweep.py` (~1h; 7 Walker configs up to
+24 satellites/8 planes) run clean; outputs promoted to `results/frozen/v4/`
+(e01-e10 and monte_carlo carried forward unchanged from v3 -- no v4 change
+touches their code paths, though `orbit/access.py` was vectorized and is
+covered by the existing access tests). `scripts/trade_study.py` and
+`figures/scripts/fig19-21` regenerated from v4. Two e12 attempts were lost
+before this one: one killed by host memory pressure (32-sat config; now
+capped at 24 with incremental CSV writes), one discarded for a TLE column
+bug (ADR-024). e12 is not in `make experiments`. `results/frozen/v3/` is
+untouched. The dashboard and the other figure scripts were not re-run this
+pass.
+
+## Previous run: 2026-09-19 (v3: evaluation-engine fixes + access sweep)
 
 This run followed the v3 rework (`docs/REWORK_PLAN_V3.md`,
 `docs/DECISION_LOG.md` ADR-015 through ADR-018): paired trials, a real

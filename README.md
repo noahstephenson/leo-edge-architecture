@@ -31,39 +31,37 @@ result.
 matrix), and `docs/FUNCTIONAL_ARCHITECTURE.md` round out the systems
 architecture; `docs/ARCHITECTURE_VIEWS.md` has the diagrams.
 
-## The headline result: buy access first
+## The headline result: access moves success most; tiering is necessary; architecture starts to matter once access is high
 
-`experiments/e12_access_sweep.py` swept satellite count (1-32) and Army
-ground-terminal count (1-4) -- 18 access levels -- and tested every pair
-of the seven candidate architectures for a statistically significant
-mission-thread-success difference at each one
-(`src/leo_edge/stats.py::paired_bootstrap_diff_ci`, `figures/fig20.png`).
+`experiments/e12_access_sweep.py` sweeps real Walker-delta constellations
+(every satellite propagated individually with SGP4) from 1 to 24
+satellites and 1 to 4 Army ground terminals, with same-pass
+collect-and-downlink allowed, and tests architecture differences only in
+cells where the best architecture succeeds more than 30% of the time.
 
-**17 of 18 access levels show no statistically significant difference
-between any pair of architectures.** Pooled success rate rises about an
-order of magnitude with more satellites (under 0.1% at 1-4 satellites to
-about 1.0% at 16, single terminal) -- access density, not architecture
-choice, drives that rise. Three of the seven architectures (raw downlink,
-compressed-full, the contact-aware adaptive policy) score exactly 0% at
-every access level tested, structurally: they never produce anything but
-a single, full-scene-scale product, and three of the four mission threads
-need an earlier tier. Tiering is necessary to ever succeed; beyond that,
-which tiered architecture is used essentially never makes a statistically
-detectable difference across the range tested.
+- **Access dominates in magnitude.** The best architecture's pooled
+  mission-thread success rises from about 3% (1 satellite) to about 31%
+  (24 satellites, 8 planes, 4 terminals). It never reached 50% and was
+  still rising when the sweep stopped at 24 satellites, so the access level
+  where success becomes "substantial" is not found here.
+- **Tiering is necessary.** Raw downlink, compressed-full, and the
+  contact-aware policy score 0% everywhere: none produces an early tier.
+- **Architecture matters once access is high enough to test it.** In the
+  one informative cell (24 satellites, 4 terminals), ThreadAwarePriority
+  (31.2%) and Progressive (30.8%) tie, and both beat RoiFirst by about 7
+  points and everything else by 24-31 points. The other 20 of 21 cells are
+  uninformative (nothing works well enough to compare). This is thin
+  evidence from one cell.
 
-`docs/ACQUISITION_IMPLICATIONS.md` draws out what that means: **the
-acquisition lever that actually moves mission-thread success is
-constellation and ground-site access, not which onboard processing
-architecture is required.** An acquisition strategy that specifies
-processing architecture in detail before securing enough access to make
-mission-thread success non-trivial is optimizing a second-order variable.
-
-`docs/V2_VS_V3.md` and `docs/V1_VS_V2.md` document what changed getting
-here: v1 had a real correctness bug (uncapped byte counts scoring failed
-deliveries as successes); v2 fixed that and found contact geometry
-dominated at one access level; v3 fixed a methodology bug (an inverted
-terminal-burden criterion), added real collection timing and statistical
-testing, and confirmed the v2 finding at 18 access levels instead of one.
+`docs/ACQUISITION_IMPLICATIONS.md` draws out what that means. `docs/V3_VS_V4.md`,
+`docs/V2_VS_V3.md`, and `docs/V1_VS_V2.md` document how the findings changed:
+v1 had a correctness bug (uncapped byte counts scored failed deliveries as
+successes); v2 fixed that; v3 added statistical testing but modeled
+satellites as time-shifted copies and forbade same-pass delivery, so its
+"architecture is second-order" headline and its 32-satellite explanation
+are retracted; v4 uses real constellations and same-pass delivery, and its
+own first sweep was discarded and rerun after a TLE formatting bug was
+found (`docs/DECISION_LOG.md` ADR-024).
 
 ## System architecture
 
@@ -137,8 +135,8 @@ reproduce` runs the first four. See `REPRODUCE_LOG.md` for a real run log.
 | `src/leo_edge/` | The architecture, orbit, imagery, metrics, mission-thread, and stats model |
 | `experiments/` | `e00` through `e12`, each answering one question about the model |
 | `results/frozen/v2/` | Frozen results from the v2 pass, kept as a historical record (`docs/V1_VS_V2.md`) |
-| `results/frozen/v3/` | Current frozen results (`docs/V2_VS_V3.md` explains what changed) |
-| `figures/` | Figures generated from `results/frozen/v3/`, see `figures/README.md` |
+| `results/frozen/v4/` | Current frozen results (`docs/V3_VS_V4.md` explains what changed; v2/v3 kept as history) |
+| `figures/` | Figures generated from `results/frozen/v4/`, see `figures/README.md` |
 | `docs/` | Operational context, stakeholders, requirements, allocation space, trade study, acquisition implications, architecture views, novelty, assumptions, decisions, hand-calculation check |
 | `app/dashboard.py` | A Streamlit dashboard for exploring the architectures interactively |
 
