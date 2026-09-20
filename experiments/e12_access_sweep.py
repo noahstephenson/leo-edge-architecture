@@ -71,7 +71,13 @@ SAT_CONFIGS = [
     (4, 4, 1),    # Walker-delta 4/4/1
     (8, 4, 1),    # Walker-delta 8/4/1
     (16, 4, 1),   # Walker-delta 16/4/1
-    (32, 8, 1),   # Walker-delta 32/8/1
+    (24, 8, 1),   # Walker-delta 24/8/1 -- the largest config that completed
+                  # reliably in this session; a 32-sat/8-plane config was
+                  # attempted and got killed by host memory pressure partway
+                  # through (not a code failure -- docs/DECISION_LOG.md), so
+                  # this is the documented stopping point, not 32, per the
+                  # v4 task's own "document the count at which you stopped
+                  # and why" allowance.
 ]
 TERMINAL_COUNTS = [1, 2, 4]
 
@@ -383,79 +389,101 @@ def cost_tradeoff_row(sat_count, planes, terminal_count, max_tiers_used, success
     }
 
 
+class IncrementalCsvWriter:
+    """Writes rows to disk as they're produced instead of accumulating them
+    in memory for one write at the very end. This sweep's real per-satellite
+    SGP4 propagation is expensive enough that a run can take well over an
+    hour; without incremental writes, a run killed by host memory pressure
+    (as one was during v4 development, docs/DECISION_LOG.md) loses every
+    row computed so far, not just the in-progress config."""
+
+    def __init__(self, path: Path):
+        self.path = path
+        self._writer = None
+        self._file = None
+
+    def write_rows(self, rows):
+        if not rows:
+            return
+        if self._writer is None:
+            self._file = self.path.open("w", newline="")
+            self._writer = csv.DictWriter(self._file, fieldnames=list(rows[0].keys()))
+            self._writer.writeheader()
+        self._writer.writerows(rows)
+        self._file.flush()
+
+    def close(self):
+        if self._file is not None:
+            self._file.close()
+
+
 def main():
     rng = __import__("random").Random(SEED)
 
-    summary_rows, cell_status_rows, all_sig_rows, cost_rows = [], [], [], []
-    feasibility_rows, km_rows, tolerance_rows = [], [], []
-
-    for total_sats, planes, phasing_factor in SAT_CONFIGS:
-        print(f"\n=== Walker config: {total_sats} sats / {planes} planes / F={phasing_factor} ===")
-        aoi_by_sat, downlink_by_site_by_sat = build_config_windows(total_sats, planes, phasing_factor)
-        print(f"  {len(aoi_by_sat)} satellites propagated; "
-              f"AOI events: {sum(len(w) for w in aoi_by_sat.values())}")
-
-        feasibility_rows.extend(feasibility_rows_for_config(total_sats, planes, aoi_by_sat))
-
-        is_largest = (total_sats, planes, phasing_factor) == SAT_CONFIGS[-1]
-        is_baseline = (total_sats, planes, phasing_factor) == SAT_CONFIGS[0]
-
-        for terminal_count in TERMINAL_COUNTS:
-            downlink_by_sat = build_downlink_windows_by_sat(downlink_by_site_by_sat, terminal_count)
-            print(f"  terminals={terminal_count}: {sum(len(w) for w in downlink_by_sat.values())} downlink windows")
-
-            single_rows, cadence_rows = run_cell(total_sats, planes, terminal_count, aoi_by_sat, downlink_by_sat, rng)
-            cell_summary = summarize_cell(single_rows, cadence_rows, total_sats, planes, terminal_count)
-            summary_rows.extend(cell_summary)
-
-            status, best_or_reason, sig_rows = cell_pairwise_significance(
-                single_rows, cadence_rows, total_sats, planes, terminal_count
-            )
-            all_sig_rows.extend(sig_rows)
-            cell_status_rows.append({
-                "satellites": total_sats, "planes": planes, "terminals": terminal_count,
-                "status": status, "best_architecture_or_reason": best_or_reason,
-            })
-            print(f"  Cell status: {status} ({best_or_reason})")
-
-            overall_rate = sum(r["successes"] for r in cell_summary) / sum(r["n_trials"] for r in cell_summary)
-            cost_rows.append(cost_tradeoff_row(total_sats, planes, terminal_count, max_tiers_used=4, success_rate=overall_rate))
-
-            if is_baseline or is_largest:
-                km_rows.extend(km_summary_rows(single_rows, total_sats, planes, terminal_count))
-                if terminal_count == 1:
-                    tolerance_rows.extend(tolerance_sensitivity_rows(single_rows, total_sats, planes, terminal_count))
-
     out_dir = Path("results/raw")
     out_dir.mkdir(parents=True, exist_ok=True)
+    writers = {
+        name: IncrementalCsvWriter(out_dir / f"e12_{name}.csv")
+        for name in ("access_sweep", "cell_status", "significance_by_cell", "cost_tradeoff",
+                     "feasibility_floors", "km_summary", "tolerance_sensitivity")
+    }
+    status_counts = {}
+    infeasible_seen = set()
 
-    def _write(name, rows):
-        if not rows:
-            return
-        with (out_dir / name).open("w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-            writer.writeheader()
-            writer.writerows(rows)
-        print(f"Saved {len(rows)} rows to {out_dir / name}")
+    try:
+        for total_sats, planes, phasing_factor in SAT_CONFIGS:
+            print(f"\n=== Walker config: {total_sats} sats / {planes} planes / F={phasing_factor} ===", flush=True)
+            aoi_by_sat, downlink_by_site_by_sat = build_config_windows(total_sats, planes, phasing_factor)
+            print(f"  {len(aoi_by_sat)} satellites propagated; "
+                  f"AOI events: {sum(len(w) for w in aoi_by_sat.values())}", flush=True)
 
-    _write("e12_access_sweep.csv", summary_rows)
-    _write("e12_cell_status.csv", cell_status_rows)
-    _write("e12_significance_by_cell.csv", all_sig_rows)
-    _write("e12_cost_tradeoff.csv", cost_rows)
-    _write("e12_feasibility_floors.csv", feasibility_rows)
-    _write("e12_km_summary.csv", km_rows)
-    _write("e12_tolerance_sensitivity.csv", tolerance_rows)
+            feasibility_rows = feasibility_rows_for_config(total_sats, planes, aoi_by_sat)
+            writers["feasibility_floors"].write_rows(feasibility_rows)
+            for r in feasibility_rows:
+                if r["status"] == "INFEASIBLE_STRUCTURAL":
+                    infeasible_seen.add(r["thread"])
 
-    print("\nCell status counts:")
-    from collections import Counter
-    print(Counter(r["status"] for r in cell_status_rows))
+            is_largest = (total_sats, planes, phasing_factor) == SAT_CONFIGS[-1]
+            is_baseline = (total_sats, planes, phasing_factor) == SAT_CONFIGS[0]
 
+            for terminal_count in TERMINAL_COUNTS:
+                downlink_by_sat = build_downlink_windows_by_sat(downlink_by_site_by_sat, terminal_count)
+                print(f"  terminals={terminal_count}: {sum(len(w) for w in downlink_by_sat.values())} downlink windows", flush=True)
+
+                single_rows, cadence_rows = run_cell(total_sats, planes, terminal_count, aoi_by_sat, downlink_by_sat, rng)
+                cell_summary = summarize_cell(single_rows, cadence_rows, total_sats, planes, terminal_count)
+                writers["access_sweep"].write_rows(cell_summary)
+
+                status, best_or_reason, sig_rows = cell_pairwise_significance(
+                    single_rows, cadence_rows, total_sats, planes, terminal_count
+                )
+                writers["significance_by_cell"].write_rows(sig_rows)
+                writers["cell_status"].write_rows([{
+                    "satellites": total_sats, "planes": planes, "terminals": terminal_count,
+                    "status": status, "best_architecture_or_reason": best_or_reason,
+                }])
+                status_counts[status] = status_counts.get(status, 0) + 1
+                print(f"  Cell status: {status} ({best_or_reason})", flush=True)
+
+                overall_rate = sum(r["successes"] for r in cell_summary) / sum(r["n_trials"] for r in cell_summary)
+                writers["cost_tradeoff"].write_rows(
+                    [cost_tradeoff_row(total_sats, planes, terminal_count, max_tiers_used=4, success_rate=overall_rate)]
+                )
+
+                if is_baseline or is_largest:
+                    writers["km_summary"].write_rows(km_summary_rows(single_rows, total_sats, planes, terminal_count))
+                    if terminal_count == 1:
+                        writers["tolerance_sensitivity"].write_rows(
+                            tolerance_sensitivity_rows(single_rows, total_sats, planes, terminal_count)
+                        )
+    finally:
+        for w in writers.values():
+            w.close()
+
+    print("\nCell status counts:", status_counts)
     print("\nStructurally infeasible threads (tolerance below the floor at ANY access level):")
-    seen = set()
-    for r in feasibility_rows:
-        if r["status"] == "INFEASIBLE_STRUCTURAL" and r["thread"] not in seen:
-            seen.add(r["thread"])
-            print(f"  {r['thread']}: tolerance={r['tolerance_s']}s, structural floor={r['structural_floor_s']:.1f}s")
+    for thread_key in sorted(infeasible_seen):
+        print(f"  {thread_key}")
 
 
 if __name__ == "__main__":
