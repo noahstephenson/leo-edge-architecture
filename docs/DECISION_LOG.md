@@ -189,3 +189,11 @@ While validating the sweep (checking why some very-high-access cells showed 0% s
 **Rationale**: v3's `docs/TRADE_STUDY.md` reported "17 of 18 cells show no significant difference between any pair of architectures" as if it were one finding. It wasn't: at the v3 baseline, every architecture was near 0% success, so "no significant difference" there meant "nothing works," not "architectures were tested and tied." The v4 task required this distinction explicitly, since "processing architecture is second-order" is only a supported claim in cells where architectures actually had room to differ.
 
 **Consequence**: `docs/V3_VS_V4.md` reports counts of each of the three cell types across the real Walker sweep, and the headline claim about architecture mattering (or not) is scoped to `SEPARATES`/`TIES` cells only, never to `UNINFORMATIVE` ones.
+
+## ADR-023: v4 sweep stopped at 24 satellites, incremental writes added
+
+**Decision**: `experiments/e12_access_sweep.py`'s first full-sweep attempt (32 satellites/8 planes as the largest configuration) was killed by the host's memory-pressure protection partway through that config, and lost every row computed in the run because output was only written once, at the very end of `main()`. Rewrote output to an `IncrementalCsvWriter` that flushes each cell's rows to disk immediately, and reduced the largest swept configuration from 32/8/1 to 24/8/1 satellites/planes/phasing-factor -- the largest confirmed to complete reliably in this session.
+
+**Rationale**: the v4 task explicitly allows stopping the satellite-count extension short of the 80-90% ideal and documenting why, rather than requiring it be reached regardless of cost; real per-satellite SGP4 propagation at 32+ satellites, run alongside whatever else is using memory on this machine, is not reliably completable in one session. Incremental writes were added regardless of the config-size decision, since losing an entire run's output to one late-stage kill is a real robustness gap independent of how large the sweep gets.
+
+**Consequence**: `results/frozen/v4/e12_*.csv` reflect real Walker-delta configurations up to 24 satellites / 8 planes. `docs/V3_VS_V4.md` states this as the stopping point and why, per the task's own instruction, rather than presenting 24 as if it were always the intended ceiling.
