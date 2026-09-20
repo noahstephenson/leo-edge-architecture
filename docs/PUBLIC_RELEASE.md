@@ -5,7 +5,7 @@ This repository is public source and unclassified. It uses only public/synthetic
 ## What's in the public release
 
 - The full `src/leo_edge/` library.
-- All experiment scripts (`experiments/`) and their frozen output (`results/frozen/v3/`).
+- All experiment scripts (`experiments/`) and their frozen output (`results/frozen/v4/`).
 - All figure-generation scripts and the figures themselves (`figures/`).
 - The trade study script (`scripts/trade_study.py`) and its output.
 - The hand-calculation validation (`docs/HAND_CALC_BREAK_EVEN.md`).

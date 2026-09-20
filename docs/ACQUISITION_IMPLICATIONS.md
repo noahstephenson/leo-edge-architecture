@@ -1,7 +1,7 @@
 # Acquisition Implications
 
 Notional guidance derived from `docs/TRADE_STUDY.md` and
-`docs/V3_VS_V4.md`'s v4 evidence, not a real acquisition recommendation.
+the v4 access sweep, not a real acquisition recommendation.
 Every item below is tied to a specific finding. All numbers come from
 `results/frozen/v4/`; access-sweep cells use 40 trials per thread, so treat
 differences under ~3 percentage points as noise.
@@ -80,7 +80,7 @@ reachback is lost.
 ## Note on the shortest-tolerance threads
 
 **Evidence**: MT-1 (120 s) and MT-4 (300 s) are flagged infeasible at every
-constellation swept on the revisit-aware floor (`docs/V3_VS_V4.md`); no
+constellation swept on the revisit-aware floor (this document, below); no
 thread is structurally infeasible. MT-1 reached only about 1% at 24
 satellites and 0% at one satellite even with 4x the tolerance.
 
@@ -123,3 +123,68 @@ one this model resolves.
 `figures/fig21.png` plots success against a relative cost proxy
 (satellites x10, terminals x3, processing tiers x1). These weights are
 ASSUMED relative units, not dollars.
+
+## Evidence behind the flagged threads and the tolerance assumption
+
+**Feasibility floors** (`results/frozen/v4/e12_feasibility_floors.csv`). The
+structural floor (minimum tasking delay + processing + minimal transmit at
+the best rate, ignoring access) is 80 to 88 s for every thread, below every
+tolerance, so **no thread is structurally infeasible**. The revisit-aware
+floor adds half the median gap between collection opportunities across the
+constellation (a heuristic, not a bound). On it, MT-1 and MT-4 are
+infeasible at every swept configuration (floors of 440 to 2,930 s against
+120 s and 300 s). MT-2 is feasible at 4 satellites in one plane, 16/4, and
+24/8; MT-3 only at 16/4. Feasibility is not monotonic in satellite count
+because the median gap depends on plane geometry.
+
+**Tolerance sensitivity** (`e12_tolerance_sensitivity.csv`, 1 terminal,
+pooled over all seven architectures, so absolute values are low):
+
+| Satellites | Thread | 0.5x | 1x | 2x | 4x |
+|---|---|---|---|---|---|
+| 1 | MT-1 | 0.0% | 0.0% | 0.0% | 0.0% |
+| 1 | MT-2 | 0.0% | 0.8% | 1.8% | 4.9% |
+| 1 | MT-3 | 0.0% | 0.3% | 0.6% | 1.5% |
+| 24 | MT-1 | 0.0% | 0.8% | 2.1% | 9.6% |
+| 24 | MT-2 | 7.2% | 12.9% | 17.0% | 17.4% |
+| 24 | MT-3 | 2.3% | 8.8% | 16.3% | 20.0% |
+
+Loosening tolerances raises success but does not change the conclusion, so
+the result is not just an artifact of the assumed thresholds. This was run
+at the baseline and the largest configuration only.
+
+**Latency distribution** (`e12_km_summary.csv`, Kaplan-Meier, censored at the
+168 h horizon). At 24 satellites, 8 planes, 4 terminals, half the trials had
+delivered the needed tier by about 905 s for ThreadAwarePriority, 922 s for
+Progressive, and 6,607 s for RoiFirst; QuicklookFirst never reaches half.
+RoiFirst leaves 34% of trials undelivered and QuicklookFirst 67%.
+
+**Access table** (`e12_access_sweep.csv`, best architecture, pooled; 40 trials
+per thread-cell, so differences under about 3 points are noise):
+
+| Satellites / planes | 1 terminal | 2 terminals | 4 terminals |
+|---|---|---|---|
+| 1 / 1 | 3.2% | 3.8% | 4.0% |
+| 4 / 4 | 8.7% | 8.5% | 7.5% |
+| 8 / 4 | 7.9% | 10.5% | 6.2% |
+| 16 / 4 | 17.7% | 18.5% | 22.6% |
+| 24 / 8 | 19.8% | 27.4% | **31.2%** |
+
+## What earlier versions claimed, and what was retracted
+
+The decision log has the full reasoning; in short:
+
+- **v1** scored failed deliveries as instant successes (uncapped byte counts).
+  Fixed in ADR-008.
+- **v3's "architecture is second-order" headline** and its explanation of a
+  32-satellite dip as "single-plane clustering" were built on a model that
+  time-shifted one satellite's access windows instead of propagating real
+  satellites, and that forbade delivery on the collecting pass. Both are
+  retracted (ADR-019, ADR-020). The real sweep is roughly monotonic and
+  architectures do separate once access is high enough to test them.
+- **v3's "17 of 18 cells show no significant difference"** counted cells where
+  nothing worked as if they were ties. Cells are now labeled uninformative,
+  tied, or separating (ADR-022).
+- **The first v4 sweep** was invalid: a TLE formatting bug placed every
+  satellite in a plane at the same position. It was discarded and rerun
+  (ADR-024).

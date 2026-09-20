@@ -15,7 +15,7 @@
 
 ## Unit tests
 
-`tests/` (74 tests) covers the metrics functions, the link/contact-capacity math, storage and power invariants, the queue, and the static and multi-contact architecture logic directly (`tests/test_architectures.py`, `tests/test_simulation.py`), not just existence/import smoke tests. Run them with `uv run pytest`.
+`tests/` (105 tests) covers the metrics functions, the link/contact-capacity math, storage and power invariants, the queue, and the static and multi-contact architecture logic directly (`tests/test_architectures.py`, `tests/test_simulation.py`), not just existence/import smoke tests. Run them with `uv run pytest`.
 
 ## Orbit model cross-check
 
@@ -27,7 +27,7 @@
 
 ## Benchmark reproducibility
 
-The image-processing numbers in `results/frozen/v3/e02_*.csv` and `results/frozen/image_benchmark*.csv` come from actually running Pillow's JPEG encoder, resize, and crop operations, timed with `time.perf_counter_ns()`, not from an assumed compression ratio. Anyone can rerun `experiments/e02_image_benchmark.py` and get comparable numbers on their own machine; absolute runtimes will differ by hardware, but the relative shape (compression cheaper than quicklook resize, ROI crop cheapest) should hold.
+The image-processing numbers in `results/frozen/v4/e02_*.csv` and `results/frozen/image_benchmark*.csv` come from actually running Pillow's JPEG encoder, resize, and crop operations, timed with `time.perf_counter_ns()`, not from an assumed compression ratio. Anyone can rerun `experiments/e02_image_benchmark.py` and get comparable numbers on their own machine; absolute runtimes will differ by hardware, but the relative shape (compression cheaper than quicklook resize, ROI crop cheapest) should hold.
 
 ## What "measured" vs. "assumed" means here
 

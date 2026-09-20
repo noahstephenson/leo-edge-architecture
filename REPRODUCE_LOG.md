@@ -18,7 +18,7 @@ experiments` loop yet since it's slower than a single experiment
 
 ## Last full run: 2026-09-20 (v4: real constellations + same-pass delivery)
 
-`uv run pytest`: 102 passed. `experiments/e11_mission_thread_success.py`
+`uv run pytest`: 105 passed. `experiments/e11_mission_thread_success.py`
 (~30s) and `experiments/e12_access_sweep.py` (~1h; 7 Walker configs up to
 24 satellites/8 planes) run clean; outputs promoted to `results/frozen/v4/`
 (e01-e10 and monte_carlo carried forward unchanged from v3 -- no v4 change
@@ -27,14 +27,15 @@ covered by the existing access tests). `scripts/trade_study.py` and
 `figures/scripts/fig19-21` regenerated from v4. Two e12 attempts were lost
 before this one: one killed by host memory pressure (32-sat config; now
 capped at 24 with incremental CSV writes), one discarded for a TLE column
-bug (ADR-024). e12 is not in `make experiments`. `results/frozen/v3/` is
-untouched. The dashboard and the other figure scripts were not re-run this
-pass.
+bug (ADR-024). e12 is not in `make experiments` (use `make access_sweep`).
+`results/frozen/v2/` and `v3/` are untouched. A follow-up docs pass also
+ported e09 to a real Walker constellation (e09/e10 now write to `v4/`),
+re-ran every figure script and the dashboard smoke test (HTTP 200), and
+added `tests/test_docs_consistency.py`. `uv run pytest`: 105 passed.
 
 ## Previous run: 2026-09-19 (v3: evaluation-engine fixes + access sweep)
 
-This run followed the v3 rework (`docs/REWORK_PLAN_V3.md`,
-`docs/DECISION_LOG.md` ADR-015 through ADR-018): paired trials, a real
+This run followed the v3 rework (`docs/DECISION_LOG.md` ADR-015 through ADR-018): paired trials, a real
 collection-timing model, MT-3 restored and MT-4 fixed to be genuinely
 cadence-based, structural incapacity tracked separately from slowness,
 censoring-aware latency, a fixed (previously inverted) terminal-SWaP
@@ -79,7 +80,7 @@ session); its checked-in outputs are unchanged.
 
 Outputs written to `results/raw/` and promoted into `results/frozen/v3/`.
 `results/frozen/v2/` is left in place as the historical record
-(`docs/V2_VS_V3.md`); `e01`, `e02_*` (synthetic), `e04`-`e10`, and
+(`docs/DECISION_LOG.md`); `e01`, `e02_*` (synthetic), `e04`-`e10`, and
 `monte_carlo.csv` were carried forward from v2 into v3 unchanged, since
 none of the v3 fixes touch the code paths that produce them (confirmed by
 inspection, not re-run, since re-running them would produce

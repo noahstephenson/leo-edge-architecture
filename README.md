@@ -53,56 +53,80 @@ cells where the best architecture succeeds more than 30% of the time.
   uninformative (nothing works well enough to compare). This is thin
   evidence from one cell.
 
-`docs/ACQUISITION_IMPLICATIONS.md` draws out what that means. `docs/V3_VS_V4.md`,
-`docs/V2_VS_V3.md`, and `docs/V1_VS_V2.md` document how the findings changed:
-v1 had a correctness bug (uncapped byte counts scored failed deliveries as
-successes); v2 fixed that; v3 added statistical testing but modeled
-satellites as time-shifted copies and forbade same-pass delivery, so its
-"architecture is second-order" headline and its 32-satellite explanation
-are retracted; v4 uses real constellations and same-pass delivery, and its
-own first sweep was discarded and rerun after a TLE formatting bug was
-found (`docs/DECISION_LOG.md` ADR-024).
+`docs/ACQUISITION_IMPLICATIONS.md` draws out what that means, including
+which earlier claims were retracted and why. `docs/DECISION_LOG.md` records
+each correction (ADR-008, ADR-019, ADR-020, ADR-024).
 
 ## System architecture
 
-![System block diagram](figures/fig01.png)
+```mermaid
+flowchart LR
+    subgraph REQ["Army: requesting side"]
+        User(["Tactical user"])
+        Rear["Rear-echelon<br/>tasking cell"]
+    end
+    subgraph COM["Commercial provider: bought as a service"]
+        Sat["LEO satellites<br/>collect, tier, prioritize, transmit"]
+    end
+    subgraph EDGE["Army: edge"]
+        Term["Edge terminal<br/>vehicle or dismounted"]
+    end
+    User -->|"1 reachback request"| Rear
+    Rear -->|"2 collection request"| Sat
+    User -.->|"1b direct edge tasking"| Sat
+    Sat ==>|"3 tiered product P0 to P4<br/>only in contact windows"| Term
+    Term -->|"4 actionable product"| User
+    classDef army fill:#dfeadf,stroke:#3b6b3b,color:#111
+    classDef com fill:#dde7f5,stroke:#2f5a94,color:#111
+    class User,Term,Rear army
+    class Sat com
+```
 
-A commercial LEO satellite images an area of interest, optionally tiers
-the product onboard, and downlinks during a contact window to an Army-
-owned tactical edge terminal, either directly or through a rear-echelon
-tasking cell. `docs/ARCHITECTURE_VIEWS.md` has the full view set (OV-2
-resource flows, OV-5b activities per mission thread, OV-6c event trace,
-and the 4+1 software views); `docs/OV1_SPEC.md` describes what a concept
-graphic for the recommended allocation should show (no image is generated
-by this repository; the old OV-1 concept graphic predates this rework's
-research question and is retired).
+Green is Army-owned, blue is commercial. The thick arrow is the ownership
+boundary, and it is the only place the Army depends on a provider's
+implementation. The seven candidate architectures differ in what the blue box
+does before that arrow.
 
-## The access/revisit sweep
+The study connects one chain, and every document sits somewhere on it:
+
+```mermaid
+flowchart LR
+    N["Operational need"] --> V["Stakeholder value"] --> R["Requirement"] --> F["Function"] --> A["Allocation<br/>A0 to A6"] --> X["Experiment"] --> TS["Trade study"] --> AI["Acquisition<br/>implication"]
+```
+
+## Where to read next
+
+| If you want | Read |
+|---|---|
+| The recommendations | `docs/ACQUISITION_IMPLICATIONS.md` |
+| How the architectures compare | `docs/TRADE_STUDY.md` |
+| What is being allocated and to whom | `docs/ALLOCATION_SPACE.md`, `docs/FUNCTIONAL_ARCHITECTURE.md` |
+| The system from every angle | `docs/ARCHITECTURE_VIEWS.md`, `docs/INTERFACES.md`, `docs/ARCHITECTURE.md` |
+| The mission threads and who cares | `docs/MISSION_THREADS.md`, `docs/STAKEHOLDERS.md` |
+| How the numbers are computed | `docs/MODEL_REFERENCE.md`, `docs/EXPERIMENT_PLAN.md` |
+| Why each modeling choice was made, and what was retracted | `docs/DECISION_LOG.md` |
+
+## The access sweep
 
 ![Mission-thread success vs. access level, by thread](figures/fig19.png)
 
-![Best statistically-distinguishable architecture by access level](figures/fig20.png)
+![Architecture comparison outcome by access level](figures/fig20.png)
 
-`docs/V2_VS_V3.md` has the full pooled-success-rate table and every
-ASSUMED value behind these two figures, including a real, documented
-limitation of the phase-offset satellite model used here (single orbital
-plane, not multiple planes) that explains why success rate rises then
-falls at the highest satellite counts even though total contact coverage
-keeps rising.
+The first figure shows success rising with the number of satellites. The
+second shows where architectures can be compared at all: grey cells are
+uninformative because nothing worked well enough to test.
 
 ## Single-contact-window regime map
 
-Within one contact window, which architecture completes fastest still
-depends heavily on rate and contact duration:
+Within one contact window, which architecture completes fastest depends on
+rate and contact duration:
 
 ![Best architecture by rate and contact duration](figures/fig04.png)
 
-Grid cells marked "no completion" are exactly that: no architecture
-delivered a complete product within that single window, honestly reported
-instead of a fabricated completion time (`docs/DECISION_LOG.md` ADR-008).
-This is single-window evidence, distinct from the multi-contact mission-
-thread-success result above; `docs/MODEL_REFERENCE.md` explains how the
-two relate.
+Cells marked "no completion" mean no architecture delivered a complete
+product in that one window (`docs/DECISION_LOG.md` ADR-008). This is
+single-window evidence, separate from the multi-contact mission-thread
+result above; `docs/MODEL_REFERENCE.md` explains how they relate.
 
 ## Novelty
 
@@ -116,28 +140,24 @@ from that literature.
 ```bash
 uv sync
 uv run pytest
-make experiments
+make experiments      # e00 to e11, a few minutes
 make figures
 make trade_study
+make access_sweep     # e12, real per-satellite SGP4, about an hour
 ```
 
-`make experiments` runs `e00` through `e11`, including the mission-thread
-Monte Carlo; run `experiments/e12_access_sweep.py` directly for the access
-sweep (it isn't in the default `make experiments` loop yet, since it's
-slower than a single experiment). `make trade_study` regenerates the
-weighted scores in `docs/TRADE_STUDY.md` from that output. `make
-reproduce` runs the first four. See `REPRODUCE_LOG.md` for a real run log.
+`make reproduce` runs tests, experiments, figures, and the trade study, but
+not the access sweep. `REPRODUCE_LOG.md` is a real run log.
 
 ## Repository map
 
 | Path | What's there |
 |---|---|
-| `src/leo_edge/` | The architecture, orbit, imagery, metrics, mission-thread, and stats model |
-| `experiments/` | `e00` through `e12`, each answering one question about the model |
-| `results/frozen/v2/` | Frozen results from the v2 pass, kept as a historical record (`docs/V1_VS_V2.md`) |
-| `results/frozen/v4/` | Current frozen results (`docs/V3_VS_V4.md` explains what changed; v2/v3 kept as history) |
-| `figures/` | Figures generated from `results/frozen/v4/`, see `figures/README.md` |
-| `docs/` | Operational context, stakeholders, requirements, allocation space, trade study, acquisition implications, architecture views, novelty, assumptions, decisions, hand-calculation check |
+| `src/leo_edge/` | Architectures, product tiers, orbit and constellation model, mission threads, statistics |
+| `experiments/` | `e00` through `e12`, each answering one question (`docs/EXPERIMENT_PLAN.md`) |
+| `results/frozen/v4/` | Current frozen results; `v2/` and `v3/` are kept as history |
+| `figures/` | Figures generated from `results/frozen/v4/` (`figures/README.md`) |
+| `docs/` | Requirements, allocation space, architecture views, trade study, acquisition implications, decision log |
 | `app/dashboard.py` | A Streamlit dashboard for exploring the architectures interactively |
 
 ## License

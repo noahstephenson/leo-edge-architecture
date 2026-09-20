@@ -164,6 +164,6 @@ does not show that RoiFirst is operationally "the best architecture": the
 lock-in-risk advantage, not a mission-thread-success advantage --
 ThreadAwarePriority and Progressive both beat it there, with statistical
 significance. See `docs/ACQUISITION_IMPLICATIONS.md` for the real headline
-(access, not architecture, dominates until a real access threshold is
-crossed) and `docs/V3_VS_V4.md` for the full accounting of what changed
-from v3.
+(access moves success most; architecture matters once access is high enough
+to test it) and `docs/DECISION_LOG.md` for what changed from earlier
+versions.
