@@ -1,212 +1,307 @@
-"""Streamlit dashboard for LEO edge architecture TFUP/TCP sensitivity."""
+"""Streamlit dashboard: how commercial LEO imagery reaches an Army edge
+terminal, and what the study found. Notional and unofficial.
+
+Every number on the results tabs is read from results/frozen/v4/, not typed
+in here. The live explorer runs the real architecture code for one contact
+window.
+"""
 
 import sys
 from pathlib import Path
 
-# Ensure src is importable
 repo_root = Path(__file__).resolve().parents[1]
 src_path = repo_root / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-import streamlit as st
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
+import streamlit as st
 
 from leo_edge.architectures import (
-    GroundOnly,
-    CompressedFull,
-    QuicklookFirst,
-    RoiFirst,
-    Progressive,
-    ContactAware,
-    ThreadAwarePriority,
+    CompressedFull, ContactAware, GroundOnly, Progressive, QuicklookFirst, RoiFirst, ThreadAwarePriority,
 )
+from leo_edge.mission_threads import MISSION_THREADS as _THREADS
 from leo_edge.simulation import simulate_multi_contact
-from leo_edge.products import ProductTier
-from leo_edge.mission_threads import MISSION_THREADS as _MISSION_THREADS_SRC
 
-# Display names map to src/leo_edge/mission_threads.py's keys, the single
-# source of truth shared with experiments/e11_mission_thread_success.py
-# and tests/test_mission_thread_consistency.py, so this dashboard can't
-# silently drift from what e11 actually evaluates. MT-3 and the
-# cadence-based MT-4 aren't shown here: MT-3 needs a prior-reference draw
-# and MT-4 needs the whole-horizon cadence walk, neither of which fits this
-# single-contact-window live check (see the caption below).
-_DISPLAY_TO_KEY = {
-    "MT-1 Time-sensitive cueing": "MT1_TIME_SENSITIVE_CUEING",
-    "MT-2 Route reconnaissance (first product)": "MT2_ROUTE_RECON_FIRST",
-}
-MISSION_THREADS = {
-    display: _MISSION_THREADS_SRC[key] for display, key in _DISPLAY_TO_KEY.items()
-}
-TERMINAL_CLASSES = {
-    "Vehicle-mounted": 50_000_000,
-    "Dismounted / manpack": 5_000_000,
-}
-CONDITIONS = {
-    "Nominal": {"derate": 1.0, "tasking_delay_s": 60},
-    "Interference (0.5x rate)": {"derate": 0.5, "tasking_delay_s": 60},
-    "Reachback lost (direct tasking delay)": {"derate": 1.0, "tasking_delay_s": 180},
-    "Combined degraded": {"derate": 0.5, "tasking_delay_s": 180},
-}
+RESULTS = repo_root / "results" / "frozen" / "v4"
+SCENE_BYTES = 1_000_000_000  # one 1 GB scene, as in experiment e03
+BASE_PROC_S, BASE_POWER_W = 20.0, 15.0
 
-CSV_PATH = repo_root / "results" / "frozen" / "v4" / "e03_results.csv"
+st.set_page_config(page_title="LEO Edge: imagery to the tactical edge", layout="wide")
 
-st.set_page_config(page_title="LEO Edge Dashboard", layout="wide")
-st.title("LEO Edge Architecture: TFUP / TCP Sensitivity")
 
-# Load frozen results for reference
 @st.cache_data
-def load_results():
-    df = pd.read_csv(CSV_PATH)
-    return df
+def load(name):
+    return pd.read_csv(RESULTS / name)
 
-df_ref = load_results()
 
-# Reference values
-scene_bytes = 1_000_000_000  # 1 GB from e03
-baseline_processing_time_s = 20.0
-baseline_processor_power_w = 15.0
-
-st.sidebar.header("Mission Context (docs/MISSION_THREADS.md)")
-terminal_class = st.sidebar.selectbox("Terminal class", list(TERMINAL_CLASSES.keys()))
-condition_name = st.sidebar.selectbox("Contested condition", list(CONDITIONS.keys()))
-thread_name = st.sidebar.selectbox("Mission thread", list(MISSION_THREADS.keys()))
-
-st.sidebar.header("Simulation Controls")
-rate_bps = st.sidebar.slider(
-    "Downlink rate (bps)",
-    min_value=1_000_000,
-    max_value=100_000_000,
-    value=TERMINAL_CLASSES[terminal_class],
-    step=1_000_000,
-    format="%d",
-)
-contact_duration_s = st.sidebar.slider(
-    "Contact duration (s)",
-    min_value=60,
-    max_value=600,
-    value=300,
-    step=10,
-)
-processor_power_w = st.sidebar.slider(
-    "Processor power (W)",
-    min_value=5.0,
-    max_value=30.0,
-    value=15.0,
-    step=0.5,
-)
-
-contact_capacity_bytes = rate_bps * contact_duration_s / 8.0
-# Scale processing time inversely with power (simple model)
-processing_time_s = baseline_processing_time_s * (baseline_processor_power_w / max(processor_power_w, 1e-6))
-
-st.sidebar.metric("Contact capacity (MB)", f"{contact_capacity_bytes/1e6:.1f}")
-st.sidebar.metric("Effective processing time (s)", f"{processing_time_s:.2f}")
-
-selected_thread = MISSION_THREADS[thread_name]
-arch_map = {
-    "A0_GROUND_ONLY": ("GroundOnly", GroundOnly()),
-    "A1_COMPRESSED_FULL": ("CompressedFull", CompressedFull()),
-    "A2_QUICKLOOK_FIRST": ("QuicklookFirst", QuicklookFirst()),
-    "A3_ROI_FIRST": ("RoiFirst", RoiFirst()),
-    "A4_PROGRESSIVE": ("Progressive", Progressive()),
-    "A5_CONTACT_AWARE": ("ContactAware", ContactAware(alpha=0.2)),
-    "A6_THREAD_AWARE_PRIORITY": (
-        "ThreadAwarePriority",
-        ThreadAwarePriority(priority_tier=selected_thread["needed_tier"]),
-    ),
+# ---------- plain-language labels ----------
+ARCH_LABELS = {
+    "GroundOnly": "A0 Raw only (no onboard processing)",
+    "CompressedFull": "A1 Compress, send one product",
+    "QuicklookFirst": "A2 Quicklook first, then full",
+    "RoiFirst": "A3 Region of interest first, then full",
+    "Progressive": "A4 Progressive tiers (P0 to P4)",
+    "ContactAware": "A5 Contact-aware (compressed or raw)",
+    "ThreadAwarePriority": "A6 Thread-aware (proposed)",
+}
+THREAD_LABELS = {
+    "MT1_TIME_SENSITIVE_CUEING": "MT-1 Time-sensitive cueing",
+    "MT2_ROUTE_RECON_FIRST": "MT-2 Route reconnaissance",
+}
+THREAD_STORY = {
+    "MT1_TIME_SENSITIVE_CUEING": "A unit needs a fast, coarse answer to 'is something there?' to decide whether to commit assets. Speed beats resolution.",
+    "MT2_ROUTE_RECON_FIRST": "A unit planning a route needs a full-resolution crop of the corridor before it moves. A coarse image is not enough.",
+}
+TIER_NAMES = {
+    "P0_METADATA": "P0 metadata", "P1_THUMBNAIL": "P1 thumbnail", "P2_QUICKLOOK": "P2 quicklook",
+    "P3_ROI": "P3 region of interest", "P4_FULL": "P4 full scene",
+}
+TERMINALS = {"Vehicle-mounted terminal (about 50 Mbps)": 50_000_000, "Dismounted / manpack terminal (about 5 Mbps)": 5_000_000}
+CONDITIONS = {
+    "Nominal": (1.0, 60),
+    "Jamming or interference (link at half rate)": (0.5, 60),
+    "Reachback lost (tasking takes 180 s)": (1.0, 180),
+    "Both degraded": (0.5, 180),
 }
 
-results = []
-for key, (name, obj) in arch_map.items():
-    out = obj.run(
-        scene_bytes=scene_bytes,
-        contact_capacity_bytes=contact_capacity_bytes,
-        rate_bps=rate_bps,
-        processing_time_s=processing_time_s,
+
+def make_architectures(needed_tier):
+    return {
+        "GroundOnly": GroundOnly(), "CompressedFull": CompressedFull(), "QuicklookFirst": QuicklookFirst(),
+        "RoiFirst": RoiFirst(), "Progressive": Progressive(), "ContactAware": ContactAware(alpha=0.2),
+        "ThreadAwarePriority": ThreadAwarePriority(priority_tier=needed_tier),
+    }
+
+
+st.title("Getting commercial satellite imagery to a tactical edge terminal")
+st.caption("A notional, unofficial systems-architecture study. Nothing here is an Army requirement, program, or decision.")
+
+tab_start, tab_try, tab_sweep, tab_trade, tab_about = st.tabs(
+    ["1. The problem", "2. Try it", "3. How much access is enough?", "4. Which architecture?", "5. Terms and limits"]
+)
+
+# ======================= TAB 1 =======================
+with tab_start:
+    st.header("The operational problem")
+    st.markdown(
+        """
+The Army increasingly **buys imagery as a service** from commercial LEO satellites, while
+**owning its own tactical ground terminals**. A satellite is only in range of a terminal for a few
+minutes at a time, and it has to be over the target area first. So a unit that asks for imagery waits,
+first for a satellite to pass over the target, then for a downlink window to the terminal.
+
+The study asks: **which imagery functions should the commercial provider do, which should the Army do,
+and how much satellite access does it take before any of that matters?**
+"""
     )
-    results.append({
-        "Architecture": key,
-        "Name": name,
-        "TFUP_s": out["tfup_s"],
-        "TCP_s": out["tcp_s"],
-        "bytes_transmitted": out["bytes_transmitted"],
-        "processing_energy_j": out["processing_energy_j"],
-        "tx_energy_j": out["tx_energy_j"],
-        "contact_utilization": out["contact_utilization"],
-        "Completed": out["completed"],
-    })
-
-res_df = pd.DataFrame(results)
-res_df = res_df[["Architecture", "Name", "TFUP_s", "TCP_s", "Completed", "contact_utilization", "processing_energy_j", "tx_energy_j"]]
-
-st.subheader("Live Analytic Results")
-st.dataframe(res_df.style.format({"TFUP_s": "{:.2f}", "TCP_s": "{:.2f}", "contact_utilization": "{:.3f}", "processing_energy_j": "{:.1f}", "tx_energy_j": "{:.1f}"}), use_container_width=True)
-
-# Plot
-fig, ax = plt.subplots(figsize=(8, 4))
-x = np.arange(len(res_df))
-width = 0.35
-ax.bar(x - width/2, res_df["TFUP_s"], width, label="TFUP")
-ax.bar(x + width/2, res_df["TCP_s"], width, label="TCP")
-ax.set_xticks(x)
-ax.set_xticklabels(res_df["Architecture"], rotation=30, ha="right")
-ax.set_ylabel("Seconds")
-ax.set_title("TFUP and TCP by Architecture")
-ax.legend()
-st.pyplot(fig)
-
-st.subheader(f"Mission-thread check: {thread_name}, {terminal_class}, {condition_name}")
-thread = MISSION_THREADS[thread_name]
-condition = CONDITIONS[condition_name]
-derated_rate_bps = rate_bps * condition["derate"]
-tasking_delay_s = condition["tasking_delay_s"]
-
-thread_rows = []
-for key, (name, obj) in arch_map.items():
-    result = simulate_multi_contact(
-        obj, scene_bytes, [(0.0, contact_duration_s)], derated_rate_bps, processing_time_s,
+    st.graphviz_chart(
+        """
+digraph G {
+  rankdir=LR; node [shape=box, style="rounded,filled", fontname="Helvetica"];
+  subgraph cluster_a { label="Army: requesting side"; style=filled; color="#e3efe3";
+    user [label="Tactical user", fillcolor="#cfe5cf"]; rear [label="Rear-echelon\\ntasking cell", fillcolor="#cfe5cf"]; }
+  subgraph cluster_c { label="Commercial provider (bought as a service)"; style=filled; color="#e0e9f7";
+    sat [label="LEO satellites\\ncollect, tier, prioritize, transmit", fillcolor="#c6d9f2"]; }
+  subgraph cluster_e { label="Army: edge"; style=filled; color="#e3efe3";
+    term [label="Edge terminal\\nvehicle or dismounted", fillcolor="#cfe5cf"]; }
+  user -> rear [label="1 request"]; rear -> sat [label="2 collection request"];
+  user -> sat [label="1b direct tasking", style=dashed];
+  sat -> term [label="3 tiered product\\nonly in contact windows", penwidth=3];
+  term -> user [label="4 actionable product"];
+}
+"""
     )
-    tier_time = result.tier_completion_s.get(thread["needed_tier"].value)
-    if tier_time is None:
-        latency_s = float("nan")
-        reason = "architecture never produces this tier"
-    else:
-        latency_s = tier_time + tasking_delay_s
-        reason = ""
-    success = tier_time is not None and latency_s <= thread["latency_tolerance_s"]
-    thread_rows.append({
-        "Architecture": key,
-        "Produces needed tier": tier_time is not None,
-        "Latency (s, incl. tasking delay)": latency_s,
-        "Tolerance (s)": thread["latency_tolerance_s"],
-        "Success": success,
-        "Note": reason,
-    })
+    st.markdown(
+        """
+**The thick arrow is the ownership boundary.** It is the only place the Army depends on a provider's
+implementation. The seven candidate architectures differ only in what the blue box does before that arrow:
+for example, sending a small quicklook first instead of waiting for the full scene.
+"""
+    )
 
-thread_df = pd.DataFrame(thread_rows)
-st.dataframe(
-    thread_df.style.format({"Latency (s, incl. tasking delay)": "{:.1f}"}, na_rep="N/A"),
-    use_container_width=True,
-)
-st.caption(
-    "This is a single-contact-window check (docs/MODEL_REFERENCE.md), not the full multi-week Monte Carlo "
-    "in experiments/e11_mission_thread_success.py; it will show far more successes than the real mission-thread "
-    "success rate, which also accounts for the wait for the next imaging pass over the target, the wait for the "
-    "next usable downlink contact after that, and (for MT-3/MT-4, not shown here) prior-reference availability "
-    "and per-pass cadence (docs/TRADE_STUDY.md, docs/MISSION_THREADS.md)."
-)
+    st.subheader("Four notional mission threads")
+    rows = []
+    for key, t in _THREADS.items():
+        rows.append({
+            "Thread": {"MT1_TIME_SENSITIVE_CUEING": "MT-1 Cueing", "MT2_ROUTE_RECON_FIRST": "MT-2 Route reconnaissance",
+                       "MT3_BATTLE_DAMAGE_ASSESSMENT": "MT-3 Damage assessment", "MT4_PERSISTENT_MONITORING": "MT-4 Persistent monitoring"}[key],
+            "Needs first": TIER_NAMES[t["needed_tier"].name],
+            "Must arrive within": f"{t['latency_tolerance_s']} s" + (" of each pass" if t["cadence"] else " of the request"),
+        })
+    st.table(pd.DataFrame(rows))
+    st.caption("All tolerances are assumptions chosen to be plausible, not sourced requirements (docs/MISSION_THREADS.md).")
 
-st.subheader("Reference frozen data (e03_results.csv)")
-# Show a summary from reference
-ref_summary = df_ref.groupby("architecture_name")[["tfup_s", "tcp_s"]].mean().reset_index()
-st.dataframe(ref_summary, use_container_width=True)
+    st.subheader("What the study found")
+    sweep = load("e12_access_sweep.csv")
+    g = sweep.groupby(["satellites", "planes", "terminals", "architecture"])[["successes", "n_trials"]].sum().reset_index()
+    g["rate"] = g.successes / g.n_trials
+    best = g.loc[g.groupby(["satellites", "planes", "terminals"]).rate.idxmax()]
+    lo, hi = best.sort_values("satellites").iloc[0], best.sort_values("rate").iloc[-1]
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Best success rate, 1 satellite", f"{lo.rate:.0%}")
+    c2.metric(f"Best success rate, {int(hi.satellites)} satellites in {int(hi.planes)} planes, {int(hi.terminals)} terminals", f"{hi.rate:.0%}")
+    never = int((sweep.groupby("architecture").successes.sum() == 0).sum())
+    c3.metric("Architectures that never succeed", f"{never} of {sweep.architecture.nunique()}")
+    st.markdown(
+        """
+- **Access dominates.** More satellites raise mission-thread success far more than any architecture choice.
+- **Tiering is necessary.** Raw downlink, compress-everything, and the contact-aware policy never deliver an early product, so they never succeed.
+- **Once access is high enough to test, architecture matters** among the tiered designs, but the sweep stops at 24 satellites and only one cell is informative. Treat that as a lead, not a conclusion.
 
-st.caption(
-    "Simple analytic model: processing time scales with 1/power, contact capacity = rate * duration /8. "
-    "Architectures from src/leo_edge/architectures.py. TFUP/TCP show as NaN and Completed=False when the "
-    "product didn't fit in this one contact window, not zero seconds."
-)
+Use the tabs above to explore each finding.
+"""
+    )
+
+# ======================= TAB 2 =======================
+with tab_try:
+    st.header("Try it: one satellite pass over one terminal")
+    st.markdown(
+        "Pick a mission, a terminal, and conditions. The real architecture code then answers: "
+        "**does each architecture get the product the unit needs to it in time?**"
+    )
+    c1, c2, c3 = st.columns(3)
+    thread_key = c1.selectbox("Mission", list(THREAD_LABELS), format_func=THREAD_LABELS.get)
+    terminal_name = c2.selectbox("Terminal", list(TERMINALS))
+    cond_name = c3.selectbox("Conditions", list(CONDITIONS))
+    thread = _THREADS[thread_key]
+    st.info(THREAD_STORY[thread_key] + f" Needs **{TIER_NAMES[thread['needed_tier'].name]}** within **{thread['latency_tolerance_s']} s** of the request.")
+
+    with st.expander("Adjust the link (advanced)"):
+        a1, a2, a3 = st.columns(3)
+        rate_bps = a1.slider("Downlink rate (Mbps)", 1, 100, TERMINALS[terminal_name] // 1_000_000) * 1_000_000
+        contact_s = a2.slider("How long the satellite stays in range (s)", 60, 600, 300, 10)
+        power_w = a3.slider("Onboard processor power (W)", 5.0, 30.0, 15.0, 0.5)
+
+    derate, tasking_s = CONDITIONS[cond_name]
+    proc_s = BASE_PROC_S * BASE_POWER_W / power_w
+    eff_rate = rate_bps * derate
+    st.markdown(
+        f"**Scenario:** the satellite is in range for **{contact_s} s** at **{eff_rate/1e6:.0f} Mbps** "
+        f"(about {eff_rate * contact_s / 8 / 1e6:,.0f} MB can be sent). Tasking takes **{tasking_s} s**. "
+        f"Onboard processing takes about **{proc_s:.0f} s**. The scene is 1 GB."
+    )
+
+    rows = []
+    for name, arch in make_architectures(thread["needed_tier"]).items():
+        r = simulate_multi_contact(arch, SCENE_BYTES, [(0.0, contact_s)], eff_rate, proc_s)
+        t_needed = r.tier_completion_s.get(thread["needed_tier"].value)
+        total = None if t_needed is None else t_needed + tasking_s
+        if t_needed is None:
+            verdict, why = "Misses", "never delivers this tier in the window"
+        elif total <= thread["latency_tolerance_s"]:
+            verdict, why = "Meets", f"needed product arrives {total:.0f} s after the request"
+        else:
+            verdict, why = "Misses", f"arrives {total:.0f} s after the request, too late"
+        rows.append({"Architecture": ARCH_LABELS[name], "Result": verdict, "Why": why, "_total": total})
+    res = pd.DataFrame(rows)
+
+    def color(v):
+        return "background-color:#cfe5cf" if v == "Meets" else "background-color:#f3d2d2"
+
+    st.dataframe(res[["Architecture", "Result", "Why"]].style.map(color, subset=["Result"]), width="stretch", hide_index=True)
+
+    fig, ax = plt.subplots(figsize=(9, 3.6))
+    plot = res.dropna(subset=["_total"])
+    ax.barh([r.split(" (")[0] for r in plot.Architecture], plot._total, color=["#5a9e5a" if v == "Meets" else "#c76b6b" for v in plot.Result])
+    ax.axvline(thread["latency_tolerance_s"], color="black", linestyle="--")
+    ax.text(thread["latency_tolerance_s"], -0.6, " time limit", va="bottom")
+    ax.set_xlabel("Seconds from request until the needed product arrives")
+    ax.invert_yaxis()
+    st.pyplot(fig)
+    if plot.empty:
+        st.warning("No architecture delivers the needed product in this window. Try a longer window or a faster link.")
+    st.caption(
+        "This checks one satellite pass only. In reality a unit must first wait for a satellite to pass over the target, "
+        "then wait for a downlink window, so real success is far lower. Tabs 3 and 4 show the full picture."
+    )
+
+# ======================= TAB 3 =======================
+with tab_sweep:
+    st.header("How much satellite access is enough?")
+    st.markdown(
+        "The sweep adds real satellites (each propagated with SGP4, arranged as Walker-delta constellations) "
+        "and Army ground terminals, and asks how often a mission thread succeeds. "
+        "The chart shows the **best architecture** at each size."
+    )
+    sweep = load("e12_access_sweep.csv")
+    g = sweep.groupby(["satellites", "planes", "terminals", "architecture"])[["successes", "n_trials"]].sum().reset_index()
+    g["rate"] = g.successes / g.n_trials
+    best = g.loc[g.groupby(["satellites", "planes", "terminals"]).rate.idxmax()]
+    best = best.sort_values("planes").groupby(["satellites", "terminals"], as_index=False).tail(1)
+    pivot = best.pivot(index="satellites", columns="terminals", values="rate")
+    pivot.columns = [f"{c} terminal(s)" for c in pivot.columns]
+    st.line_chart(pivot, y_label="Best architecture's mission-thread success rate", x_label="Satellites in the constellation")
+    st.caption("Each point pools all four threads and both conditions. There are only 40 trials per thread per cell, so differences under about 3 points are noise.")
+
+    st.subheader("Where can architectures be compared at all?")
+    status = load("e12_cell_status.csv").sort_values("planes").groupby(["satellites", "terminals"], as_index=False).tail(1)
+    label = {"UNINFORMATIVE": "too low to compare", "TIES": "compared: tied", "SEPARATES": "compared: a winner"}
+    status["Outcome"] = status.status.map(label)
+    st.dataframe(status.pivot(index="terminals", columns="satellites", values="Outcome"), width="stretch")
+    st.caption(
+        "An architecture comparison is only meaningful when the best one succeeds more than 30% of the time. "
+        "Below that, nothing works well enough to tell designs apart, which is different from the designs being equal."
+    )
+
+    st.subheader("Can each thread be met at all?")
+    feas = load("e12_feasibility_floors.csv")
+    feas = feas.sort_values("planes").groupby(["satellites", "thread"], as_index=False).tail(1)
+    fp = feas.assign(Thread=feas.thread.map(lambda t: t.split("_")[0]), Status=feas.status.str.replace("_", " ").str.lower()).pivot(index="satellites", columns="Thread", values="Status")
+    st.dataframe(fp, width="stretch")
+    st.caption(
+        "'infeasible at this access' means the typical wait for the next overflight already exceeds the time limit. "
+        "No thread is impossible outright: the fastest possible chain (tasking + processing + transmit) fits inside every limit."
+    )
+
+# ======================= TAB 4 =======================
+with tab_trade:
+    st.header("Which architecture should the Army ask for?")
+    st.markdown(
+        "Seven criteria are scored (3 from simulation, 4 derived from each design's properties) under four "
+        "stakeholder weightings. Pick a view to see the ranking."
+    )
+    scores = load("trade_study_scores.csv")
+    a, b, c = st.columns(3)
+    profile = a.selectbox("Whose priorities?", sorted(scores.profile.unique()), format_func=lambda p: p.replace("_", " ").title())
+    aset = b.selectbox("Which designs?", ["ORIGINAL_SET", "WITH_A6"], format_func=lambda s: "Original six (A0 to A5)" if s == "ORIGINAL_SET" else "Original six plus proposed A6")
+    view = c.selectbox("Which criteria?", ["COMBINED", "SIMULATED_ONLY"], format_func=lambda s: "All seven" if s == "COMBINED" else "Simulated only (success, latency, resilience)")
+    sub = scores[(scores.profile == profile) & (scores.architecture_set == aset) & (scores.view == view)].sort_values("rank")
+    sub = sub.assign(Architecture=sub.architecture.map(ARCH_LABELS), Score=sub.score.round(3))[["rank", "Architecture", "Score"]]
+    st.dataframe(sub, width="stretch", hide_index=True)
+    st.markdown(
+        """
+**Why the answer changes with the view.** On the simulated criteria alone, the designs that send the needed tier first
+(Progressive and the proposed A6) win. Once *acquisition lock-in risk* is included, **A3 Region-of-interest first** wins
+in every weighting, because it has the fewest and simplest interfaces to specify in a contract, even though
+Progressive and A6 succeed more often. That is a genuine tradeoff for whoever writes the requirement.
+"""
+    )
+    e11 = load("e11_mission_thread_success.csv")
+    base = e11.groupby("architecture").success_rate.mean().sort_values(ascending=False)
+    st.subheader("Single-satellite baseline: mission-thread success")
+    st.bar_chart(pd.DataFrame({"Success rate": base.values}, index=[ARCH_LABELS[a].split(" (")[0] for a in base.index]))
+
+# ======================= TAB 5 =======================
+with tab_about:
+    st.header("Terms and honest limits")
+    st.markdown(
+        """
+**Terms**
+- **Tier (P0 to P4):** a product at increasing detail: metadata, thumbnail, quicklook, region-of-interest crop, full scene.
+- **TFUP / TCP:** time to the first useful product, and time to the complete product.
+- **Contact window:** the few minutes a satellite is in range of a terminal.
+- **Tasking:** telling the provider what to image, through a rear-echelon cell (reachback) or directly from the edge terminal.
+- **Walker-delta constellation:** satellites spread evenly across several orbital planes.
+- **AOI:** area of interest, the place being imaged.
+
+**Limits**
+- Everything operational is notional. Tolerances, terminal locations, and the target area are assumptions.
+- The access sweep stops at 24 satellites and uses 40 trials per cell.
+- Only one cell of the sweep is informative enough to compare architectures, so the architecture finding is a lead.
+- No design here moves processing to the Army edge; that is a gap, not a finding (docs/ALLOCATION_SPACE.md).
+
+Full detail: `README.md`, `docs/ACQUISITION_IMPLICATIONS.md`, `docs/TRADE_STUDY.md`, `docs/DECISION_LOG.md`.
+"""
+    )
