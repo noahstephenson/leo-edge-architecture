@@ -16,7 +16,7 @@ tracking (v4 item 2, docs/DECISION_LOG.md ADR-020) apply here exactly as
 in `e11_mission_thread_success.py`, whose functions this module imports
 and reuses rather than duplicating.
 
-New in v4 (see docs/REWORK_PLAN_V4.md):
+New in v4 (docs/DECISION_LOG.md ADR-019 to ADR-024):
 - Feasibility floors per mission thread per configuration: a structural
   floor (processing + minimal transmit time at the best rate, ignoring
   access entirely -- true regardless of constellation size) and a
