@@ -23,6 +23,13 @@ versus be split between them? And does the right split change depending on
 what the mission needs, what class of terminal is in the field, and how
 contested or degraded the link is?
 
+## What the unit experiences
+
+The short version: the unit waits for a satellite to pass over the target,
+then waits for that satellite to be in range of its terminal, and the time
+limits are minutes. `docs/CONOPS.md` walks through both waits with real
+numbers from the model and a worked example.
+
 ## Real public-source grounding
 
 This is not a hypothetical direction for the Army. Three real, publicly

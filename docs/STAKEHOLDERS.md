@@ -4,6 +4,8 @@ All notional. This describes the roles the allocation decision has to
 satisfy simultaneously, and where their interests conflict, not real named
 organizations or individuals.
 
+For the operational story these roles act in, see `docs/CONOPS.md`.
+
 ## Tactical user
 
 The soldier or unit consuming the imagery product at the edge terminal.

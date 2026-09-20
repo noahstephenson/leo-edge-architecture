@@ -96,6 +96,19 @@ The study asks: **which imagery functions should the commercial provider do, whi
 and how much satellite access does it take before any of that matters?**
 """
     )
+    feas = load("e12_feasibility_floors.csv")
+    gap_1 = feas[feas.satellites == 1].median_revisit_gap_s.iloc[0] / 60
+    gap_max = feas[feas.satellites == 1].max_revisit_gap_s.iloc[0] / 3600
+    pass_s = load("e01_access_windows.csv").duration_s.median()
+    st.markdown(
+        f"""
+**What a unit actually experiences: two waits.** First, a satellite has to pass over the target
+(with one satellite, typically about **{gap_1:.0f} minutes**, worst case about **{gap_max:.1f} hours**).
+Then that satellite has to be in range of the terminal, which lasts only about **{pass_s/60:.0f} minutes** per pass.
+If the terminal is already in range when the satellite collects, the image goes down on the same pass and the second
+wait disappears. Time limits run from 2 to 15 minutes, which is why access matters so much.
+"""
+    )
     st.graphviz_chart(
         """
 digraph G {

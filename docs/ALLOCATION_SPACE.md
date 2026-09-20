@@ -7,6 +7,15 @@ architectures this repository actually evaluates (A0-A6) as points within
 that space, and states plainly which regions of the space are not covered
 and why.
 
+## The operational picture in one paragraph
+
+A unit asks for imagery. A commercial satellite has to pass over the target,
+collect it, and later send it to the Army terminal during a pass that lasts a
+few minutes (`docs/CONOPS.md`). Because those windows are so short and far
+apart, what the satellite sends first, and how it decides, decides whether the
+unit gets something useful in time. The architectures below are seven
+different answers to that question.
+
 ## The decision axes
 
 An allocation is a choice along four axes. Two segments own the functions

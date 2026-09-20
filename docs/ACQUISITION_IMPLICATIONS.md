@@ -6,6 +6,14 @@ Every item below is tied to a specific finding. All numbers come from
 `results/frozen/v4/`; access-sweep cells use 40 trials per thread, so treat
 differences under ~3 percentage points as noise.
 
+## In operational terms
+
+A unit's request waits for a satellite to pass over the target and then for
+that satellite to be in range of the terminal (`docs/CONOPS.md`). Buying more
+access shortens the first wait and makes a same-pass delivery more likely.
+Requiring tiered products lets a small useful product beat the clock while the
+rest follows. Those are the two levers the recommendations below turn on.
+
 ## The headline finding: access moves mission-thread success most; tiering is necessary; among tiered designs the differences are real but smaller
 
 **Evidence**: `experiments/e12_access_sweep.py` swept real Walker-delta

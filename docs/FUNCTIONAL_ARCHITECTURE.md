@@ -6,6 +6,12 @@ performs each one. `docs/ALLOCATION_SPACE.md` is where these functions get
 assigned to segments; this document only says what each function does and
 what it needs from its neighbors.
 
+In operational terms: the unit asks (Task), a satellite passes and images the
+target (Collect), the provider prepares products (Process, Store, Prioritize),
+the satellite sends them when it is in range of the terminal (Transmit), and
+the unit uses what arrives (Receive, Exploit, Disseminate). The two waits in
+that chain are described in `docs/CONOPS.md`.
+
 ## The flow at a glance
 
 ```mermaid

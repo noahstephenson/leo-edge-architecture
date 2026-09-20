@@ -15,6 +15,16 @@ other. It is not the repository's headline result.** That's
 document as "which architecture would matter, on the occasions
 architecture choice matters," not as "which architecture is good."
 
+## What this means operationally
+
+Each architecture is a different answer to one field problem: the unit's clock
+is running while it waits for a satellite pass and then a downlink window
+(`docs/CONOPS.md`). "Mission-thread success" below means the needed product
+arrived inside the thread's time limit. An architecture that sends a small
+useful product first can succeed; one that waits to send a single large product
+cannot. The other criteria ask what each design costs the provider, the
+terminal operator, and the contract writer.
+
 ## Criteria, and how each is computed (v4: lock-in proxy fixed, `docs/DECISION_LOG.md` ADR-021)
 
 Three criteria come directly from simulation; four are derived from real

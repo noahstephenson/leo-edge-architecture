@@ -16,6 +16,31 @@ conditions?
 documented Army programs (Remote Ground Terminal, TITAN, Next Generation
 Tactical Terminal) without claiming to model any of them.
 
+## How it works operationally
+
+A unit cannot get imagery on demand. A satellite sees a place only when it
+passes over it, and it can send data to a terminal only while it is in range,
+about 6 minutes at a time. So a request waits twice: once for a satellite to
+pass over the target, once for that satellite to be in range of the terminal.
+Time limits run from 2 minutes to 15 minutes; with one satellite the typical
+first wait alone is about 95 minutes.
+
+```mermaid
+flowchart LR
+    A(["Unit needs imagery<br/>of a place"]) --> B["Tasking<br/>60 s direct, 180 s via reachback"]
+    B --> C["WAIT 1: a satellite must pass<br/>over the target<br/>about 95 min typical with 1 satellite"]
+    C --> D["Collect the scene<br/>and make product tiers"]
+    D --> E["WAIT 2: that satellite must be<br/>in range of the terminal<br/>passes last about 6 min"]
+    E --> F["Downlink the needed tier first,<br/>then the rest"]
+    F --> G(["Unit uses the product<br/>or misses its time limit"])
+    D -.->|"same pass: the terminal is already in range,<br/>so WAIT 2 is skipped"| F
+```
+
+That mismatch drives every finding here. `docs/CONOPS.md` has the full
+walkthrough, a worked example, and who owns what. The dashboard
+(`app/dashboard.py`, run with `uv run streamlit run app/dashboard.py`) lets you
+try it interactively.
+
 ## The allocation decision space
 
 `docs/ALLOCATION_SPACE.md` is the central document: it defines the
