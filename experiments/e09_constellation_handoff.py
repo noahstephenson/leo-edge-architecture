@@ -1,4 +1,9 @@
-"""Experiment 09: Constellation handoff and queue carry over."""
+"""Experiment 09: Constellation handoff and queue carry over.
+
+The 3-satellite case is a real Walker-delta 3/3/1 constellation (three
+planes, each satellite propagated with SGP4), not time-shifted copies of one
+satellite (docs/DECISION_LOG.md ADR-019).
+"""
 
 from __future__ import annotations
 
@@ -9,7 +14,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from leo_edge.orbit.access import generate_access_windows
-from leo_edge.orbit.constellation import generate_constellation_contacts
+from leo_edge.orbit.constellation import generate_walker_delta_tles, per_satellite_access_windows
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -54,14 +59,11 @@ def main():
         duration_hours=duration_hours,
     )
 
-    constellation_contacts = generate_constellation_contacts(
-        ground_lat=ground_lat,
-        ground_lon=ground_lon,
-        min_elevation_deg=min_elevation_deg,
-        altitude_km=altitude_km,
-        inclination_deg=inclination_deg,
-        duration_hours=duration_hours,
-        num_sats=3,
+    tles = generate_walker_delta_tles(3, 3, 1, altitude_km, inclination_deg)
+    per_sat = per_satellite_access_windows(tles, ground_lat, ground_lon, min_elevation_deg, duration_hours)
+    constellation_contacts = sorted(
+        ({"sat_id": sat_id, **w} for sat_id, windows in per_sat.items() for w in windows),
+        key=lambda c: c["start"],
     )
 
     # Simulation parameters
@@ -77,7 +79,7 @@ def main():
     downlink_rate_bps_per_s = downlink_rate_bps / 8
 
     # Prepare output
-    out_dir = Path("results/frozen/v2")
+    out_dir = Path("results/frozen/v4")
     out_dir.mkdir(parents=True, exist_ok=True)
     csv_path = out_dir / "e09_constellation.csv"
     fig_path = Path("figures/fig15_constellation_coverage.png")
