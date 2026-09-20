@@ -7,12 +7,15 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v3" / "e12_cost_tradeoff.csv"
+DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v4" / "e12_cost_tradeoff.csv"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig21.png"
 
 
 def main():
-    df = pd.read_csv(DATA_PATH).sort_values("relative_cost")
+    df = pd.read_csv(DATA_PATH)
+    # Main multi-plane Walker sweep only (see fig19/fig20's same filter).
+    df = df.sort_values("planes").groupby(["satellites", "terminals"], as_index=False).tail(1)
+    df = df.sort_values("relative_cost")
 
     fig, ax = plt.subplots(figsize=(9, 6))
     for terminals, group in df.groupby("terminals"):

@@ -1,0 +1,18 @@
+# Frozen orbit configurations for LEO edge validation
+# Representative orbit for baseline experiments
+representative:
+  altitude_km: 550
+  inclination_deg: 97.4
+  ground_lat_deg: 40.0
+  ground_lon_deg: 0.0
+  min_elevation_deg: 10.0
+  duration_hours: 168.0
+
+# Sensitivity orbit for inclination/altitude sensitivity analysis
+sensitivity:
+  altitude_km: 600
+  inclination_deg: 45
+  ground_lat_deg: 40.0
+  ground_lon_deg: 0.0
+  min_elevation_deg: 10.0
+  duration_hours: 24.0

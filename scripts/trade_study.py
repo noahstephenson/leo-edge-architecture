@@ -40,7 +40,7 @@ from leo_edge.products import ProductTier
 from leo_edge.stats import kaplan_meier_median
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v3"
+RESULTS_DIR = REPO_ROOT / "results" / "frozen" / "v4"
 HORIZON_S = 168 * 3600.0
 
 ARCH_CLASSES = {
@@ -134,10 +134,26 @@ def load_criteria():
     # segment didn't do the processing.
     terminal_burden_frac = e03.groupby("architecture_name")["processing_energy_j"].apply(lambda s: (s == 0).mean())
 
-    # Acquisition lock-in risk: number of distinct non-metadata product
-    # tiers the architecture's code can produce, plus one if it has
-    # per-request conditional logic (CONDITIONAL_LOGIC), each an extra
-    # function a provider must implement and a contract must specify.
+    # Acquisition lock-in risk (v4 fix, docs/DECISION_LOG.md ADR-021):
+    # tied to the actual ownership boundary in docs/INTERFACES.md, not a
+    # bare tier count. docs/INTERFACES.md's function-to-segment table shows
+    # Process/Prioritize/Transmit are on the commercial segment for EVERY
+    # architecture here -- the function allocation itself doesn't vary, so
+    # it can't be what distinguishes lock-in risk between architectures.
+    # What does vary, per architecture, is (a) how many of
+    # INTERFACES.md's distinct named data-format interfaces (Metadata,
+    # Thumbnail, Quicklook, ROI, Full) the Army terminal must be able to
+    # ingest from that specific provider's implementation, i.e. non-
+    # metadata tier count, same base count as before, and (b) whether the
+    # provider's behavior is CONDITIONAL_LOGIC: a per-request runtime
+    # decision (e.g. A6's priority-tier choice, A5's margin check) is a
+    # non-standard interface in the sense INTERFACES.md's own "Interface
+    # Standards" section means it -- it can't be pinned down by a static
+    # format spec, so the Army depends on a provider-specific runtime
+    # behavior, not just a provider-specific but still fixed data format.
+    # That's a real difference in kind, not degree, from one more fixed
+    # tier, so it's weighted higher (2) than a tier count of 1.
+    CONDITIONAL_LOGIC_WEIGHT = 2
     lock_in_functions = {}
     for name, cls in ARCH_CLASSES.items():
         instance = cls(priority_tier=ProductTier.P2_QUICKLOOK) if name == "ThreadAwarePriority" else cls()
@@ -146,7 +162,7 @@ def load_criteria():
         except TypeError:
             tiers = instance.tiers(1_000_000_000)
         non_meta = sum(1 for tier, _b, _p in tiers if tier != ProductTier.P0_METADATA)
-        lock_in_functions[name] = non_meta + (1 if cls.CONDITIONAL_LOGIC else 0)
+        lock_in_functions[name] = non_meta + (CONDITIONAL_LOGIC_WEIGHT if cls.CONDITIONAL_LOGIC else 0)
     lock_in_functions = pd.Series(lock_in_functions)
 
     rows = []

@@ -1,71 +1,80 @@
-"""Experiment 12: Access/revisit sweep -- the v3 core experiment.
+"""Experiment 12 (v4): Access/revisit sweep over REAL Walker-delta
+constellations.
 
-v2 and v3's shared finding is that access (contact frequency), not
-processing architecture, dominates mission-thread success at the
-single-satellite/single-terminal baseline. This experiment makes access
-the independent variable: sweep satellite count and Army ground-terminal
-count, and re-run the Part-1-fixed mission-thread evaluation at each
-access level, extending orbit/constellation.py's phase-offset machinery
-(not duplicating it -- base access windows are computed once per site via
-real SGP4, then cheaply time-shifted for additional satellites) for the
-satellite dimension, and unioning access windows across terminal sites for
-the terminal dimension.
+v3's version of this sweep approximated additional satellites by
+time-shifting one satellite's access windows (`_phase_shift_windows`,
+deleted here). That ignores Earth rotation and orbital-plane geometry
+entirely and is retracted as a constellation model
+(docs/DECISION_LOG.md ADR-019). This version sweeps real Walker-delta
+constellations (`orbit/constellation.py::generate_walker_delta_tles`),
+each satellite individually propagated with SGP4, including single-plane
+configurations kept in the sweep for direct comparison against the
+multi-plane Walker configurations that are the actual main sweep.
 
-Scope reduction for tractability (documented, not silent, per
-docs/DECISION_LOG.md): this sweep still evaluates all 7 architectures and
-all 4 mission threads at every one of the 18 (satellite, terminal) cells,
-but with 2 conditions (NOMINAL and COMBINED_DEGRADED, the nominal and
-worst-case bookends) instead of e11's 5, and fewer trials per cell than
-e11's single-access-level run, since this sweep spans 18 cells instead of
-1. MT-4's cadence evaluation additionally samples a bounded, evenly-spaced
-subset of AOI passes per trial rather than walking every pass, since pass
-count scales with satellite count (up to ~900 passes/week at 32
-satellites) and walking all of them at every trial would make the highest
-access levels intractable.
+Same-pass collect-and-downlink and per-satellite collection/downlink
+tracking (v4 item 2, docs/DECISION_LOG.md ADR-020) apply here exactly as
+in `e11_mission_thread_success.py`, whose functions this module imports
+and reuses rather than duplicating.
 
-Known modeling limitation, discovered while validating this experiment
-(docs/DECISION_LOG.md): phase-shifting one orbital plane (the same
-approach orbit/constellation.py already used for e09) spreads satellites
-within a single plane, not across multiple planes. A single plane's
-ground track still only crosses a given site's visibility circle during
-specific parts of its precession cycle, so many satellites in one plane
-produce clustered bursts of closely-spaced passes separated by long gaps,
-not evenly-spaced revisits. Total contact-duration coverage still rises
-monotonically and substantially with satellite count (confirmed: 1.5% of
-the week at 1 satellite to ~27% at 32, single terminal), but tight
-latency-tolerance mission threads can still fail even at high total
-coverage if they land in one of the remaining long gaps. This is a real
-property of single-plane phasing, not a bug, and it's exactly why success
-rates in this sweep don't scale as cleanly with satellite count as total
-coverage duration does. A true global-revisit constellation (multiple
-orbital planes) would need more than phase-shifting one plane, which is
-out of scope for extending, not duplicating, orbit/constellation.py's
-existing machinery.
+New in v4 (see docs/REWORK_PLAN_V4.md):
+- Feasibility floors per mission thread per configuration: a structural
+  floor (processing + minimal transmit time at the best rate, ignoring
+  access entirely -- true regardless of constellation size) and a
+  revisit-aware floor (adds a typical AOI-wait term from this
+  configuration's real collection-event gaps). A thread whose structural
+  floor already exceeds tolerance is flagged infeasible at ANY
+  configuration, not averaged in as an ordinary zero.
+- A tolerance sensitivity sweep (0.5x/1x/2x/4x) at the single-satellite
+  baseline and the largest swept configuration.
+- Architecture-difference significance testing restricted to
+  INFORMATIVE cells (best architecture's success > 30%); every cell is
+  labeled UNINFORMATIVE (floor effect), SEPARATES (significant
+  difference among informative cells), or TIES (informative, no
+  significant difference) -- the three-way distinction item 4 requires,
+  replacing v3's single "no significant difference" bucket that
+  conflated floor effects with real ties.
+
+Scope reduction for tractability, documented rather than silent
+(docs/DECISION_LOG.md): real per-satellite SGP4 propagation is much more
+expensive than v3's time-shift approximation, so this sweep uses fewer
+trials per cell than v3's already-reduced count, and the KM-curve /
+tolerance-sensitivity analyses run only at the baseline and the largest
+swept configuration rather than at every cell.
 """
 
 import csv
-import math
-import random
 import sys
 from pathlib import Path
-from datetime import datetime, timezone
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from e11_mission_thread_success import (  # noqa: E402
-    ARCHITECTURE_FACTORIES, TERMINAL_CLASSES, HORIZON_S, EPOCH, AOI_LAT, AOI_LON,
-    evaluate_single_request, evaluate_cadence, draw_request_context,
+    ARCHITECTURE_FACTORIES, TERMINAL_CLASSES, HORIZON_S, EPOCH,
+    AOI_LAT, AOI_LON, GROUND_LAT, GROUND_LON, ALTITUDE_KM, INCLINATION_DEG, MIN_ELEVATION_DEG,
+    SCENE_BYTES, PROCESSING_TIME_S,
+    evaluate_single_request, evaluate_cadence, draw_trial_context,
+    next_collection_event, all_collection_events, usable_downlink_same_satellite,
+    _offset_windows,
 )
-from leo_edge.mission_threads import MISSION_THREADS  # noqa: E402
-from leo_edge.orbit.access import generate_access_windows  # noqa: E402
-from leo_edge.stats import wilson_ci, paired_bootstrap_diff_ci  # noqa: E402
+from leo_edge.architectures import Progressive
+from leo_edge.mission_threads import MISSION_THREADS
+from leo_edge.orbit.constellation import generate_walker_delta_tles, per_satellite_access_windows
+from leo_edge.stats import wilson_ci, paired_bootstrap_diff_ci, kaplan_meier_curve
 
-SAT_COUNTS = [1, 2, 4, 8, 16, 32]
+# Walker-delta configurations (total_sats, planes, phasing_factor). Single-
+# plane configs (planes=1) are kept for direct comparison; the multi-plane
+# Walker configs are the main sweep, per the v4 task's explicit instruction.
+SAT_CONFIGS = [
+    (1, 1, 0),    # baseline
+    (2, 1, 0),    # single-plane comparison
+    (4, 1, 0),    # single-plane comparison
+    (4, 4, 1),    # Walker-delta 4/4/1
+    (8, 4, 1),    # Walker-delta 8/4/1
+    (16, 4, 1),   # Walker-delta 16/4/1
+    (32, 8, 1),   # Walker-delta 32/8/1
+]
 TERMINAL_COUNTS = [1, 2, 4]
 
-# 4 notional Army ground-terminal sites, documented ASSUMED coordinates,
-# spread in latitude/longitude so they're genuinely different SGP4 ground
-# tracks, not the same point relabeled as "more terminals."
 TERMINAL_SITES = [(40.0, 0.0), (35.0, 20.0), (50.0, -10.0), (30.0, 40.0)]
 
 CONDITIONS_SWEPT = {
@@ -73,70 +82,47 @@ CONDITIONS_SWEPT = {
     "COMBINED_DEGRADED": {"interference_derate": 0.5, "contact_denial_frac": 0.3, "tasking_delay_s": 180},
 }
 
-N_TRIALS = 80
-N_TRIALS_CADENCE = 10
-MAX_CADENCE_PASSES = 40
+N_TRIALS = 40
+N_TRIALS_CADENCE = 6
+MAX_CADENCE_EVENTS = 40
 SEED = 0
+INFORMATIVE_THRESHOLD = 0.30  # best architecture's success rate must exceed this to test differences
 
-# Notional relative cost proxy for the cost-tradeoff figure. ASSUMED, not a
-# real acquisition cost estimate: represents "one more satellite of
-# constellation access" as more expensive than "one more ground terminal
-# site," which is more expensive than "requiring one more onboard
-# processing tier from the provider" (a software/interface requirement,
-# not new hardware). Every number here is a relative unit, not a dollar
-# figure, and is stated exactly this plainly in docs/ACQUISITION_IMPLICATIONS.md.
 RELATIVE_COST_PER_SATELLITE = 10.0
 RELATIVE_COST_PER_TERMINAL = 3.0
 RELATIVE_COST_PER_PROCESSING_TIER = 1.0
 
-
-def _windows_since_epoch(lat, lon):
-    access = generate_access_windows(
-        ground_lat=lat, ground_lon=lon, min_elevation_deg=10.0,
-        altitude_km=550.0, inclination_deg=97.4, duration_hours=168.0,
-    )
-    out = []
-    for w in access:
-        start = datetime.fromisoformat(w["start"].replace("Z", "+00:00"))
-        offset_s = (start - EPOCH).total_seconds()
-        out.append((offset_s, float(w["duration_s"])))
-    return sorted(out, key=lambda p: p[0])
+_PROGRESSIVE_TIER_BYTES = dict((tier, size) for tier, size in Progressive()._tier_sizes(SCENE_BYTES))
 
 
-def _orbital_period_s(altitude_km=550.0):
-    mu = 398600.4418
-    r_earth = 6378.137
-    a = r_earth + altitude_km
-    return 2 * math.pi * math.sqrt(a ** 3 / mu)
+def build_config_windows(total_sats, planes, phasing_factor):
+    """Real per-satellite AOI windows and, per terminal site, real
+    per-satellite downlink windows, for one Walker configuration. Terminal
+    sites are propagated separately (not merged yet) so different
+    TERMINAL_COUNTS can reuse the same propagation without recomputing."""
+    tles = generate_walker_delta_tles(total_sats, planes, phasing_factor, ALTITUDE_KM, INCLINATION_DEG)
+    duration_hours = HORIZON_S / 3600.0
+
+    aoi_raw = per_satellite_access_windows(tles, AOI_LAT, AOI_LON, MIN_ELEVATION_DEG, duration_hours)
+    aoi_by_sat = {sat_id: _offset_windows(w) for sat_id, w in aoi_raw.items()}
+
+    downlink_by_site_by_sat = {}
+    for site in TERMINAL_SITES:
+        raw = per_satellite_access_windows(tles, site[0], site[1], MIN_ELEVATION_DEG, duration_hours)
+        downlink_by_site_by_sat[site] = {sat_id: _offset_windows(w) for sat_id, w in raw.items()}
+
+    return aoi_by_sat, downlink_by_site_by_sat
 
 
-def _phase_shift_windows(base_windows, sat_count, horizon_s):
-    """Cheaply extend base (single-satellite) windows to sat_count
-    satellites by time-shifting copies -- same approach as
-    orbit/constellation.py's generate_constellation_contacts -- instead of
-    a second SGP4 propagation per satellite."""
-    period_s = _orbital_period_s()
-    offset_s = period_s / sat_count
-    out = []
-    for i in range(sat_count):
-        shift = i * offset_s
-        for start_s, dur_s in base_windows:
-            shifted_start = start_s + shift
-            if shifted_start <= horizon_s:
-                out.append((shifted_start, dur_s))
-    return sorted(out, key=lambda p: p[0])
-
-
-def _merge_windows(windows):
-    """Union overlapping windows into a minimal non-overlapping set: the
-    terminal can only use one contact at a time regardless of how many
-    satellites/sites are simultaneously visible (a single logical delivery
-    pipe, not parallel radios -- a stated, documented simplification)."""
-    if not windows:
+def _merge_pairs(triples):
+    """Union overlapping (start_s, dur_s, peak_s) windows for one satellite
+    seen from multiple terminal sites into a minimal non-overlapping set
+    (one logical delivery pipe, docs/DECISION_LOG.md, unchanged from v3)."""
+    if not triples:
         return []
-    windows = sorted(windows, key=lambda w: w[0])
-    merged = [[windows[0][0], windows[0][1]]]
-    for start, dur in windows[1:]:
+    triples = sorted(triples, key=lambda w: w[0])
+    merged = [[triples[0][0], triples[0][1]]]
+    for start, dur, _peak in triples[1:]:
         end = start + dur
         last_start, last_dur = merged[-1]
         last_end = last_start + last_dur
@@ -144,70 +130,69 @@ def _merge_windows(windows):
             merged[-1][1] = max(last_end, end) - last_start
         else:
             merged.append([start, dur])
-    return [(s, d) for s, d in merged]
+    return [(s, d, s + d / 2.0) for s, d in merged]
 
 
-def _evenly_spaced_sample(items, max_n):
-    if len(items) <= max_n:
-        return items
-    stride = len(items) / max_n
-    return [items[int(i * stride)] for i in range(max_n)]
+def build_downlink_windows_by_sat(downlink_by_site_by_sat, terminal_count):
+    selected_sites = TERMINAL_SITES[:terminal_count]
+    sat_ids = set()
+    for site in selected_sites:
+        sat_ids.update(downlink_by_site_by_sat[site].keys())
+    out = {}
+    for sat_id in sat_ids:
+        combined = []
+        for site in selected_sites:
+            combined.extend(downlink_by_site_by_sat[site].get(sat_id, []))
+        out[sat_id] = _merge_pairs(combined)
+    return out
 
 
-def build_downlink_windows(base_by_site, sat_count, terminal_count):
-    sites = TERMINAL_SITES[:terminal_count]
-    all_windows = []
-    for site in sites:
-        all_windows.extend(_phase_shift_windows(base_by_site[site], sat_count, HORIZON_S))
-    return _merge_windows(all_windows)
-
-
-def build_aoi_windows(base_aoi, sat_count):
-    return _merge_windows(_phase_shift_windows(base_aoi, sat_count, HORIZON_S))
-
-
-def run_cell(sat_count, terminal_count, downlink_windows, aoi_windows, rng):
+def run_cell(sat_count, planes, terminal_count, aoi_by_sat, downlink_by_sat, rng):
     single_rows = []
     single_request_threads = {k: v for k, v in MISSION_THREADS.items() if not v["cadence"]}
     for thread_key, thread in single_request_threads.items():
         for terminal_key, terminal in TERMINAL_CLASSES.items():
             for condition_key, condition in CONDITIONS_SWEPT.items():
                 for trial_idx in range(N_TRIALS):
-                    ctx = draw_request_context(rng, downlink_windows)
+                    ctx = draw_trial_context(rng, condition, aoi_by_sat, downlink_by_sat)
                     for arch_name, factory in ARCHITECTURE_FACTORIES.items():
                         row = evaluate_single_request(
                             factory, thread_key, thread, terminal_key, terminal,
-                            condition_key, condition, ctx, trial_idx, downlink_windows, aoi_windows,
+                            condition_key, condition, ctx, trial_idx,
                         )
                         row["satellites"] = sat_count
+                        row["planes"] = planes
                         row["terminals"] = terminal_count
                         single_rows.append(row)
 
     cadence_rows = []
     thread = MISSION_THREADS["MT4_PERSISTENT_MONITORING"]
-    sampled_aoi = _evenly_spaced_sample(aoi_windows, MAX_CADENCE_PASSES)
+    all_events = all_collection_events(aoi_by_sat)
+    sampled_events = (
+        all_events if len(all_events) <= MAX_CADENCE_EVENTS
+        else [all_events[int(i * len(all_events) / MAX_CADENCE_EVENTS)] for i in range(MAX_CADENCE_EVENTS)]
+    )
     for terminal_key, terminal in TERMINAL_CLASSES.items():
         for condition_key, condition in CONDITIONS_SWEPT.items():
             for trial_idx in range(N_TRIALS_CADENCE):
-                denial_rolls = [rng.random() for _ in downlink_windows]
+                denial_rolls_by_sat = {
+                    sat_id: [rng.random() for _ in windows] for sat_id, windows in downlink_by_sat.items()
+                }
                 for arch_name, factory in ARCHITECTURE_FACTORIES.items():
                     row = evaluate_cadence(
                         factory, thread, terminal_key, terminal, condition_key, condition,
-                        denial_rolls, trial_idx, downlink_windows, sampled_aoi,
+                        sampled_events, downlink_by_sat, denial_rolls_by_sat, trial_idx,
                     )
                     row["satellites"] = sat_count
+                    row["planes"] = planes
                     row["terminals"] = terminal_count
                     cadence_rows.append(row)
 
     return single_rows, cadence_rows
 
 
-def summarize_cell(single_rows, cadence_rows, sat_count, terminal_count):
-    """Per (architecture, satellites, terminals) success rate pooling all
-    threads/terminal-classes/conditions in this cell, plus each thread
-    separately (needed for the per-thread sweep figure)."""
+def summarize_cell(single_rows, cadence_rows, sat_count, planes, terminal_count):
     out = []
-
     by_arch_thread = {}
     for row in single_rows:
         key = (row["architecture"], row["thread"])
@@ -222,17 +207,20 @@ def summarize_cell(single_rows, cadence_rows, sat_count, terminal_count):
         rate = s / n
         lo, hi = wilson_ci(s, n)
         out.append({
-            "satellites": sat_count, "terminals": terminal_count, "architecture": arch, "thread": thread,
+            "satellites": sat_count, "planes": planes, "terminals": terminal_count,
+            "architecture": arch, "thread": thread,
             "n_trials": n, "successes": s, "success_rate": rate,
             "success_rate_ci_lower": lo, "success_rate_ci_upper": hi,
         })
     return out
 
 
-def cell_pairwise_significance(single_rows, cadence_rows, sat_count, terminal_count):
-    """Paired comparison of every architecture pair, pooling all
-    threads/terminal-classes/conditions in this cell (paired within
-    (thread, terminal_class, condition, trial_idx))."""
+def cell_pairwise_significance(single_rows, cadence_rows, sat_count, planes, terminal_count):
+    """Paired comparison of every architecture pair, but ONLY when the best
+    architecture's overall success rate in this cell exceeds
+    INFORMATIVE_THRESHOLD (v4 item 4): testing whether two ~0%-success
+    architectures "differ significantly" is not a meaningful statement, so
+    those cells are labeled UNINFORMATIVE instead of tested."""
     by_cell_trial = {}
     for row in single_rows:
         key = (row["thread"], row["terminal_class"], row["condition"], row["trial_idx"])
@@ -251,7 +239,13 @@ def cell_pairwise_significance(single_rows, cadence_rows, sat_count, terminal_co
 
     n = len(paired_series[arch_names[0]]) if arch_names else 0
     if n == 0:
-        return None, []
+        return "UNINFORMATIVE", None, []
+
+    rates = {a: sum(paired_series[a]) / n for a in arch_names}
+    best_rate = max(rates.values())
+
+    if best_rate <= INFORMATIVE_THRESHOLD:
+        return "UNINFORMATIVE", None, []
 
     results = []
     for i, a in enumerate(arch_names):
@@ -260,16 +254,11 @@ def cell_pairwise_significance(single_rows, cadence_rows, sat_count, terminal_co
                 paired_series[a], paired_series[b], n_resamples=1000, seed=SEED,
             )
             results.append({
-                "satellites": sat_count, "terminals": terminal_count,
+                "satellites": sat_count, "planes": planes, "terminals": terminal_count,
                 "architecture_a": a, "architecture_b": b, "n_paired_trials": n,
                 "diff_a_minus_b": diff, "significant": significant,
             })
 
-    # Best statistically-distinguishable architecture: the one with the
-    # highest overall rate in this cell that beats every other
-    # architecture's rate by a significant margin; "no significant
-    # difference" if no single architecture clears that bar.
-    rates = {a: sum(paired_series[a]) / n for a in arch_names}
     ranked = sorted(arch_names, key=lambda a: rates[a], reverse=True)
     best = ranked[0]
     beats_all = True
@@ -278,84 +267,195 @@ def cell_pairwise_significance(single_rows, cadence_rows, sat_count, terminal_co
         if not match or not match[0]["significant"]:
             beats_all = False
             break
-    best_significant = best if beats_all and rates[best] > 0 else "NO_SIGNIFICANT_DIFFERENCE"
 
-    return best_significant, results
+    if beats_all:
+        return "SEPARATES", best, results
+    return "TIES", "NO_SIGNIFICANT_DIFFERENCE", results
 
 
-def cost_tradeoff_row(sat_count, terminal_count, max_tiers_used, success_rate):
+def compute_feasibility_floor(thread, best_rate_bps=TERMINAL_CLASSES["VEHICLE_MOUNTED"]["rate_bps"]):
+    """Structural floor: minimum tasking delay + processing + minimal
+    transmit time for the needed tier at the best available rate, IGNORING
+    access entirely (as if the AOI were always instantly overhead). This is
+    a hard lower bound independent of constellation size -- if a thread's
+    tolerance is below this, no amount of access density can ever save it.
+    Tier byte sizes come from Progressive's real tier table (shared by
+    ThreadAwarePriority), the smallest documented estimate available for a
+    given tier in this codebase."""
+    tier_bytes = _PROGRESSIVE_TIER_BYTES[thread["needed_tier"]]
+    transmit_s = tier_bytes * 8 / best_rate_bps
+    min_tasking_delay_s = min(c["tasking_delay_s"] for c in CONDITIONS_SWEPT.values())
+    return min_tasking_delay_s + PROCESSING_TIME_S + transmit_s
+
+
+def compute_revisit_gap_stats(aoi_by_sat):
+    events = all_collection_events(aoi_by_sat)
+    if len(events) < 2:
+        return {"median_gap_s": float("nan"), "max_gap_s": float("nan"), "n_events": len(events)}
+    peaks = sorted(peak_s for peak_s, _sat_id in events)
+    gaps = [b - a for a, b in zip(peaks, peaks[1:])]
+    gaps.sort()
+    median_gap_s = gaps[len(gaps) // 2]
+    return {"median_gap_s": median_gap_s, "max_gap_s": max(gaps), "n_events": len(events)}
+
+
+def feasibility_rows_for_config(sat_count, planes, aoi_by_sat):
+    gap_stats = compute_revisit_gap_stats(aoi_by_sat)
+    rows = []
+    for thread_key, thread in MISSION_THREADS.items():
+        tolerance_s = thread["latency_tolerance_s"]
+        structural_floor_s = compute_feasibility_floor(thread)
+        revisit_floor_s = structural_floor_s + gap_stats["median_gap_s"] / 2.0
+        if structural_floor_s > tolerance_s:
+            status = "INFEASIBLE_STRUCTURAL"  # impossible at ANY access level
+        elif revisit_floor_s > tolerance_s:
+            status = "INFEASIBLE_AT_THIS_ACCESS"
+        else:
+            status = "FEASIBLE"
+        rows.append({
+            "satellites": sat_count, "planes": planes, "thread": thread_key, "tolerance_s": tolerance_s,
+            "structural_floor_s": structural_floor_s, "revisit_floor_s": revisit_floor_s,
+            "median_revisit_gap_s": gap_stats["median_gap_s"], "max_revisit_gap_s": gap_stats["max_gap_s"],
+            "n_aoi_events": gap_stats["n_events"], "status": status,
+        })
+    return rows
+
+
+def km_summary_rows(single_rows, sat_count, planes, terminal_count):
+    """Per-architecture KM survival curve summary (quartile crossing
+    times), v4 item 3's "report latency distributions" requirement, without
+    dumping a full curve per cell (see module docstring's scope note)."""
+    by_arch = {}
+    for row in single_rows:
+        by_arch.setdefault(row["architecture"], []).append(row)
+
+    out = []
+    for arch, rows in sorted(by_arch.items()):
+        times = [r["latency_s"] if r["produced_tier"] else HORIZON_S for r in rows]
+        censored = [not r["produced_tier"] for r in rows]
+        curve = kaplan_meier_curve(times, censored, HORIZON_S)
+        q = {}
+        for target in (0.75, 0.5, 0.25):
+            q[target] = next((t for t, s in curve if s <= target), float("nan"))
+        out.append({
+            "satellites": sat_count, "planes": planes, "terminals": terminal_count, "architecture": arch,
+            "time_to_25pct_failed_s": q[0.75], "time_to_50pct_failed_s": q[0.5],
+            "time_to_75pct_failed_s": q[0.25], "final_survival": curve[-1][1],
+        })
+    return out
+
+
+def tolerance_sensitivity_rows(single_rows, sat_count, planes, terminal_count, multipliers=(0.5, 1.0, 2.0, 4.0)):
+    """At this configuration, how does success rate change if each
+    thread's tolerance were scaled by `multipliers`? Shows whether
+    conclusions depend on the specific assumed tolerance values."""
+    by_thread = {}
+    for row in single_rows:
+        by_thread.setdefault(row["thread"], []).append(row)
+
+    out = []
+    for thread_key, rows in sorted(by_thread.items()):
+        base_tolerance_s = MISSION_THREADS[thread_key]["latency_tolerance_s"]
+        for mult in multipliers:
+            scaled_tolerance_s = base_tolerance_s * mult
+            successes = sum(
+                1 for r in rows
+                if not r["structural_incapacity"] and r["produced_tier"] and r["latency_s"] <= scaled_tolerance_s
+            )
+            n = len(rows)
+            out.append({
+                "satellites": sat_count, "planes": planes, "terminals": terminal_count, "thread": thread_key,
+                "tolerance_multiplier": mult, "tolerance_s": scaled_tolerance_s,
+                "n_trials": n, "successes": successes, "success_rate": successes / n if n else float("nan"),
+            })
+    return out
+
+
+def cost_tradeoff_row(sat_count, planes, terminal_count, max_tiers_used, success_rate):
     relative_cost = (
         RELATIVE_COST_PER_SATELLITE * sat_count
         + RELATIVE_COST_PER_TERMINAL * terminal_count
         + RELATIVE_COST_PER_PROCESSING_TIER * max_tiers_used
     )
     return {
-        "satellites": sat_count, "terminals": terminal_count, "processing_tiers": max_tiers_used,
+        "satellites": sat_count, "planes": planes, "terminals": terminal_count, "processing_tiers": max_tiers_used,
         "relative_cost": relative_cost, "success_rate": success_rate,
     }
 
 
 def main():
-    rng = random.Random(SEED)
+    rng = __import__("random").Random(SEED)
 
-    print("Computing base access windows (real SGP4, once per site)...")
-    base_by_site = {site: _windows_since_epoch(*site) for site in TERMINAL_SITES}
-    base_aoi = _windows_since_epoch(AOI_LAT, AOI_LON)
-    for site, windows in base_by_site.items():
-        print(f"  terminal site {site}: {len(windows)} base windows")
-    print(f"  AOI site ({AOI_LAT},{AOI_LON}): {len(base_aoi)} base windows")
+    summary_rows, cell_status_rows, all_sig_rows, cost_rows = [], [], [], []
+    feasibility_rows, km_rows, tolerance_rows = [], [], []
 
-    summary_rows = []
-    best_arch_rows = []
-    cost_rows = []
-    all_sig_rows = []
+    for total_sats, planes, phasing_factor in SAT_CONFIGS:
+        print(f"\n=== Walker config: {total_sats} sats / {planes} planes / F={phasing_factor} ===")
+        aoi_by_sat, downlink_by_site_by_sat = build_config_windows(total_sats, planes, phasing_factor)
+        print(f"  {len(aoi_by_sat)} satellites propagated; "
+              f"AOI events: {sum(len(w) for w in aoi_by_sat.values())}")
 
-    for sat_count in SAT_COUNTS:
-        aoi_windows = build_aoi_windows(base_aoi, sat_count)
+        feasibility_rows.extend(feasibility_rows_for_config(total_sats, planes, aoi_by_sat))
+
+        is_largest = (total_sats, planes, phasing_factor) == SAT_CONFIGS[-1]
+        is_baseline = (total_sats, planes, phasing_factor) == SAT_CONFIGS[0]
+
         for terminal_count in TERMINAL_COUNTS:
-            downlink_windows = build_downlink_windows(base_by_site, sat_count, terminal_count)
-            print(f"\n=== satellites={sat_count} terminals={terminal_count} "
-                  f"(downlink windows: {len(downlink_windows)}, AOI windows: {len(aoi_windows)}) ===")
+            downlink_by_sat = build_downlink_windows_by_sat(downlink_by_site_by_sat, terminal_count)
+            print(f"  terminals={terminal_count}: {sum(len(w) for w in downlink_by_sat.values())} downlink windows")
 
-            single_rows, cadence_rows = run_cell(sat_count, terminal_count, downlink_windows, aoi_windows, rng)
-            cell_summary = summarize_cell(single_rows, cadence_rows, sat_count, terminal_count)
+            single_rows, cadence_rows = run_cell(total_sats, planes, terminal_count, aoi_by_sat, downlink_by_sat, rng)
+            cell_summary = summarize_cell(single_rows, cadence_rows, total_sats, planes, terminal_count)
             summary_rows.extend(cell_summary)
 
-            best_arch, sig_rows = cell_pairwise_significance(single_rows, cadence_rows, sat_count, terminal_count)
+            status, best_or_reason, sig_rows = cell_pairwise_significance(
+                single_rows, cadence_rows, total_sats, planes, terminal_count
+            )
             all_sig_rows.extend(sig_rows)
-            best_arch_rows.append({"satellites": sat_count, "terminals": terminal_count, "best_architecture": best_arch})
-            print(f"  Best statistically-distinguishable architecture: {best_arch}")
+            cell_status_rows.append({
+                "satellites": total_sats, "planes": planes, "terminals": terminal_count,
+                "status": status, "best_architecture_or_reason": best_or_reason,
+            })
+            print(f"  Cell status: {status} ({best_or_reason})")
 
             overall_rate = sum(r["successes"] for r in cell_summary) / sum(r["n_trials"] for r in cell_summary)
-            cost_rows.append(cost_tradeoff_row(sat_count, terminal_count, max_tiers_used=4, success_rate=overall_rate))
+            cost_rows.append(cost_tradeoff_row(total_sats, planes, terminal_count, max_tiers_used=4, success_rate=overall_rate))
+
+            if is_baseline or is_largest:
+                km_rows.extend(km_summary_rows(single_rows, total_sats, planes, terminal_count))
+                if terminal_count == 1:
+                    tolerance_rows.extend(tolerance_sensitivity_rows(single_rows, total_sats, planes, terminal_count))
 
     out_dir = Path("results/raw")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    with (out_dir / "e12_access_sweep.csv").open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(summary_rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(summary_rows)
+    def _write(name, rows):
+        if not rows:
+            return
+        with (out_dir / name).open("w", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"Saved {len(rows)} rows to {out_dir / name}")
 
-    with (out_dir / "e12_best_architecture_by_access.csv").open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(best_arch_rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(best_arch_rows)
+    _write("e12_access_sweep.csv", summary_rows)
+    _write("e12_cell_status.csv", cell_status_rows)
+    _write("e12_significance_by_cell.csv", all_sig_rows)
+    _write("e12_cost_tradeoff.csv", cost_rows)
+    _write("e12_feasibility_floors.csv", feasibility_rows)
+    _write("e12_km_summary.csv", km_rows)
+    _write("e12_tolerance_sensitivity.csv", tolerance_rows)
 
-    with (out_dir / "e12_significance_by_cell.csv").open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(all_sig_rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(all_sig_rows)
+    print("\nCell status counts:")
+    from collections import Counter
+    print(Counter(r["status"] for r in cell_status_rows))
 
-    with (out_dir / "e12_cost_tradeoff.csv").open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(cost_rows[0].keys()))
-        writer.writeheader()
-        writer.writerows(cost_rows)
-
-    print(f"\nSaved {len(summary_rows)} summary rows to {out_dir / 'e12_access_sweep.csv'}")
-    print(f"Saved {len(best_arch_rows)} best-architecture rows to {out_dir / 'e12_best_architecture_by_access.csv'}")
-    print(f"Saved {len(all_sig_rows)} significance rows to {out_dir / 'e12_significance_by_cell.csv'}")
-    print(f"Saved {len(cost_rows)} cost-tradeoff rows to {out_dir / 'e12_cost_tradeoff.csv'}")
+    print("\nStructurally infeasible threads (tolerance below the floor at ANY access level):")
+    seen = set()
+    for r in feasibility_rows:
+        if r["status"] == "INFEASIBLE_STRUCTURAL" and r["thread"] not in seen:
+            seen.add(r["thread"])
+            print(f"  {r['thread']}: tolerance={r['tolerance_s']}s, structural floor={r['structural_floor_s']:.1f}s")
 
 
 if __name__ == "__main__":

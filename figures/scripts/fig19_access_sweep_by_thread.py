@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 
-DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v3" / "e12_access_sweep.csv"
+DATA_PATH = Path(__file__).resolve().parents[2] / "results" / "frozen" / "v4" / "e12_access_sweep.csv"
 OUT_PATH = Path(__file__).resolve().parents[1] / "fig19.png"
 
 THREADS = [
@@ -26,6 +26,13 @@ def main():
     # Single-terminal slice: the cleanest single axis (satellite count) for
     # this figure; the sat x terminal interaction is fig20's heatmap.
     df = df[df["terminals"] == 1]
+    # SAT_CONFIGS includes single-plane comparison points at some of the
+    # same satellite counts as a multi-plane Walker config (e.g. 4 sats:
+    # 1-plane and 4-plane both exist). This figure shows the main
+    # multi-plane Walker sweep, so keep only the highest-plane-count row
+    # per satellite count; the single-plane comparison is a separate,
+    # smaller point made in docs/V3_VS_V4.md, not this line chart.
+    df = df.sort_values("planes").groupby(["satellites", "architecture", "thread"], as_index=False).tail(1)
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharex=True)
     axes = axes.flatten()

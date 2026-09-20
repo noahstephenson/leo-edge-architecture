@@ -1,0 +1,46 @@
+# Product tier sizing and processing-time ratios used by src/leo_edge/architectures.py.
+#
+# All ratios are design assumptions, not measurements. See docs/ASSUMPTIONS.md
+# for which parameters in this repo are MEASURED (with script and hardware)
+# versus ASSUMED like these. The 30%/2%/10% figures are common ballpark
+# compression targets for JPEG-family lossy encoding at the stated quality
+# levels, not values pulled from a specific flown mission or benchmark.
+
+compressed_full:
+  size_fraction: 0.3      # A1: compressed full-scene product size, fraction of raw scene bytes
+  lossy: true
+  resolution_class: full_res
+
+quicklook:
+  size_fraction: 0.02     # A2: quicklook product size, fraction of raw scene bytes
+  processing_time_fraction: 0.1  # fraction of nominal full-scene processing time
+  lossy: true
+  resolution_class: coarse
+
+roi:
+  size_fraction: 0.1      # A3: region-of-interest product size, fraction of raw scene bytes
+  lossy: true
+  resolution_class: roi_full_res  # full resolution, cropped to the region of interest
+
+progressive:
+  # A4 tier sizes are fixed byte targets, not scene-relative fractions, because
+  # metadata and thumbnail products are intrinsically small and roughly
+  # constant regardless of scene size (a thumbnail of a 100MB scene and a
+  # thumbnail of a 2GB scene are both small JPEGs at a fixed pixel dimension).
+  metadata_bytes: 20480        # 20 KB
+  thumbnail_bytes: 524288      # 512 KB
+  quicklook_bytes: 10485760    # 10 MB
+  roi_bytes: 52428800          # 50 MB
+  metadata_lossless: true
+  thumbnail_resolution_class: coarse
+  quicklook_resolution_class: reduced
+  roi_resolution_class: roi_full_res
+  full_resolution_class: full_res
+
+contact_aware:
+  size_fraction: 0.3      # A5 fallback-to-compressed path reuses the A1 ratio
+  margin_alpha: 0.2       # required processing margin before end of contact window
+
+power:
+  processing_power_w: 15
+  radio_power_w: 25
