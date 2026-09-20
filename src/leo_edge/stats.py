@@ -100,3 +100,34 @@ def kaplan_meier_median(
         if survival <= 0.5:
             return t
     return float("nan")
+
+
+def kaplan_meier_curve(
+    times_s: Sequence[float],
+    censored: Sequence[bool],
+    horizon_s: float,
+) -> List[Tuple[float, float]]:
+    """Full Kaplan-Meier survival curve (not just the median), so latency
+    distributions can be reported and compared per architecture/access
+    level instead of collapsing each one to a single number (v4 item 3).
+
+    Returns a sorted list of (time_s, survival_probability) step points,
+    starting at (0.0, 1.0) and ending at (horizon_s, final_survival) if the
+    last event is before the horizon.
+    """
+    n = len(times_s)
+    if n == 0:
+        return [(0.0, 1.0), (horizon_s, 1.0)]
+
+    events = sorted(zip(times_s, censored), key=lambda pair: pair[0])
+    at_risk = n
+    survival = 1.0
+    curve = [(0.0, 1.0)]
+    for t, is_censored in events:
+        if not is_censored:
+            survival *= (at_risk - 1) / at_risk
+            curve.append((t, survival))
+        at_risk -= 1
+    if curve[-1][0] < horizon_s:
+        curve.append((horizon_s, survival))
+    return curve
