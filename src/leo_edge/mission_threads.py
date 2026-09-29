@@ -1,5 +1,5 @@
 """Mission thread definitions: single source of truth for tier/tolerance
-parameters, so experiments/e11_mission_thread_success.py, app/dashboard.py,
+parameters, so experiments/e11_mission_thread_success.py,
 and tests/test_mission_thread_consistency.py can't silently drift apart
 from docs/MISSION_THREADS.md. If you change a value here, update
 docs/MISSION_THREADS.md's table in the same commit, and vice versa.

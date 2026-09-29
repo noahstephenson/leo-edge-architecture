@@ -1,34 +1,54 @@
-# Verification and Validation
+# Verification and validation
 
-## Invariants the model enforces
+## Purpose and limits
 
-| Area | Invariant | How it's enforced |
+NASA-HDBK-1009A separates product verification from product validation and shows different work products for each (§§4.1.1, 8.14–8.22, 9.7, pp. 10, 35–45, 52–53). This study uses that distinction to describe its own evidence. It has not tested an Army system, commercial imagery service, or operational concept.
+
+Model verification checks the structured records and generated views against their rules. Analysis verification checks the code against selected assumptions, hand calculations, and invariants. Operational validation would test whether a real soldier can use the delivered imagery for a defined need. That work remains open: the project has not tested user utility, human performance, operational procedures, or real interfaces.
+
+The [assurance catalog](../model/assurance.yaml) defines cases and status. The generated [traceability view](reference/TRACEABILITY.md) connects cases to requirements, measures, and evidence. A passing internal check is evidence about this research model only.
+
+## Verification and validation products
+
+| Product or check | Purpose | Current project evidence | Status and limit |
+|---|---|---|---|
+| Verification requirements and trace | State what internal rules or requirements a case checks. | Requirement and case records in the assurance catalog; generated traceability. | Internal study scope. Not a system acceptance basis. |
+| Verification planning | Identify case, configuration, inputs, procedure, and expected result before interpreting an output. | Verification cases, experiment configuration, and reproduction commands. | Available for selected model and analysis checks; does not cover every operational interface. |
+| Verification results | Record whether the model or calculation meets its stated check. | Tests, hand calculations, current evidence audit, and reproducible output files. | Supports internal correctness claims only. |
+| Validation requirements or statements | State what user need should be assessed in context. | Soldier-centered need, scenarios, product sufficiency conditions, and explicit validation limits. | Notional statements; no real-user validation criteria have been agreed. |
+| Validation planning and configuration | Identify real users, representative conditions, product configuration, and assessment procedure. | None for operational validation. | Open. No soldier participants, representative operational data, or field configuration. |
+| Validation results | Report whether a real system satisfies the user need in its intended context. | None. | Not evaluated. Simulation success is not operational validation. |
+
+The handbook lists requirements verification matrices, cases and events, configuration descriptions, validation requirements and events, and traceability as possible products (§§8.14–8.22, 9.7). This repository includes machine-readable requirement and case records, generated traces, automated internal tests, a result audit, and reproducible configurations. A formal compliance spreadsheet or a real system verification or operational validation event plan lies outside this conceptual study. The omitted products are part of its documented tailoring.
+
+## Current internal checks
+
+| Check | What it establishes | What remains outside its evidence |
 |---|---|---|
-| Orbit | No contact below the elevation mask | `orbit/access.py` only records a window while elevation is above `min_elevation_deg` |
-| Link | Zero downlink rate delivers zero bytes | `architectures.py`'s `_transmit_time_bytes()` returns infinite time at zero rate, so no bytes are scheduled |
-| Storage | Storage occupancy can never go negative or over capacity | `storage.py`'s `MassMemory.store()` raises `ValueError` on overflow; `free()` clamps at zero |
-| Power | Battery state of charge never goes negative or over capacity | `power.py`'s `PowerSystem.update()` clamps `soc` to `[0, capacity_wh]` and pauses processing on brownout |
-| Metrics | `tfup_s`, `tcp_s`, `processing_energy_j`, `tx_energy_j` are never negative | `metrics.py` clamps each with `max(0.0, ...)` |
-| Metrics | `contact_utilization` and `product_completeness` stay in `[0, 1]` | `architectures.py`'s `_finalize_metrics()` calls the single clamped `metrics.contact_utilization()` (`docs/DECISION_LOG.md` ADR-008; v1 had three divergent, mostly-unclamped implementations) |
-| Delivery | Transmitted bytes never exceed contact capacity | Every architecture caps `bytes_transmitted` at assignment (ADR-008); regression-tested directly in `tests/test_architectures.py::test_never_exceeds_contact_capacity`, not just enforced structurally |
-| Delivery | A product that doesn't finish is censored, never reported as complete | `completed=False`, `tfup_s`/`tcp_s = NaN` when a tier doesn't fully deliver; `tests/test_architectures.py::test_censored_when_capacity_too_small` and `test_tcp_never_equals_tfup_for_truncated_tiered_delivery` |
+| Model structure and generated views | Identifiers are unique, typed relationships resolve, selected candidate allocations are complete, and committed views reflect the catalog. | Physical feasibility, contract compliance, and operational effectiveness. |
+| Product logic | A crop does not substitute for a whole-scene view; terminal derivation requires a complete scene and the modeled capability, fidelity, processing time, and deadline. | Image interpretation, mission relevance, radiometric quality, and user acceptance. |
+| Contact logic | Transfer respects modeled contact capacity, carries partial bytes across contacts, preserves collecting-satellite identity, and handles interruption. | Real orbit prediction performance, field link behavior, actual site access, or communications interoperability. |
+| Timing and priority | Selected seeded runs and deadline outcomes are reproducible and consistent with the recorded configuration. | Reliability estimates for an actual constellation or operational service. |
+| Tasking and interface | Proposed request, product, and status fields can be inspected within the conceptual model. | Operational message routes, common data standards, cyber accreditation, and interoperability tests. |
+| Prior image and change product | The model can flag that a suitable prior is absent. | Actual change detection, which is not implemented or validated. |
 
-## Unit tests
+Automated tests and invariants check that transmitted bytes do not exceed modeled contact capacity, incomplete products have no invented completion time, selected state remains nonnegative, and seeded replay is deterministic. The [current evidence audit](../results/current/audit.json) checks selected result counts and pairing. [Engineering status](ENGINEERING_STATUS.md) records open checks. Only measures present in the evidence set may appear as numerical findings.
 
-`tests/` (105 tests) covers the metrics functions, the link/contact-capacity math, storage and power invariants, the queue, and the static and multi-contact architecture logic directly (`tests/test_architectures.py`, `tests/test_simulation.py`), not just existence/import smoke tests. Run them with `uv run pytest`.
+Product size, link rate, processing time, deadlines, terminal capability, and utility are mostly analytical or sensitivity inputs. Their origins are labeled in [assumptions](ASSUMPTIONS.md). More simulation draws can narrow uncertainty around modeled success rates. Whether a soldier finds a product useful still needs assessment with representative users and conditions.
 
-## Orbit model cross-check
+## Evidence sequence for a claim
 
-`scripts/validate_orbit_model.py` compares access windows generated from a synthetic circular-orbit TLE against windows generated from an explicit TLE with the same orbital elements, across a grid of altitudes, inclinations, and ground-station latitudes, and reports any mismatch in window count or total duration. It's a standalone script, not a pytest test (it writes a comparison CSV to `results/frozen/orbit_validation.csv` for inspection), so it isn't run automatically by `uv run pytest` or `make reproduce`; run it directly when changing `orbit/access.py`.
+A claim is ready for the paper only when a reader can follow this path:
 
-## Hand-calculation check
+1. A stakeholder expectation identifies the information need and its notional context.
+2. A requirement or measure states what behavior or outcome is examined.
+3. A function, allocation, and interface show how the candidate is intended to produce it.
+4. A named verification case identifies the configuration, inputs, procedure, and expected result.
+5. The current evidence file records the output and audit status.
+6. The wording states the sampling limits, assumptions, and any unvalidated interpretation.
 
-`docs/HAND_CALC_BREAK_EVEN.md` works a small example by hand (raw scene 1 GB, compressed to 0.3 GB, 20 s processing time) and compares the analytical break-even downlink rate against the simulated crossover point from `e03_static_architectures.py`'s output. The two agree in direction; the gap in magnitude is explained by contact-window limits and the fact that below the break-even rate, the simulation shows raw downlink not merely losing but frequently failing to complete at all within one window. That reconciliation is the real validation step, not just running the formula once.
+If a link is missing, mark the claim open or not evaluated. The handbook's product-validation examples ask whether a product meets stakeholder expectations in context. This project can report a synthetic outcome under stated assumptions; a real user assessment is still needed for validation.
 
-## Benchmark reproducibility
+## Handbook reference
 
-The image-processing numbers in `results/frozen/v4/e02_*.csv` and `results/frozen/image_benchmark*.csv` come from actually running Pillow's JPEG encoder, resize, and crop operations, timed with `time.perf_counter_ns()`, not from an assumed compression ratio. Anyone can rerun `experiments/e02_image_benchmark.py` and get comparable numbers on their own machine; absolute runtimes will differ by hardware, but the relative shape (compression cheaper than quicklook resize, ROI crop cheapest) should hold.
-
-## What "measured" vs. "assumed" means here
-
-`docs/ASSUMPTIONS.md` lists every numeric assumption in the model along with whether it's measured, computed from a real physical model, or a design assumption. The regime map in `figures/fig04.png` should be read with that distinction in mind: the crossover points are real outputs of the model, but the model's power and compression-ratio inputs are reasonable assumptions for a COTS smallsat, not measurements from a flown spacecraft.
+NASA. *NASA Systems Modeling Handbook for Systems Engineering*, NASA-HDBK-1009A, March 12, 2025. See §§4.1.1, 8.14–8.22, and 9.7, printed pp. 10, 35–45, and 52–53. [Official handbook PDF](https://standards.nasa.gov/system/files/tmp/2025-03-12-NASA-HDBK-1009A.pdf).

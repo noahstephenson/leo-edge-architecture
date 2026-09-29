@@ -1,71 +1,11 @@
-# Hand Calculation: Break-Even Rate
+# Hand calculation for product size
 
-Worked example of the analytical break-even condition used to sanity-check
-the simulation (`docs/MODEL_REFERENCE.md`, `docs/ARCHITECTURE_VIEWS.md`'s
-Physical View). This math is unaffected by the Part 1 correctness fixes
-(`docs/DECISION_LOG.md` ADR-008); only the "mapping to simulation" section
-below was refreshed to use `results/frozen/v4/e03_results.csv` instead of
-the retired v1 numbers.
+A smaller product saves delivery time when transmitting the removed bytes would take longer than the processing time still exposed to the user. With sizes in bytes and rate in bits per second:
 
-```
-T_proc < (D_r - D_p) / R
-```
+`exposed processing time < 8 × (raw bytes − product bytes) / link rate`.
 
-where `T_proc` is onboard processing time, `D_r` is raw scene size, `D_p`
-is the processed (transmitted) size, and `R` is downlink rate in bytes per
-second. Equivalently, the break-even rate is:
+Processing can begin after collection, before a terminal contact starts. The time left at contact is `max(0, processing time − lead time)`, where lead time is the interval available for processing before contact.
 
-```
-R* = (D_r - D_p) / T_proc
-```
+For a one billion byte raw scene, an assumed 300 million byte compressed scene, and a 5 megabit per second link, the transfer saving is `8 × 700,000,000 / 5,000,000 = 1,120 seconds`. If processing takes 20 seconds and begins at contact, the simple net timing advantage is 1,100 seconds. At 50 megabits per second the transfer saving is 112 seconds and the net is 92 seconds.
 
-## Example numbers
-
-Using the nominal scene from `e03_static_architectures.py`:
-
-```
-D_r = 1,000,000,000 bytes  (1.0 GB raw)
-D_p = 300,000,000 bytes    (0.3 GB, CompressedFull's output)
-T_proc = 20 s
-
-R*_bytes = (1,000,000,000 - 300,000,000) / 20 = 35,000,000 bytes/s
-R*_bps = 35,000,000 * 8 = 280,000,000 bps = 280 Mbps
-```
-
-Interpretation: with 20 s of onboard compression, transmitting 0.3 GB
-instead of 1.0 GB saves transmission time. That save is worth the 20 s
-processing cost, in this simple closed-form model, once the downlink is
-slower than about 280 Mbps.
-
-If processing can start before contact, the exposed processing time is
-`T_proc_exposed = max(0, T_proc - T_lead)`, and the effective break-even
-rate increases.
-
-## Mapping to simulation (results/frozen/v4/e03_results.csv)
-
-```
-CompressedFull, rate_bps=10,000,000:  tfup_s=260.0, tcp_s=260.0, completed=True
-CompressedFull, rate_bps=25,000,000:  tfup_s=116.0, tcp_s=116.0, completed=True
-GroundOnly,     rate_bps=10,000,000:  tfup_s=NaN,   tcp_s=NaN,   completed=False (bytes_transmitted capped at 375,000,000 of 1,000,000,000 needed)
-GroundOnly,     rate_bps=25,000,000:  tfup_s=NaN,   tcp_s=NaN,   completed=False (bytes_transmitted capped at 937,500,000 of 1,000,000,000 needed)
-```
-
-The simulation shows CompressedFull winning even more decisively than the
-280 Mbps analytical estimate suggests: at 10 and 25 Mbps, GroundOnly
-doesn't just lose on speed, it doesn't complete a delivery in this single
-300 s contact window at all (`docs/DECISION_LOG.md` ADR-008's censoring
-fix). The analytical model assumes both options eventually finish and asks
-which is faster; the simulation shows that below the break-even rate, raw
-downlink of a 1 GB scene in a single 300 s window isn't just slower, it's
-frequently impossible.
-
-GroundOnly does complete at 50 and 100 Mbps (`tfup_s` 160.0 and 80.0
-respectively), where capacity exceeds the full 1 GB scene. The analytical
-280 Mbps break-even and the simulated crossover (somewhere between 25 and
-50 Mbps, where GroundOnly starts completing) are in the same direction but
-not numerically identical, which is expected: the analytical model has no
-notion of a single fixed contact window's byte capacity, while the
-simulation does.
-
-This hand calc is a first-order sanity check on the model's direction, not
-a claim that the analytical and simulated numbers should match exactly.
+The calculation checks units and gives a first estimate. It leaves out collection waits, missed contacts, transfers across later contacts, and terminal derivation. Compression may also change image quality. The [contact model](MODEL_REFERENCE.md) adds those timing effects; the [current evidence](../results/current/parametric.csv) records selected parameter cases.

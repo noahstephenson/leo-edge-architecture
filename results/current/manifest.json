@@ -1,0 +1,33 @@
+{
+  "audit_passed": true,
+  "hash_method": "SHA-256 of UTF-8 text with CRLF/CR normalized to LF",
+  "result_sha256": {
+    "access_counts.csv": "c5c4f6a122472c432910638c9f4b6d122e401797eb8c3fe99387d387c135ef21",
+    "audit.json": "4472f48bc0b6eb402a026a22642f3736cfe13c714c0a2e632fc5c8937f893a6b",
+    "cadence_trials.csv": "bfa4a1645913ba4bc3bb224ab7727ec2f7de60504f2aed91fa2723011bd16081",
+    "config.json": "28d816ea3f552552df439b4e341264571c9d6c60605c7ef50a5ed730e3c4e333",
+    "parametric.csv": "67209845d51cbd16a0a22215d9f515d7b6ffc7d7950a0eb3d0bdee6cf4c0be6f",
+    "single_request_trials.csv": "ea0339157a7d36481c03b096b1e0a8830ffc3fee3a6bd1cfedbb7b02e41f3b64",
+    "summary.csv": "b3cd456ea3ded85817d47c5097f02a3e340484e06c25c64effeff0e346c28c69"
+  },
+  "seed": 7,
+  "source_sha256": {
+    ".python-version": "49a506dd32096b010d75205acf3430c9ae6c40351888129499e5a5e487126c93",
+    "config/product_sizing.yaml": "97dc1b9ee867b47fa594de8eff0f8e3343be4918db4fba6a3b435bc9143e286c",
+    "experiments/e11_mission_thread_success.py": "bafb0e1666728ae44815befeaa91f6595c4798d522817674e50b0c4a765b0f5b",
+    "experiments/e13_mbse_evidence.py": "33eb89b058323988ca62d43151a128a4b5cf6451e8d1196e7e1ebd95ae0c0e66",
+    "model/architecture.yaml": "fec717072eccdf7c013c6b93633a4c28a00d0bfbca5082f0932a1fcb79564599",
+    "model/assurance.yaml": "c254c3cbed57fd107cfc748c5ac2f9086cfdaa62d0a56c86bca1b60d7b58183a",
+    "model/system.yaml": "087011c11ec295e1a04df9f6cf9d5c27c07ae9ebfbb3028dfff5c38b698eed55",
+    "model/traceability.yaml": "c86449854a7994a7163b850705c6dff101daee0475e35ac58870f28523662a09",
+    "pyproject.toml": "fe10ef3b3354fa5ddfc7507dcee6f63c8c5ce14f1cb5e4c103c2136be47e08e8",
+    "src/leo_edge/architectures.py": "a3b8808f80a9362110dd69e0b2cc7efc4577bbee1b3af4f79aee14042abb6d27",
+    "src/leo_edge/mission_threads.py": "7b65bb929fd1c8a11176ea17444e4f49898dba126b186cebbeff1f06073560c9",
+    "src/leo_edge/orbit/access.py": "48920d5982f0536d73b14afee8693899d5a08a94c04882111fb5a0d4617b10e4",
+    "src/leo_edge/orbit/constellation.py": "093dbff7dbe6eb57fe1ccd72094e5b150dc1b1cfd506b275c03d5930d9d0679a",
+    "src/leo_edge/products.py": "a7060a94274538874ce4799e9db9218dd1bceaa071239bed7bd16fbd0c749e51",
+    "src/leo_edge/simulation.py": "03ce05e6d9b4301593ed399d83e2c6c7cab1374df1e6c03dfd8bec1683e3b57d",
+    "src/leo_edge/stats.py": "d2757a80dcdf6010d95e0d1994f4e8599127819adc8fbd51d4c0a55c0ae7d8f7",
+    "uv.lock": "c98b64d9b33e265ed499b3e0cde17f958ba9f13d0d439a51830869de3807b7d3"
+  }
+}

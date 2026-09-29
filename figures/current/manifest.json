@@ -1,0 +1,14 @@
+{
+  "hash_method": "SHA-256 with source text line endings normalized to LF",
+  "matplotlib_version": "3.8.4",
+  "output_sha256": {
+    "mt2_selected_deadline.png": "3cffc2d7e541991f48db141021c7da9268ac77be52a46e8d36d286eb5b2ef92f",
+    "mt2_selected_deadline.svg": "f061b7ade0b18e623fcb0a6510e871c10a3e8ccedb55948e7d563e768169e962"
+  },
+  "selection": "MT-2; vehicle; nominal; four sites; all seven candidates; three Walker configurations",
+  "source_sha256": {
+    "fig_mt2_deadline.py": "9cd961d2270d73caec1edf5588c4ad7505178ba72514f882572729f58663d544",
+    "summary.csv": "b3cd456ea3ded85817d47c5097f02a3e340484e06c25c64effeff0e346c28c69",
+    "uv.lock": "c98b64d9b33e265ed499b3e0cde17f958ba9f13d0d439a51830869de3807b7d3"
+  }
+}

@@ -1,47 +1,20 @@
-# Project Roadmap
+# Project roadmap
 
-What's actually built, and how the pieces connect.
+This roadmap orders the conceptual design work. NASA-HDBK-1009A shows how a system model can support stakeholder, requirements, verification, and validation work products; it does not prescribe these exact steps. The [modeling plan](MODELING_PLAN.md) explains the tailoring, and [engineering status](ENGINEERING_STATUS.md) identifies open work.
 
-## The chain
+| Step | Work and review question | Project products | Completion evidence |
+|---|---|---|---|
+| 1. Plan the model | What soldier-centered need and engineering decisions should the model address? What is outside the study? | [Modeling plan](MODELING_PLAN.md), [operational context](OPERATIONAL_CONTEXT.md), decision log. | Need, boundary, model authority, conventions, views, evidence rules, and exclusions are stated. |
+| 2. Set up the model | How will the project name, organize, relate, and check model content? | [Model catalogs](../model/), validator, generated [catalog](reference/MODEL_CATALOG.md), [traceability](reference/TRACEABILITY.md), and [views](reference/VIEWS.md). | Identifiers and references resolve, selected allocations are complete, and generated views agree with the catalogs. |
+| 3. Define stakeholder expectations | What information does the notional soldier need, and what concerns shape delivery? | [Stakeholders](STAKEHOLDERS.md), [mission threads](MISSION_THREADS.md), [concept of operations](CONOPS.md). | Each need has a scenario and explicit scope; soldier expectations are distinguished from acquisition and provider concerns. |
+| 4. Define effectiveness measures | How does the study judge whether the soldier's need is met? | Measures in the assurance catalog and their generated traces. | Every measure names its stakeholder expectation, unit or qualitative meaning, and whether evidence can currently evaluate it. |
+| 5. Define technical requirements | What behavior should the notional service and its interfaces provide? | [Requirements](REQUIREMENTS.md), generated traceability, requirement verification cases. | Active requirements have rationale, source need, allocated behavior or interface, check method, and evidence status. |
+| 6. Describe behavior and candidate architecture | What must happen from request to usable receipt? Which party performs each function in each candidate? | [Functional architecture](FUNCTIONAL_ARCHITECTURE.md), [allocations](ALLOCATION_SPACE.md), [interfaces](INTERFACES.md), generated behavior and structure diagrams. | Successful delivery, interrupted contact, missing product, and deadline miss are represented; all stable candidates have defined allocations. |
+| 7. Analyze and verify | What differences follow from the assumed product, contact, and terminal conditions? Are the model and calculations internally correct? | [Trade study](TRADE_STUDY.md), [verification and validation](V_AND_V.md), [current evidence](../results/current/). | Model checks pass, selected hand calculations agree, evidence provenance is recorded, and claims state their limits. |
+| 8. Assess operational validity | Would the imagery and service actually help a soldier in a real operational setting? | Open validation question and documented limit. | Not complete: no operational user study, Army terminal, field data, or operational validation is available. |
 
-Every piece of this repo traces the same path: operational need,
-stakeholder value, requirement, function, allocation, experiment, trade
-study, acquisition implication (`AGENTS.md`).
+Each step returns to the soldier's need at the terminal and traces an architecture choice through requirements, behavior, allocation, interfaces, measures, and evidence. The catalogs hold the full inventory. These pages explain the decisions so a reader can start with the problem rather than a list of identifiers.
 
-1. **Operational need**: `docs/OPERATIONAL_CONTEXT.md` and `docs/MISSION_THREADS.md` describe who needs what and why, grounded in real public Army programs without claiming to model them.
-2. **Stakeholder values**: `docs/STAKEHOLDERS.md` states what each party values and where those values conflict.
-3. **Requirements**: `docs/REQUIREMENTS.md` (with a full traceability matrix) and `docs/INTERFACES.md` pin down what the system must do and how its pieces talk to each other.
-4. **Functions and allocation**: `docs/FUNCTIONAL_ARCHITECTURE.md` decomposes the pipeline; `docs/ALLOCATION_SPACE.md` is the central document placing the seven candidate architectures within the allocation decision space and stating what isn't covered.
-5. **Model**: `src/leo_edge/` implements the architectures, product tiers, power, storage, link, and orbit models described above.
-6. **Experiment**: `experiments/e00` through `e12` run that model under different conditions and write CSVs to `results/frozen/v4/`.
-7. **Figures**: `figures/scripts/` turn those CSVs into the figures in `figures/`.
-8. **Trade study**: `scripts/trade_study.py` turns experiment output into weighted multi-criteria scores; `docs/TRADE_STUDY.md` states the result.
-9. **Acquisition implication**: `docs/ACQUISITION_IMPLICATIONS.md` ties specific recommendations back to specific trade-study evidence.
+NASA-HDBK-1009A groups its covered work products under stakeholder expectation definition, technical requirements definition, product verification, and product validation (§§4.1.1, 9, pp. 10, 46–53). This project uses those examples as a review structure, while tailoring scale and evidence to the conceptual study. It does not claim compliance with NASA engineering governance or endorsement by NASA.
 
-## Status
-
-The model, the test suite (105 tests), experiments `e00` to `e12`, all
-figures, and the trade study run from a fresh clone (`uv sync && uv run
-pytest && make experiments && make figures && make trade_study`; add `make
-access_sweep`, about an hour, for the constellation sweep). The headline is
-in `docs/ACQUISITION_IMPLICATIONS.md`: access moves mission-thread success
-most (about 3% at one satellite to about 31% at 24 satellites in 8 planes),
-tiering is necessary, and architecture choice starts to matter once access
-is high enough to test it.
-
-## History
-
-This repository first asked a narrower question (onboard or ground
-processing). It then pivoted to allocation across the commercial/Army
-ownership boundary, and later versions corrected the evaluation engine
-several times. `docs/DECISION_LOG.md` is the record of each change and each
-retraction; git history has the older documents and results.
-
-## What's intentionally out of scope
-
-Target recognition, tracking, weapon cueing, classified workflows, real
-Army tactical collection plans, and detailed orbital-warfare scenarios.
-This is a systems-architecture study using public/synthetic imagery and
-generic ground-terminal geometry, and everything operational is notional
-and unofficial. See `AGENTS.md`'s non-negotiable scope boundaries for the
-full list.
+Further model detail should answer a requirement, clarify a service interface, support an analysis, or substantiate a paper claim.

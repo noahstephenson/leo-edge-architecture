@@ -1,10 +1,8 @@
 # Product tier sizing and processing-time ratios used by src/leo_edge/architectures.py.
 #
 # All ratios are design assumptions, not measurements. See docs/ASSUMPTIONS.md
-# for which parameters in this repo are MEASURED (with script and hardware)
-# versus ASSUMED like these. The 30%/2%/10% figures are common ballpark
-# compression targets for JPEG-family lossy encoding at the stated quality
-# levels, not values pulled from a specific flown mission or benchmark.
+# for source classifications. Ratios are analytical/sensitivity values, not values
+# pulled from a flown mission or measured compression benchmark.
 
 compressed_full:
   size_fraction: 0.3      # A1: compressed full-scene product size, fraction of raw scene bytes
@@ -18,7 +16,7 @@ quicklook:
   resolution_class: coarse
 
 roi:
-  size_fraction: 0.1      # A3: region-of-interest product size, fraction of raw scene bytes
+  size_fraction: 0.05     # A3: region-of-interest product size, fraction of raw scene bytes
   lossy: true
   resolution_class: roi_full_res  # full resolution, cropped to the region of interest
 
@@ -27,10 +25,10 @@ progressive:
   # metadata and thumbnail products are intrinsically small and roughly
   # constant regardless of scene size (a thumbnail of a 100MB scene and a
   # thumbnail of a 2GB scene are both small JPEGs at a fixed pixel dimension).
-  metadata_bytes: 20480        # 20 KB
-  thumbnail_bytes: 524288      # 512 KB
-  quicklook_bytes: 10485760    # 10 MB
-  roi_bytes: 52428800          # 50 MB
+  metadata_bytes: 20480        # 20 KiB
+  thumbnail_bytes: 524288      # 512 KiB
+  quicklook_bytes: 20971520    # 20 MiB
+  roi_bytes: 52428800          # 50 MiB
   metadata_lossless: true
   thumbnail_resolution_class: coarse
   quicklook_resolution_class: reduced

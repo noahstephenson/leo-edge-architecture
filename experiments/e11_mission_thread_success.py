@@ -1,26 +1,9 @@
-"""Experiment 11 (v4): Mission-thread success with same-pass delivery and
-per-satellite collection/downlink tracking.
+"""Mission-thread evaluation with same-pass delivery and satellite identity.
 
-Fixes applied vs. v3 (docs/DECISION_LOG.md ADR-020 has the full ADR):
-- Collection timing: a request's image is now collected at the AOI pass's
-  time of closest approach ("peak", orbit/access.py), not at pass end. v3
-  used pass end, which meant a request could never be delivered on the
-  same orbital pass that collected it -- the defining capability of
-  direct-to-edge.
-- Downlink is now tracked per satellite. A request's image can only be
-  downlinked by the SATELLITE THAT COLLECTED IT (no crosslink model here;
-  see docs/DECISION_LOG.md if one is ever added as a separate, documented
-  option), using any of that satellite's own downlink windows still open
-  after collection -- including the remaining portion of the very pass
-  that did the collection.
-- All of this runs against real per-satellite SGP4 windows
-  (orbit/constellation.py::generate_walker_delta_tles +
-  per_satellite_access_windows), including at the single-satellite
-  baseline (a trivial 1-satellite/1-plane Walker constellation), so e11
-  and e12 now share one real orbital model end to end.
-
-Everything else (paired trials, MT-3, cadence-based MT-4, structural
-incapacity tracked separately from slowness) is unchanged from v3.
+Collection completes at closest approach during an area-of-interest pass.
+Only the collecting satellite carries the scene, using the remaining part
+of any open contact and later contacts with a terminal. The access schedule
+comes from individually propagated synthetic satellites.
 """
 
 import csv
@@ -41,6 +24,7 @@ from leo_edge.orbit.constellation import generate_walker_delta_tles, per_satelli
 from leo_edge.simulation import simulate_multi_contact
 from leo_edge.mission_threads import MISSION_THREADS
 from leo_edge.products import ProductTier
+from leo_edge.products import TIER_FIDELITY
 from leo_edge.stats import wilson_ci, paired_bootstrap_diff_ci, kaplan_meier_curve
 
 SCENE_BYTES = 1_000_000_000  # 1 GB notional area-of-interest scene
@@ -51,9 +35,7 @@ ALTITUDE_KM = 550.0
 INCLINATION_DEG = 97.4
 MIN_ELEVATION_DEG = 10.0
 
-# Ground terminal (downlink) and AOI (imaging target) locations, unchanged
-# from v3: a notional, documented offset (docs/DECISION_LOG.md), not a real
-# geodesy claim.
+# Ground-terminal and collection-area coordinates are synthetic.
 GROUND_LAT, GROUND_LON = 40.0, 0.0
 AOI_LAT, AOI_LON = 45.0, 5.0
 
@@ -72,8 +54,13 @@ ARCHITECTURE_FACTORIES = {
 }
 
 TERMINAL_CLASSES = {
-    "VEHICLE_MOUNTED": {"rate_bps": 50_000_000},
-    "DISMOUNTED_MANPACK": {"rate_bps": 5_000_000},
+    # Compute times and capabilities are notional sensitivity assumptions.
+    # Both classes can derive a smaller product from a received full scene;
+    # the manpack requires more time. Neither can recover missing scene area.
+    "VEHICLE_MOUNTED": {"rate_bps": 50_000_000, "derivation_time_s": 5.0,
+                        "derivable_tiers": tuple(ProductTier)[:-1]},
+    "DISMOUNTED_MANPACK": {"rate_bps": 5_000_000, "derivation_time_s": 30.0,
+                            "derivable_tiers": tuple(ProductTier)[:-1]},
 }
 
 CONDITIONS = {
@@ -105,8 +92,7 @@ def _offset_windows(access_windows):
 def build_per_satellite_windows(total_sats=1, planes=1, phasing_factor=0):
     """Build per-satellite AOI and downlink windows for a Walker-delta
     constellation, via real per-satellite SGP4 (docs/DECISION_LOG.md
-    ADR-019/ADR-020). total_sats=1/planes=1 is the single-satellite
-    baseline other v3 experiments compare against."""
+    ADR-019/ADR-020). total_sats=1/planes=1 gives a single-satellite case."""
     tles = generate_walker_delta_tles(total_sats, planes, phasing_factor, ALTITUDE_KM, INCLINATION_DEG)
     aoi_raw = per_satellite_access_windows(tles, AOI_LAT, AOI_LON, MIN_ELEVATION_DEG, HORIZON_S / 3600.0)
     downlink_raw = per_satellite_access_windows(tles, GROUND_LAT, GROUND_LON, MIN_ELEVATION_DEG, HORIZON_S / 3600.0)
@@ -115,12 +101,53 @@ def build_per_satellite_windows(total_sats=1, planes=1, phasing_factor=0):
     return aoi_by_sat, downlink_by_sat
 
 
-def _tier_index_for(architecture, needed_tier, scene_bytes, processing_time_s):
+def tier_sufficient(needed_tier, delivered_tier, terminal=None):
+    """Whether the received product can satisfy a need at this terminal.
+
+    A crop never implies whole-scene coverage. P4 supports derivation only
+    when the terminal has the function and the source has full-scene fidelity.
+    This tests structural eligibility; elapsed derivation and deadline are
+    checked when the delivered product is evaluated.
+    """
+    if delivered_tier == needed_tier:
+        return True
+    terminal = terminal or TERMINAL_CLASSES["VEHICLE_MOUNTED"]
+    return (
+        delivered_tier == ProductTier.P4_FULL
+        and needed_tier in terminal.get("derivable_tiers", ())
+        and terminal.get("derivation_time_s") is not None
+        and TIER_FIDELITY[delivered_tier].resolution_class == "full_res"
+    )
+
+
+def get_needed_completion(result, needed_tier, terminal=None):
+    terminal = terminal or TERMINAL_CLASSES["VEHICLE_MOUNTED"]
+    candidates = []
+    for tier_val, completion_s in result.tier_completion_s.items():
+        try:
+            delivered_tier_enum = ProductTier(tier_val)
+        except ValueError:
+            continue
+        if tier_sufficient(needed_tier, delivered_tier_enum, terminal):
+            derivation_s = (terminal["derivation_time_s"]
+                            if delivered_tier_enum != needed_tier else 0.0)
+            candidates.append((completion_s + derivation_s, delivered_tier_enum))
+    if needed_tier == ProductTier.P4_FULL and result.completed:
+        candidates.append((result.tcp_s, ProductTier.P4_FULL))
+    return min(candidates, key=lambda item: item[0]) if candidates else (None, None)
+
+
+def architecture_capable(architecture, needed_tier, scene_bytes, processing_time_s, terminal=None):
+    """True if architecture can produce a tier sufficient for needed_tier."""
     try:
         tiers = architecture.tiers(scene_bytes, processing_time_s=processing_time_s)
     except TypeError:
         tiers = architecture.tiers(scene_bytes)
-    return any(tier == needed_tier for tier, _bytes, _proc in tiers)
+    return any(tier_sufficient(needed_tier, tier, terminal) for tier, _bytes, _proc in tiers)
+
+
+def _tier_index_for(architecture, needed_tier, scene_bytes, processing_time_s):
+    return architecture_capable(architecture, needed_tier, scene_bytes, processing_time_s)
 
 
 def next_collection_event(earliest_s, aoi_windows_by_sat):
@@ -155,7 +182,7 @@ def all_collection_events(aoi_windows_by_sat):
 def usable_downlink_same_satellite(collection_time_s, downlink_windows, denial_rolls, contact_denial_frac):
     """Downlink windows of the collecting satellite that are still open at
     or after collection completes, clipped to their remaining portion --
-    this is what allows same-pass delivery (v4 item 2): a window doesn't
+    this is what allows same-pass delivery: a window doesn't
     have to START after collection, it only has to still be open (END
     after collection)."""
     usable = []
@@ -195,10 +222,10 @@ def draw_trial_context(rng, condition, aoi_windows_by_sat, downlink_windows_by_s
 
 
 def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal, condition_key, condition,
-                             ctx, trial_idx):
+                              ctx, trial_idx):
     architecture = factory(thread)
     arch_name = type(architecture).__name__
-    architecture_supports_tier = _tier_index_for(architecture, thread["needed_tier"], SCENE_BYTES, PROCESSING_TIME_S)
+    architecture_capable_flag = architecture_capable(architecture, thread["needed_tier"], SCENE_BYTES, PROCESSING_TIME_S, terminal)
     rate_bps = terminal["rate_bps"] * condition["interference_derate"]
 
     if thread_key == "MT3_BATTLE_DAMAGE_ASSESSMENT":
@@ -213,28 +240,46 @@ def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal,
             "architecture": arch_name, "thread": thread_key, "terminal_class": terminal_key,
             "condition": condition_key, "trial_idx": trial_idx,
             "latency_s": float("nan"), "produced_tier": False,
-            "structural_incapacity": not architecture_supports_tier,
+            "structural_incapacity": not architecture_capable_flag,
             "success": False, "has_prior_reference": has_reference,
+            "request_time_s": ctx.get("request_time_s"),
+            "collection_time_s": None,
+            "sat_id": None,
+            "delivered_tier": None,
+            "terminal_derivation_required": None,
+            "terminal_processing_time_s": None,
+            "product_arrival_time_s": None,
+            "final_availability_time_s": None,
         }
 
-    collection_time_s, _sat_id = ctx["collection"]
+    collection_time_s, sat_id = ctx["collection"]
+    request_time_s = ctx.get("request_time_s")
     usable = usable_downlink_same_satellite(
         collection_time_s, ctx["downlink_windows"], ctx["denial_rolls"], condition["contact_denial_frac"]
     )
     result = simulate_multi_contact(architecture, SCENE_BYTES, usable, rate_bps, PROCESSING_TIME_S)
 
-    needed_tier_time_s = result.tier_completion_s.get(thread["needed_tier"].value)
-    if needed_tier_time_s is None and thread["needed_tier"] == ProductTier.P4_FULL and result.completed:
-        needed_tier_time_s = result.tcp_s
+    # Find a delivered tier that is sufficient for the needed tier, allowing terminal derivation from P4_FULL
+    needed_completion, delivered_tier_found = get_needed_completion(result, thread["needed_tier"], terminal)
 
-    if needed_tier_time_s is None:
+    if needed_completion is None:
         latency_s = float("nan")
         produced_tier = False
+        delivered_tier = None
+        terminal_derivation_required = None
+        terminal_processing_time_s = None
+        product_arrival_time_s = None
+        final_availability_time_s = None
     else:
-        latency_s = (collection_time_s - ctx["request_time_s"]) + needed_tier_time_s
+        latency_s = (collection_time_s - request_time_s) + needed_completion
         produced_tier = True
+        delivered_tier = delivered_tier_found.name if delivered_tier_found else None
+        terminal_derivation_required = delivered_tier_found == ProductTier.P4_FULL and delivered_tier_found != thread["needed_tier"]
+        terminal_processing_time_s = terminal["derivation_time_s"] if terminal_derivation_required else 0.0
+        product_arrival_time_s = collection_time_s + needed_completion - terminal_processing_time_s
+        final_availability_time_s = collection_time_s + needed_completion
 
-    structural_incapacity = not architecture_supports_tier
+    structural_incapacity = not architecture_capable_flag
     success = (not structural_incapacity) and produced_tier and latency_s <= tolerance_s
 
     return {
@@ -243,6 +288,14 @@ def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal,
         "latency_s": latency_s, "produced_tier": produced_tier,
         "structural_incapacity": structural_incapacity,
         "success": success, "has_prior_reference": has_reference,
+        "request_time_s": request_time_s,
+        "collection_time_s": collection_time_s,
+        "sat_id": sat_id,
+        "delivered_tier": delivered_tier,
+        "terminal_derivation_required": terminal_derivation_required,
+        "terminal_processing_time_s": terminal_processing_time_s,
+        "product_arrival_time_s": product_arrival_time_s,
+        "final_availability_time_s": final_availability_time_s,
     }
 
 
@@ -254,10 +307,10 @@ def evaluate_cadence(factory, thread, terminal_key, terminal, condition_key, con
     tolerance twice in a row."""
     architecture = factory(thread)
     arch_name = type(architecture).__name__
-    architecture_supports_tier = _tier_index_for(architecture, thread["needed_tier"], SCENE_BYTES, PROCESSING_TIME_S)
+    architecture_capable_flag = architecture_capable(architecture, thread["needed_tier"], SCENE_BYTES, PROCESSING_TIME_S, terminal)
     rate_bps = terminal["rate_bps"] * condition["interference_derate"]
 
-    if not architecture_supports_tier:
+    if not architecture_capable_flag:
         return {
             "architecture": arch_name, "thread": "MT4_PERSISTENT_MONITORING",
             "terminal_class": terminal_key, "condition": condition_key, "trial_idx": trial_idx,
@@ -277,9 +330,9 @@ def evaluate_cadence(factory, thread, terminal_key, terminal, condition_key, con
             collection_time_s, downlink_windows, denial_rolls, condition["contact_denial_frac"]
         )
         result = simulate_multi_contact(architecture, SCENE_BYTES, usable, rate_bps, PROCESSING_TIME_S)
-        tier_time_s = result.tier_completion_s.get(thread["needed_tier"].value)
+        completion, _ = get_needed_completion(result, thread["needed_tier"], terminal)
         total_passes += 1
-        met = tier_time_s is not None and tier_time_s <= thread["latency_tolerance_s"]
+        met = completion is not None and completion <= thread["latency_tolerance_s"]
         if met:
             passes_met += 1
             misses_in_a_row = 0
@@ -412,82 +465,6 @@ def overall_pairwise_significance(all_rows):
     return results
 
 
-def report_same_pass_effect(rng_seed=SEED):
-    """Isolate and print how much the v4 same-pass/peak-time collection fix
-    (vs. v3's wait-for-pass-end model) alone moves success and latency at
-    the single-satellite baseline, as the v4 task requires. Runs a small,
-    separate comparison rather than keeping two production code paths."""
-    aoi_by_sat, downlink_by_sat = build_per_satellite_windows(total_sats=1, planes=1, phasing_factor=0)
-    aoi_windows = next(iter(aoi_by_sat.values()))
-    downlink_windows = next(iter(downlink_by_sat.values()))
-
-    def v3_style_collection_complete(request_time_s, tasking_delay_s):
-        earliest = request_time_s + tasking_delay_s
-        for start_s, dur_s, _peak_s in aoi_windows:
-            if start_s >= earliest:
-                return start_s + dur_s
-        return None
-
-    def v3_style_usable_downlink(base_time_s, denial_rolls):
-        usable = []
-        for (start_s, dur_s, _peak_s), denial_roll in zip(downlink_windows, denial_rolls):
-            if start_s < base_time_s or denial_roll < 0.0:
-                continue
-            usable.append((start_s - base_time_s, dur_s))
-        return usable
-
-    thread = MISSION_THREADS["MT1_TIME_SENSITIVE_CUEING"]
-    terminal = TERMINAL_CLASSES["VEHICLE_MOUNTED"]
-    condition = CONDITIONS["NOMINAL"]
-    rng = random.Random(rng_seed)
-
-    v3_successes, v4_successes = 0, 0
-    v3_latencies, v4_latencies = [], []
-    n = 500
-    for _ in range(n):
-        request_time_s = rng.uniform(0.0, HORIZON_S - 3600.0)
-        # v3: collection at pass end, downlink windows must start after it.
-        collection_end_s = v3_style_collection_complete(request_time_s, condition["tasking_delay_s"])
-        if collection_end_s is not None:
-            usable_v3 = v3_style_usable_downlink(collection_end_s, [1.0] * len(downlink_windows))
-            arch = Progressive()
-            result_v3 = simulate_multi_contact(arch, SCENE_BYTES, usable_v3, terminal["rate_bps"], PROCESSING_TIME_S)
-            tier_time = result_v3.tier_completion_s.get(thread["needed_tier"].value)
-            if tier_time is not None:
-                latency = (collection_end_s - request_time_s) + tier_time
-                v3_latencies.append(latency)
-                if latency <= thread["latency_tolerance_s"]:
-                    v3_successes += 1
-
-        # v4: collection at peak (closest approach), same-satellite downlink
-        # windows usable from their remaining portion after collection.
-        collection = next_collection_event(request_time_s + condition["tasking_delay_s"], aoi_by_sat)
-        if collection is not None:
-            peak_s, sat_id = collection
-            usable_v4 = usable_downlink_same_satellite(peak_s, downlink_by_sat[sat_id], [1.0] * len(downlink_windows), 0.0)
-            arch = Progressive()
-            result_v4 = simulate_multi_contact(arch, SCENE_BYTES, usable_v4, terminal["rate_bps"], PROCESSING_TIME_S)
-            tier_time = result_v4.tier_completion_s.get(thread["needed_tier"].value)
-            if tier_time is not None:
-                latency = (peak_s - request_time_s) + tier_time
-                v4_latencies.append(latency)
-                if latency <= thread["latency_tolerance_s"]:
-                    v4_successes += 1
-
-    print(f"\nSame-pass-delivery isolation (Progressive, MT-1, VEHICLE_MOUNTED, NOMINAL, {n} trials, single satellite):")
-    print(f"  v3 (collection at pass end): {v3_successes}/{n} successes, "
-          f"mean latency (of trials that produced the tier) = "
-          f"{sum(v3_latencies)/len(v3_latencies):.1f}s" if v3_latencies else "  v3: no trials produced the tier")
-    print(f"  v4 (collection at closest approach, same-pass delivery allowed): {v4_successes}/{n} successes, "
-          f"mean latency (of trials that produced the tier) = "
-          f"{sum(v4_latencies)/len(v4_latencies):.1f}s" if v4_latencies else "  v4: no trials produced the tier")
-    return {
-        "v3_successes": v3_successes, "v4_successes": v4_successes, "n": n,
-        "v3_mean_latency_s": (sum(v3_latencies) / len(v3_latencies)) if v3_latencies else float("nan"),
-        "v4_mean_latency_s": (sum(v4_latencies) / len(v4_latencies)) if v4_latencies else float("nan"),
-    }
-
-
 def main():
     rng = random.Random(SEED)
     aoi_by_sat, downlink_by_sat = build_per_satellite_windows(total_sats=1, planes=1, phasing_factor=0)
@@ -503,7 +480,10 @@ def main():
     trial_out.parent.mkdir(parents=True, exist_ok=True)
     with trial_out.open("w", newline="") as f:
         fieldnames = ["architecture", "thread", "terminal_class", "condition", "trial_idx",
-                      "latency_s", "produced_tier", "structural_incapacity", "success", "has_prior_reference"]
+                      "latency_s", "produced_tier", "structural_incapacity", "success", "has_prior_reference",
+                      "request_time_s", "collection_time_s", "sat_id", "delivered_tier",
+                      "terminal_derivation_required", "terminal_processing_time_s",
+                      "product_arrival_time_s", "final_availability_time_s"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(single_rows)
@@ -559,7 +539,6 @@ def main():
               f"{r['successes_b' if r['architecture_a']=='ThreadAwarePriority' else 'successes_a']} "
               f"of {r['n_paired_trials']} paired trials, significant={r['significant']}")
 
-    report_same_pass_effect()
 
 
 if __name__ == "__main__":

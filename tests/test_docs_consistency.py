@@ -1,6 +1,4 @@
-"""Guards against doc drift: every docs/*.md file and results/frozen/v4 file
-that a current doc points at must exist. DECISION_LOG.md and REPRODUCE_LOG.md
-are excluded because they legitimately describe deleted or older files."""
+"""Guard links from active documents to the current evidence."""
 
 import re
 from pathlib import Path
@@ -23,11 +21,11 @@ def test_referenced_docs_exist():
     assert not missing, missing
 
 
-def test_referenced_frozen_v4_files_exist():
-    missing = [(d, r) for d, r in _refs(r"results/frozen/v4/[A-Za-z0-9_]+\.(?:csv|yaml|md)") if not (ROOT / r).exists()]
+def test_referenced_current_evidence_exists():
+    missing = [(d, r) for d, r in _refs(r"results/current/[A-Za-z0-9_]+\.(?:csv|json)") if not (ROOT / r).exists()]
     assert not missing, missing
 
 
 def test_current_docs_do_not_point_at_old_frozen_results():
-    stale = [(d, r) for d, r in _refs(r"results/frozen/v[123]/") ]
+    stale = [(d, r) for d, r in _refs(r"results/frozen/v[0-9]+/")]
     assert not stale, stale

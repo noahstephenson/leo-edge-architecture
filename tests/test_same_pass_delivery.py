@@ -1,18 +1,11 @@
-"""v4 item 2: a downlink window that is already open when collection
-completes must be usable for its remaining duration, not skipped just
-because it started before collection did. This is what makes same-pass
-collect-and-downlink possible -- the defining capability of direct-to-edge
-that v3's `_usable_downlink` (start-time-gated) forbade entirely.
-"""
+"""A contact already open at collection can carry data for its remaining time."""
 
 from e11_mission_thread_success import usable_downlink_same_satellite
 
 
 def test_same_pass_window_is_clipped_not_skipped():
     # Downlink window open [100, 400) (start_s=100, dur_s=300); collection
-    # completes at t=250, mid-window. v3's rule would have skipped this
-    # window entirely (start_s=100 < base_time_s=250); v4 must use its
-    # remaining 150s (250 -> 400).
+    # completes at t=250, mid-window. The remaining 150 s is usable.
     downlink_windows = [(100.0, 300.0, 250.0)]  # (start_s, dur_s, peak_s)
     usable = usable_downlink_same_satellite(
         collection_time_s=250.0, downlink_windows=downlink_windows,

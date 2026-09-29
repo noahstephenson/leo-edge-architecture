@@ -1,0 +1,12 @@
+{
+  "cadence_includes_all_collection_events": true,
+  "cadence_rows": 588,
+  "distinct_paired_trials": 1812,
+  "expected_cadence_rows": 588,
+  "expected_single_rows": 12096,
+  "paired_context_identical": true,
+  "paired_trials_complete": true,
+  "passed": true,
+  "single_rows": 12096,
+  "success_requires_available_product": true
+}

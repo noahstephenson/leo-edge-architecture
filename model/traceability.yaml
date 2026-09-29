@@ -1,0 +1,92 @@
+id_migrations:
+  - {old: REQ-CORRECT-001, new: MIC-001, reason: Simulation correctness is a model integrity check, not a fielded-system requirement.}
+  - {old: REQ-CORRECT-002, new: MIC-002, reason: Simulation correctness is a model integrity check, not a fielded-system requirement.}
+  - {old: REQ-CORRECT-003, new: MIC-003, reason: Simulation correctness is a model integrity check, not a fielded-system requirement.}
+  - {old: REQ-CORRECT-004, new: MIC-004, reason: Simulation correctness is a model integrity check, not a fielded-system requirement.}
+  - {old: MT-3 battle damage assessment, new: MT-3 notional change assessment, reason: Scope wording excludes strike support; P3 remains only a size proxy for an unimplemented change product.}
+
+relationships:
+  - {id: T-001, type: contextualized_by, source: N-01, target: MT-1, status: proposed}
+  - {id: T-002, type: evaluated_by, source: N-01, target: M-TFUP, status: proposed}
+  - {id: T-003, type: contextualized_by, source: N-02, target: MT-2, status: proposed}
+  - {id: T-004, type: evaluated_by, source: N-02, target: M-DEADLINE, status: proposed}
+  - {id: T-005, type: contextualized_by, source: N-03, target: MT-3, status: open}
+  - {id: T-006, type: evaluated_by, source: N-03, target: M-DEADLINE, status: open}
+  - {id: T-007, type: contextualized_by, source: N-04, target: MT-4, status: proposed}
+  - {id: T-008, type: evaluated_by, source: N-04, target: M-DEADLINE, status: proposed}
+  - {id: T-009, type: contextualized_by, source: N-05, target: MT-2, status: proposed}
+  - {id: T-010, type: evaluated_by, source: N-05, target: M-COMPLETE, status: proposed}
+  - {id: T-011, type: derived_from, source: REQ-ALLOC-001, target: N-01, status: proposed}
+  - {id: T-012, type: constrains, source: REQ-ALLOC-001, target: F-04, status: proposed}
+  - {id: T-013, type: verifies, source: V-PRIORITY, target: REQ-ALLOC-001, status: proposed}
+  - {id: T-014, type: derived_from, source: REQ-ALLOC-002, target: N-05, status: proposed}
+  - {id: T-015, type: constrains, source: REQ-ALLOC-002, target: I-REQUEST, status: proposed}
+  - {id: T-016, type: verifies, source: V-TASK, target: REQ-ALLOC-002, status: proposed}
+  - {id: T-017, type: derived_from, source: REQ-ALLOC-003, target: N-05, status: proposed}
+  - {id: T-018, type: constrains, source: REQ-ALLOC-003, target: F-05, status: proposed}
+  - {id: T-019, type: verifies, source: V-PRIORITY, target: REQ-ALLOC-003, status: proposed}
+  - {id: T-020, type: derived_from, source: REQ-ALLOC-004, target: N-02, status: proposed}
+  - {id: T-021, type: constrains, source: REQ-ALLOC-004, target: F-05, status: proposed}
+  - {id: T-022, type: verifies, source: V-PRIORITY, target: REQ-ALLOC-004, status: proposed}
+  - {id: T-023, type: derived_from, source: REQ-THREAD-001, target: N-01, status: proposed}
+  - {id: T-024, type: constrains, source: REQ-THREAD-001, target: F-09, status: proposed}
+  - {id: T-025, type: verifies, source: V-TIMING, target: REQ-THREAD-001, status: proposed}
+  - {id: T-026, type: derived_from, source: REQ-THREAD-002, target: N-02, status: proposed}
+  - {id: T-027, type: constrains, source: REQ-THREAD-002, target: F-09, status: proposed}
+  - {id: T-028, type: verifies, source: V-TIMING, target: REQ-THREAD-002, status: proposed}
+  - {id: T-029, type: derived_from, source: REQ-THREAD-003, target: N-03, status: open}
+  - {id: T-030, type: constrains, source: REQ-THREAD-003, target: F-09, status: open}
+  - {id: T-031, type: verifies, source: V-REFERENCE, target: REQ-THREAD-003, status: not_evaluated}
+  - {id: T-032, type: derived_from, source: REQ-THREAD-004, target: N-04, status: proposed}
+  - {id: T-033, type: constrains, source: REQ-THREAD-004, target: F-09, status: proposed}
+  - {id: T-034, type: verifies, source: V-TIMING, target: REQ-THREAD-004, status: proposed}
+  - {id: T-035, type: derived_from, source: REQ-TERM-001, target: N-05, status: proposed}
+  - {id: T-036, type: constrains, source: REQ-TERM-001, target: F-08, status: proposed}
+  - {id: T-037, type: verifies, source: V-PRODUCT, target: REQ-TERM-001, status: proposed}
+  - {id: T-038, type: derived_from, source: REQ-DDIL-001, target: N-05, status: proposed}
+  - {id: T-039, type: constrains, source: REQ-DDIL-001, target: F-06, status: proposed}
+  - {id: T-040, type: verifies, source: V-CONTACT, target: REQ-DDIL-001, status: proposed}
+  - {id: T-041, type: derived_from, source: REQ-DDIL-002, target: N-05, status: proposed}
+  - {id: T-042, type: constrains, source: REQ-DDIL-002, target: F-09, status: proposed}
+  - {id: T-043, type: verifies, source: V-MODEL, target: REQ-DDIL-002, status: proposed}
+  - {id: T-044, type: derived_from, source: REQ-IF-001, target: N-05, status: proposed}
+  - {id: T-045, type: constrains, source: REQ-IF-001, target: I-DOWNLINK, status: proposed}
+  - {id: T-046, type: verifies, source: V-INTERFACE, target: REQ-IF-001, status: proposed}
+  - {id: T-047, type: derived_from, source: REQ-IF-002, target: N-05, status: proposed}
+  - {id: T-048, type: constrains, source: REQ-IF-002, target: I-DOWNLINK, status: proposed}
+  - {id: T-049, type: verifies, source: V-CONTACT, target: REQ-IF-002, status: proposed}
+  - {id: T-050, type: contains, source: E-SYSTEM, target: E-PROVIDER, status: modeled}
+  - {id: T-051, type: contains, source: E-SYSTEM, target: E-TASKING, status: modeled}
+  - {id: T-052, type: contains, source: E-SYSTEM, target: E-TERMINAL, status: modeled}
+  - {id: T-053, type: contains, source: E-PROVIDER, target: E-SATELLITE, status: modeled}
+  - {id: T-054, type: allocated_to, source: F-02, target: E-SATELLITE, status: modeled}
+  - {id: T-055, type: allocated_to, source: F-06, target: E-SATELLITE, status: modeled}
+  - {id: T-056, type: allocated_to, source: F-07, target: E-TERMINAL, status: modeled}
+  - {id: T-057, type: allocated_to, source: F-08, target: E-TERMINAL, status: conditional}
+  - {id: T-058, type: exchanges, source: E-SATELLITE, target: I-DOWNLINK, status: modeled}
+  - {id: T-059, type: exchanges, source: I-DOWNLINK, target: E-TERMINAL, status: modeled}
+  - {id: T-060, type: satisfies, source: A4_PROGRESSIVE, target: REQ-ALLOC-001, status: modeled}
+  - {id: T-061, type: satisfies, source: A5_CONTACT_AWARE, target: REQ-ALLOC-003, status: modeled}
+  - {id: T-062, type: satisfies, source: A6_THREAD_AWARE_PRIORITY, target: REQ-ALLOC-004, status: modeled}
+  - {id: T-063, type: constrains, source: REQ-ALLOC-002, target: I-DIRECT, status: proposed}
+  - {id: T-064, type: verifies, source: V-PRODUCT, target: REQ-THREAD-001, status: proposed}
+  - {id: T-065, type: verifies, source: V-PRODUCT, target: REQ-THREAD-002, status: proposed}
+  - {id: T-066, type: derived_from, source: REQ-TERM-001, target: N-01, status: proposed}
+  - {id: T-067, type: derived_from, source: REQ-TERM-001, target: N-02, status: proposed}
+  - {id: T-068, type: verifies, source: V-TIMING, target: REQ-DDIL-002, status: proposed}
+  - {id: T-069, type: verifies, source: V-INTERFACE, target: REQ-IF-002, status: proposed}
+  - {id: T-070, type: constrains, source: REQ-ALLOC-001, target: F-05, status: proposed}
+  - {id: T-071, type: constrains, source: REQ-ALLOC-001, target: F-06, status: proposed}
+  - {id: T-072, type: constrains, source: REQ-ALLOC-002, target: F-01, status: proposed}
+  - {id: T-073, type: constrains, source: REQ-THREAD-001, target: F-07, status: proposed}
+  - {id: T-074, type: constrains, source: REQ-THREAD-001, target: F-10, status: proposed}
+  - {id: T-075, type: constrains, source: REQ-THREAD-002, target: F-07, status: proposed}
+  - {id: T-076, type: constrains, source: REQ-THREAD-002, target: F-10, status: proposed}
+  - {id: T-077, type: constrains, source: REQ-THREAD-004, target: F-07, status: proposed}
+  - {id: T-078, type: constrains, source: REQ-THREAD-004, target: F-10, status: proposed}
+  - {id: T-079, type: constrains, source: REQ-IF-002, target: F-06, status: proposed}
+  - {id: T-080, type: constrains, source: REQ-IF-002, target: F-07, status: proposed}
+  - {id: T-081, type: allocated_to, source: F-09, target: E-TERMINAL, status: modeled}
+  - {id: T-082, type: candidate_for, source: A3_ROI_FIRST, target: REQ-THREAD-002, status: conditional}
+  - {id: T-083, type: uses_interface, source: A3_ROI_FIRST, target: I-DOWNLINK, status: modeled}
+  - {id: T-084, type: supports_claim, source: V-TIMING, target: CL-005, status: modeled}

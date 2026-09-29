@@ -56,9 +56,6 @@ coverage.xml
 profile_default/
 ipython_config.py
 
-# pyenv
-.python-version
-
 # pipenv
 Pipfile.lock
 
@@ -103,7 +100,6 @@ dmypy.json
 *.swo
 *~
 
-# Project results: results/raw/ is regenerated scratch output from running
-# experiments locally; results/frozen/ is the versioned, reproducible dataset
-# the figures, trade study, and docs depend on, and is intentionally committed.
+# Local scratch outputs; results/current/ is the committed evidence set.
 results/raw/
+results/reproduced/

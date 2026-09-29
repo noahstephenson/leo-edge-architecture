@@ -1,0 +1,222 @@
+scenarios:
+  - id: MT-1
+    name: Whole-area update
+    description: A generic soldier requests a timely view of the whole synthetic area.
+    needed_product: P2_QUICKLOOK
+    deadline_s: 120
+    deadline_origin: request
+    provenance: docs/MISSION_THREADS.md
+  - id: MT-2
+    name: Corridor detail
+    description: A generic soldier requests native-resolution detail for a declared synthetic corridor.
+    needed_product: P3_ROI
+    deadline_s: 900
+    deadline_origin: request
+    provenance: docs/MISSION_THREADS.md
+  - id: MT-3
+    name: Compare with a prior image
+    description: A new image and suitable prior are needed for comparison; the current study models only new-scene delivery and a crop-size proxy.
+    needed_product: P3_ROI
+    deadline_s: 600
+    deadline_origin: request
+    dependency: prior_reference
+    status: proxy_only
+    provenance: docs/MISSION_THREADS.md
+  - id: MT-4
+    name: Repeated whole-area updates
+    description: A generic soldier requests a coarse whole-area view after each collection; consecutive missed opportunities matter.
+    needed_product: P1_THUMBNAIL
+    deadline_s: 300
+    deadline_origin: collection
+    provenance: docs/MISSION_THREADS.md
+
+terminal_classes:
+  - id: TC-VEHICLE
+    name: Vehicle-mounted terminal
+    code_key: VEHICLE_MOUNTED
+    rate_bps: 50000000
+    can_derive_full_scene: true
+    derivation_time_s: 5.0
+    derivable_products: [P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI]
+    description: Generic soldier-facing terminal that can derive a needed lower tier after full receipt in five assumed seconds.
+    provenance: docs/MISSION_THREADS.md
+  - id: TC-DISMOUNTED
+    name: Dismounted terminal
+    code_key: DISMOUNTED_MANPACK
+    rate_bps: 5000000
+    can_derive_full_scene: true
+    derivation_time_s: 30.0
+    derivable_products: [P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI]
+    description: Generic soldier-facing terminal that can derive a needed lower tier after full receipt in thirty assumed seconds.
+    provenance: docs/MISSION_THREADS.md
+
+functions:
+  - {id: F-01, name: Task, description: Submit and route a notional imagery request., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-02, name: Collect, description: Capture a scene at the requested area., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-03, name: Store, description: Retain raw scene and generated products before transmission., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-04, name: Generate product, description: Retain raw or produce a compressed or tiered product., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-05, name: Prioritize, description: Choose an eligible product transmission order., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-06, name: Transmit, description: Send bytes within contact capacity., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-07, name: Receive, description: Reconstruct delivered bytes at the terminal., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-08, name: Derive at terminal, description: Derive a needed product from a received full scene when the terminal class permits., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-09, name: Make usable, description: Present a complete and sufficient product to the user., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+  - {id: F-10, name: Disseminate, description: Make the usable product available within the edge segment., provenance: docs/FUNCTIONAL_ARCHITECTURE.md}
+
+interfaces:
+  - id: I-REQUEST
+    name: Reachback imagery request
+    from: E-TERMINAL
+    to: E-TASKING
+    carries: request identifier, area of interest, needed product, deadline
+    provenance: docs/CONOPS.md
+  - id: I-DIRECT
+    name: Direct imagery request
+    from: E-TERMINAL
+    to: E-PROVIDER
+    carries: request identifier, area of interest, needed product, deadline
+    provenance: docs/MISSION_THREADS.md
+  - id: I-TASK
+    name: Collection task
+    from: E-TASKING
+    to: E-PROVIDER
+    carries: provider task and status
+    provenance: docs/CONOPS.md
+  - id: I-DOWNLINK
+    name: Product downlink
+    from: E-SATELLITE
+    to: E-TERMINAL
+    carries: collection and product identifiers, tier, coverage, fidelity, bytes, completeness or partial-transfer state, provenance
+    boundary_crossing: true
+    provenance: docs/ALLOCATION_SPACE.md
+  - id: I-STATUS
+    name: Delivery status
+    from: E-PROVIDER
+    to: E-TERMINAL
+    carries: availability, completeness, and failure status
+    boundary_crossing: true
+    provenance: docs/CONOPS.md
+  - id: I-USER
+    name: Usable imagery product
+    from: E-TERMINAL
+    to: E-USER
+    carries: product and explicit utility caveat
+    provenance: docs/CONOPS.md
+
+products:
+  - {id: P0_METADATA, name: Metadata, coverage: scene, resolution: none, description: Collection and product metadata only., provenance: src/leo_edge/products.py}
+  - {id: P1_THUMBNAIL, name: Thumbnail, coverage: scene, resolution: coarse, description: Coarse whole-scene visual., provenance: src/leo_edge/products.py}
+  - {id: P2_QUICKLOOK, name: Quicklook, coverage: scene, resolution: reduced, description: Reduced-resolution whole-scene visual., provenance: src/leo_edge/products.py}
+  - {id: P3_ROI, name: Region of interest, coverage: crop, resolution: native, description: Native-resolution selected crop; does not imply whole-scene coverage., provenance: src/leo_edge/products.py}
+  - {id: P4_FULL, name: Full scene, coverage: scene, resolution: native, description: Full scene; raw or compressed encoding is an alternative property., provenance: src/leo_edge/products.py}
+
+# The common allocation applies to every alternative. Each alternative explicitly
+# lists exceptions; the validator resolves and checks all ten functions.
+common_allocations:
+  F-01: E-TASKING
+  F-02: E-SATELLITE
+  F-03: E-SATELLITE
+  F-04: E-SATELLITE
+  F-05: E-SATELLITE
+  F-06: E-SATELLITE
+  F-07: E-TERMINAL
+  F-08: E-TERMINAL
+  F-09: E-TERMINAL
+  F-10: E-TERMINAL
+
+common_function_modes:
+  F-01: scenario_selected_tasking_path
+  F-02: scheduled_scene_collection
+  F-03: retain_scene_and_products
+  F-04: generate_or_retain_product
+  F-05: choose_product_order
+  F-06: contact_limited_transfer
+  F-07: reconstruct_complete_product
+  F-08: conditional_terminal_derivation
+  F-09: check_sufficiency_and_deadline
+  F-10: edge_dissemination
+
+alternatives:
+  - id: A0_GROUND_ONLY
+    name: Raw full scene with terminal derivation
+    description: Transmit a raw full scene; a capable terminal may derive a needed view after full reception.
+    generated_products: [P4_FULL]
+    encoding: raw
+    transmission_order: [P4_FULL]
+    policy: static
+    terminal_derivation: conditional_on_class
+    allocation_exceptions: {}
+    mode_overrides: {F-04: retain_raw_scene_only, F-05: one_raw_full_product, F-08: required_for_reduced_view_if_capable}
+    interfaces: [I-REQUEST, I-DIRECT, I-TASK, I-DOWNLINK, I-STATUS, I-USER]
+    provenance: src/leo_edge/architectures.py
+  - id: A1_COMPRESSED_FULL
+    name: Compressed full scene
+    description: Produce and transmit one atomic compressed full scene.
+    generated_products: [P4_FULL]
+    encoding: compressed
+    transmission_order: [P4_FULL]
+    policy: static
+    terminal_derivation: conditional_on_class
+    allocation_exceptions: {}
+    mode_overrides: {F-04: compress_full_scene, F-05: one_compressed_full_product, F-08: required_for_reduced_view_if_capable}
+    interfaces: [I-REQUEST, I-DIRECT, I-TASK, I-DOWNLINK, I-STATUS, I-USER]
+    provenance: src/leo_edge/architectures.py
+  - id: A2_QUICKLOOK_FIRST
+    name: Quicklook first
+    description: Send quicklook before the full scene when capacity permits.
+    generated_products: [P2_QUICKLOOK, P4_FULL]
+    encoding: mixed
+    transmission_order: [P2_QUICKLOOK, P4_FULL]
+    policy: static
+    terminal_derivation: conditional_on_class
+    allocation_exceptions: {}
+    mode_overrides: {F-04: make_quicklook_and_full, F-05: quicklook_before_full, F-08: fallback_if_full_received_and_capable}
+    interfaces: [I-REQUEST, I-DIRECT, I-TASK, I-DOWNLINK, I-STATUS, I-USER]
+    provenance: src/leo_edge/architectures.py
+  - id: A3_ROI_FIRST
+    name: Corridor crop first
+    description: Send a native-resolution crop before the full scene when capacity permits.
+    generated_products: [P3_ROI, P4_FULL]
+    encoding: mixed
+    transmission_order: [P3_ROI, P4_FULL]
+    policy: static
+    terminal_derivation: conditional_on_class
+    allocation_exceptions: {}
+    mode_overrides: {F-04: make_roi_and_full, F-05: roi_before_full, F-08: fallback_if_full_received_and_capable}
+    interfaces: [I-REQUEST, I-DIRECT, I-TASK, I-DOWNLINK, I-STATUS, I-USER]
+    provenance: src/leo_edge/architectures.py
+  - id: A4_PROGRESSIVE
+    name: Progressive tiers
+    description: Send five tiers in fixed increasing-detail order.
+    generated_products: [P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI, P4_FULL]
+    encoding: mixed
+    transmission_order: [P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI, P4_FULL]
+    policy: static
+    terminal_derivation: conditional_on_class
+    allocation_exceptions: {}
+    mode_overrides: {F-04: make_five_tiers, F-05: fixed_progressive_order, F-08: fallback_if_full_received_and_capable}
+    interfaces: [I-REQUEST, I-DIRECT, I-TASK, I-DOWNLINK, I-STATUS, I-USER]
+    provenance: src/leo_edge/architectures.py
+  - id: A5_CONTACT_AWARE
+    name: Contact-aware full delivery
+    description: Choose compressed full delivery when contact margin permits; otherwise use raw fallback.
+    generated_products: [P4_FULL]
+    encoding: conditional
+    transmission_order: [P4_FULL]
+    policy: contact_margin
+    terminal_derivation: conditional_on_class
+    allocation_exceptions: {}
+    mode_overrides: {F-04: conditional_full_compression, F-05: contact_margin_encoding_choice, F-08: required_for_reduced_view_if_capable}
+    interfaces: [I-REQUEST, I-DIRECT, I-TASK, I-DOWNLINK, I-STATUS, I-USER]
+    provenance: src/leo_edge/architectures.py
+  - id: A6_THREAD_AWARE_PRIORITY
+    name: Thread-aware priority
+    description: Send metadata, then the thread's needed tier, then remaining progressive tiers.
+    generated_products: [P0_METADATA, P1_THUMBNAIL, P2_QUICKLOOK, P3_ROI, P4_FULL]
+    encoding: mixed
+    transmission_order: [P0_METADATA, THREAD_NEEDED, REMAINING_PROGRESSIVE]
+    policy: priority_fixed_per_request
+    terminal_derivation: conditional_on_class
+    allocation_exceptions: {}
+    mode_overrides: {F-04: make_five_tiers, F-05: needed_tier_after_metadata, F-08: fallback_if_full_received_and_capable}
+    interfaces: [I-REQUEST, I-DIRECT, I-TASK, I-DOWNLINK, I-STATUS, I-USER]
+    provenance: src/leo_edge/architectures.py

@@ -1,0 +1,163 @@
+needs:
+  - {id: N-01, name: Early useful imagery, description: A notional user needs a usable screening view within a short request timeline., provenance: docs/MISSION_THREADS.md}
+  - {id: N-02, name: Native-resolution corridor view, description: A notional planner needs corridor detail and later whole-scene context., provenance: docs/MISSION_THREADS.md}
+  - {id: N-03, name: Honest change status, description: A user needs to know whether a prior reference supports change assessment., provenance: docs/MISSION_THREADS.md}
+  - {id: N-04, name: Repeated situational view, description: A user needs coarse imagery per collection opportunity., provenance: docs/MISSION_THREADS.md}
+  - {id: N-05, name: Boundary clarity, description: Provider and Army stakeholders need explicit product and tasking responsibilities., provenance: docs/OPERATIONAL_CONTEXT.md}
+
+requirements:
+  - id: REQ-ALLOC-001
+    kind: system
+    status: proposed
+    statement: A candidate delivery service shall be able to deliver a reduced image product before its full-scene product when that candidate offers tiered delivery.
+    rationale: Allows an early useful tier to be assessed independently of full delivery.
+    provenance: docs/REQUIREMENTS.md
+  - id: REQ-ALLOC-002
+    kind: interface
+    status: proposed
+    statement: The tasking interface shall identify whether a request uses direct or reachback routing and shall retain the resulting delay in end-to-end timing.
+    rationale: The request clock begins before collection and tasking delay can dominate delivery.
+    provenance: docs/REQUIREMENTS.md
+  - id: REQ-ALLOC-003
+    kind: study
+    status: proposed
+    statement: The study shall evaluate a contact-aware candidate under the same contacts as fixed candidates.
+    rationale: Prevents an adaptive policy from being claimed without a paired comparison.
+    provenance: docs/REQUIREMENTS.md
+  - id: REQ-ALLOC-004
+    kind: study
+    status: proposed
+    statement: The study shall evaluate thread-aware product ordering against fixed progressive ordering.
+    rationale: Isolates the effect of product priority from orbital access.
+    provenance: docs/REQUIREMENTS.md
+  - id: REQ-THREAD-001
+    kind: system
+    status: proposed
+    statement: For MT-1, a complete P2-class whole-scene quicklook shall be usable within 120 seconds of a request in an evaluated case.
+    rationale: Notional time-sensitive screening criterion; failure is reported rather than hidden.
+    provenance: docs/MISSION_THREADS.md
+  - id: REQ-THREAD-002
+    name: Corridor view within 900 seconds
+    kind: system
+    status: proposed
+    statement: For MT-2, a complete native-resolution corridor ROI shall be usable within 900 seconds of a request in an evaluated case.
+    rationale: A reduced whole-scene quicklook lacks the assumed detail for the corridor.
+    provenance: docs/MISSION_THREADS.md
+  - id: REQ-THREAD-003
+    kind: system
+    status: open
+    statement: For MT-3, the system shall identify absent prior reference data and shall not report a change product as delivered when no reference exists.
+    rationale: Current P3-sized proxy is not a validated change product.
+    provenance: docs/MISSION_THREADS.md
+  - id: REQ-THREAD-004
+    kind: system
+    status: proposed
+    statement: For MT-4, a complete thumbnail-class view shall be usable within 300 seconds of each collection pass in an evaluated case.
+    rationale: Per-pass cadence differs from request-to-product latency.
+    provenance: docs/MISSION_THREADS.md
+  - id: REQ-TERM-001
+    kind: system
+    status: proposed
+    statement: The terminal shall identify whether its class supports local derivation before a full-scene delivery is credited as a smaller needed product.
+    rationale: A raw scene alone does not establish that a constrained terminal can exploit it.
+    provenance: docs/REQUIREMENTS.md
+  - id: REQ-DDIL-001
+    kind: study
+    status: proposed
+    statement: The study shall evaluate candidates with identical contact-denial and rate-derate inputs.
+    rationale: Keeps degraded-condition comparisons paired.
+    provenance: docs/REQUIREMENTS.md
+  - id: REQ-DDIL-002
+    kind: study
+    status: proposed
+    statement: The study shall report sampled mission-thread successes with a numerator, denominator, and uncertainty interval.
+    rationale: Distinguishes a sample estimate from operational probability.
+    provenance: docs/REQUIREMENTS.md
+  - id: REQ-IF-001
+    kind: interface
+    status: proposed
+    statement: Each downlinked product shall carry identity, tier, coverage, fidelity, and completeness information.
+    rationale: A terminal cannot judge usefulness from bytes alone.
+    provenance: docs/ARCHITECTURE_VIEWS.md
+  - id: REQ-IF-002
+    kind: interface
+    status: proposed
+    statement: The provider-terminal interface shall preserve partial-delivery status across contacts until the product is complete or the case is censored.
+    rationale: Short contacts can require multi-contact byte carryover.
+    provenance: docs/ARCHITECTURE_VIEWS.md
+
+model_integrity_checks:
+  - {id: MIC-001, legacy_id: REQ-CORRECT-001, statement: Transmitted bytes never exceed available contact capacity., provenance: docs/REQUIREMENTS.md}
+  - {id: MIC-002, legacy_id: REQ-CORRECT-002, statement: Contact utilization remains between zero and one., provenance: docs/REQUIREMENTS.md}
+  - {id: MIC-003, legacy_id: REQ-CORRECT-003, statement: Undelivered products are censored rather than assigned a completion time., provenance: docs/REQUIREMENTS.md}
+  - {id: MIC-004, legacy_id: REQ-CORRECT-004, statement: Product fidelity and coverage are reported explicitly., provenance: docs/REQUIREMENTS.md}
+  - {id: MIC-005, legacy_id: none, statement: Storage and battery state never become negative., provenance: AGENTS.md}
+  - {id: MIC-006, legacy_id: none, statement: Identical seeds and configuration reproduce selected results., provenance: AGENTS.md}
+
+measures:
+  - {id: M-TFUP, name: Time to first usable product, symbol: tfup_s, unit: s, description: Elapsed time from thread-specific clock origin to first sufficient completed product., provenance: docs/MISSION_THREADS.md}
+  - {id: M-TCP, name: Time to complete product, symbol: tcp_s, unit: s, description: Elapsed time to required complete product when applicable., provenance: AGENTS.md}
+  - {id: M-DEADLINE, name: Deadline met, symbol: deadline_met, unit: boolean, description: True only for a complete sufficient product by the notional deadline., provenance: AGENTS.md}
+  - {id: M-COMPLETE, name: Product completeness, symbol: product_completeness, unit: fraction, description: Delivered fraction of product bytes., provenance: AGENTS.md}
+  - {id: M-UTIL, name: Contact utilization, symbol: contact_utilization, unit: fraction, description: Transmitted bytes divided by available contact capacity., provenance: AGENTS.md}
+  - {id: M-PROC-E, name: Processing energy, symbol: processing_energy_j, unit: J, description: Energy expended generating onboard products., provenance: AGENTS.md}
+  - {id: M-TX-E, name: Transmission energy, symbol: tx_energy_j, unit: J, description: Energy expended transmitting product bytes., provenance: AGENTS.md}
+  - {id: M-STORE, name: Peak storage, symbol: storage_peak_bytes, unit: byte, description: Largest modeled stored byte count., provenance: AGENTS.md}
+
+assumptions:
+  - {id: ASM-LINK-001, category: ANALYTICAL_ASSUMPTION, statement: Link rate is constant within each contact window., provenance: docs/ASSUMPTIONS.md}
+  - {id: ASM-PROC-002, category: ANALYTICAL_ASSUMPTION, value: {compressed_full_fraction: 0.3}, statement: Compressed-full product is 30% of raw scene bytes; laptop benchmark data do not validate this flight value., provenance: config/product_sizing.yaml}
+  - {id: ASM-PROC-003, category: ANALYTICAL_ASSUMPTION, value: {quicklook_fraction: 0.02}, statement: A2 quicklook is 2% of raw scene bytes., provenance: config/product_sizing.yaml}
+  - {id: ASM-PROC-004, category: ANALYTICAL_ASSUMPTION, value: {roi_fraction: 0.05}, statement: "A3 ROI is 5% of raw scene bytes; this is a sensitivity choice, not a measured crop ratio.", provenance: config/product_sizing.yaml}
+  - {id: ASM-PROC-005, category: ANALYTICAL_ASSUMPTION, value: {metadata_bytes: 20480, thumbnail_bytes: 524288, quicklook_bytes: 20971520, roi_bytes: 52428800}, statement: A4 and A6 progressive products use fixed byte targets independent of scene size., provenance: config/product_sizing.yaml}
+  - {id: ASM-TERM-001, category: SENSITIVITY_ONLY, value: {rate_bps: 50000000, derivation_time_s: 5.0}, statement: The vehicle terminal has a notional 50 Mbps link and takes five seconds to derive a lower tier from received P4., provenance: experiments/e11_mission_thread_success.py}
+  - {id: ASM-TERM-002, category: SENSITIVITY_ONLY, value: {rate_bps: 5000000, derivation_time_s: 30.0}, statement: The dismounted terminal has a notional 5 Mbps link and takes thirty seconds to derive a lower tier from received P4., provenance: experiments/e11_mission_thread_success.py}
+  - {id: ASM-ORBIT-001, category: ANALYTICAL_ASSUMPTION, statement: Synthetic circular orbits are propagated at a fixed epoch., provenance: docs/ASSUMPTIONS.md}
+  - {id: ASM-BENCH-001, category: MEASURED_BENCHMARK, statement: Laptop image-processing measurements are measurements of that hardware only., provenance: docs/ASSUMPTIONS.md}
+  - {id: ASM-CONTEXT-001, category: PUBLIC_CONTEXT, statement: Public Army motivation informs the study without defining an Army requirement., provenance: docs/OPERATIONAL_CONTEXT.md}
+  - {id: ASM-THREAD-001, category: SENSITIVITY_ONLY, statement: Thread product needs and deadlines are notional study parameters., provenance: docs/MISSION_THREADS.md}
+
+verification_cases:
+  - {id: V-TIMING, name: Request-to-product timing, method: simulation, status: supported_by_simulation, evidence: [results/current/single_request_trials.csv, results/current/cadence_trials.csv, results/current/summary.csv, results/current/config.json, results/current/audit.json], description: Compare complete sufficient delivery time with scenario deadline in the selected synthetic cases., provenance: experiments/e11_mission_thread_success.py}
+  - {id: V-PRODUCT, name: Product sufficiency, method: test, status: supported_by_test, evidence: [tests/test_product_sufficiency.py], description: Check coverage and resolution; full-scene derivation requires terminal capability and time., provenance: tests/test_product_sufficiency.py}
+  - {id: V-INTERFACE, name: Product interface fields, method: inspection, status: not_evaluated, reason: The conceptual fields are modeled but no operational message schema or complete exchange inspection exists., description: "Inspect tier, coverage, fidelity, completeness, and identifiers at delivery.", provenance: docs/INTERFACES.md}
+  - {id: V-CONTACT, name: Contact replay, method: test, status: supported_by_test, evidence: [tests/test_simulation.py, tests/test_product_sufficiency.py], description: Check capacity and multi-contact completion under paired contacts., provenance: src/leo_edge/simulation.py}
+  - {id: V-TASK, name: Tasking route trace, method: analysis, status: not_evaluated, reason: The current sweep varies tasking delay but does not verify distinct direct and reachback message routes., description: Check path availability and delay are reflected in request timing., provenance: experiments/e11_mission_thread_success.py}
+  - {id: V-PRIORITY, name: Ordering comparison, method: simulation, status: supported_by_simulation, evidence: [results/current/single_request_trials.csv, results/current/cadence_trials.csv, results/current/summary.csv, results/current/config.json, results/current/audit.json], description: "Compare fixed, thread-aware, and contact-aware policies on paired requests in selected synthetic cases.", provenance: experiments/e11_mission_thread_success.py}
+  - {id: V-REFERENCE, name: Missing-prior handling, method: test, status: partial, evidence: [tests/test_product_sufficiency.py], reason: Fallback tolerance and reference flag are checked; no actual change-product algorithm or provenance chain is verified., description: Verify no change product is credited without a prior reference., provenance: docs/MISSION_THREADS.md}
+  - {id: V-MODEL, name: Model integrity suite, method: test, status: supported_by_test, evidence: [tests/test_architectures.py, tests/test_simulation.py, tests/test_product_sufficiency.py], description: "Validate capacity, censoring, bounds, and determinism invariants covered by the cited tests.", provenance: tests/}
+
+# Only supported claims may be stated as findings in the main narrative.
+# A planned verification case is not evidence that a result has been achieved.
+claims:
+  - id: CL-001
+    name: Traceable conceptual architecture
+    statement: The catalog connects each recorded need to a scenario and measure and each requirement to a need, function or interface, and verification case.
+    status: supported_by_model
+    evidence: [model/traceability.yaml, scripts/validate_model.py]
+    provenance: model/traceability.yaml
+  - id: CL-002
+    name: Analytical timing crossover
+    statement: Exposed processing time must be less than transmission time saved for a reduced product to arrive earlier in the first-order model.
+    status: analytical
+    evidence: [AGENTS.md, docs/MODEL_REFERENCE.md]
+    provenance: AGENTS.md
+  - id: CL-003
+    name: Conditional terminal derivation
+    statement: Under the assumed P4 native-spatial-resolution rule, full-scene reception can support a derived view only when terminal capability, processing time, and deadline permit it; radiometric utility is not evaluated.
+    status: supported_by_test
+    evidence: [tests/test_product_sufficiency.py]
+    provenance: tests/test_product_sufficiency.py
+  - id: CL-004
+    name: Change-product performance
+    statement: MT-3 change-product performance has not been established by the P3-sized proxy.
+    status: not_evaluated
+    evidence: []
+    reason: The proxy represents size and processing cost only; no change algorithm or valid prior-reference chain is verified.
+    provenance: docs/MISSION_THREADS.md
+  - id: CL-005
+    name: Selected comparative outcome
+    statement: The selected 48-hour synthetic cases include both an access-limited MT-2 vehicle/four-site 1/1/0 cell with 0/24 for all candidates and a strategy-sensitive MT-2 dismounted/one-site 24/8/1 cell with 0/24 for A0 and 12/24 for A3 and A6; these samples do not establish general operating regimes.
+    status: supported_by_simulation
+    evidence: [results/current/single_request_trials.csv, results/current/cadence_trials.csv, results/current/summary.csv, results/current/config.json, results/current/manifest.json, results/current/audit.json]
+    provenance: results/current/

@@ -116,6 +116,7 @@ class MultiContactResult:
     completed: bool
     contacts_used: int
     tier_completion_s: dict
+    bytes_transmitted: float = 0.0
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -128,16 +129,19 @@ def contact_windows_from_access_windows(
     access_windows: List[dict], capture_time: datetime
 ) -> List[Tuple[float, float]]:
     """Convert `orbit.access.generate_access_windows` output into
-    (window_start_s, duration_s) pairs relative to `capture_time`, dropping
-    any window that starts before capture (the product doesn't exist yet).
+    (window_start_s, duration_s) pairs relative to `capture_time`. A contact
+    already open at capture is clipped to its remaining duration so a
+    same-pass delivery remains possible.
     """
     out = []
     for w in access_windows:
         start = _parse_iso(w["start"])
         offset_s = (start - capture_time).total_seconds()
-        if offset_s < 0:
+        end_offset_s = offset_s + float(w["duration_s"])
+        if end_offset_s <= 0:
             continue
-        out.append((offset_s, float(w["duration_s"])))
+        usable_start_s = max(0.0, offset_s)
+        out.append((usable_start_s, end_offset_s - usable_start_s))
     return sorted(out, key=lambda pair: pair[0])
 
 
@@ -174,9 +178,17 @@ def simulate_multi_contact(
         MultiContactResult.
     """
     try:
-        tiers = architecture.tiers(scene_bytes, processing_time_s=processing_time_s)
+        first_start_s, first_duration_s = contact_windows_s[0] if contact_windows_s else (None, None)
+        tiers = architecture.tiers(
+            scene_bytes, processing_time_s=processing_time_s,
+            rate_bps=rate_bps, first_window_duration_s=first_duration_s,
+            first_window_start_s=first_start_s,
+        )
     except TypeError:
-        tiers = architecture.tiers(scene_bytes)
+        try:
+            tiers = architecture.tiers(scene_bytes, processing_time_s=processing_time_s)
+        except TypeError:
+            tiers = architecture.tiers(scene_bytes)
 
     name = type(architecture).__name__
     if not tiers or rate_bps <= 0:
@@ -189,11 +201,20 @@ def simulate_multi_contact(
     tcp_s = None
     contacts_used = 0
     tier_completion_s = {}
+    bytes_transmitted = 0.0
 
+    current_time = 0.0
     for window_start_s, duration_s in contact_windows_s:
         if tier_idx >= len(tiers):
             break
         contacts_used += 1
+        # idle gap before window
+        idle = max(0.0, window_start_s - current_time)
+        if proc_left_s > 0 and idle > 0:
+            spend = min(proc_left_s, idle)
+            proc_left_s -= spend
+            current_time += spend
+        current_time = window_start_s
         t = 0.0
         while t < duration_s and tier_idx < len(tiers):
             if proc_left_s > 0:
@@ -210,6 +231,7 @@ def simulate_multi_contact(
             take_bytes = min(need_bytes, capacity_bytes)
             take_time_s = take_bytes * 8 / rate_bps
             delivered[tier_idx] += take_bytes
+            bytes_transmitted += take_bytes
             t += take_time_s
             if delivered[tier_idx] >= target_bytes - 1e-6:
                 completion_s = window_start_s + t
@@ -223,6 +245,7 @@ def simulate_multi_contact(
                     proc_left_s = tiers[tier_idx][2]
             else:
                 break
+        current_time = window_start_s + duration_s
 
     return MultiContactResult(
         architecture_name=name,
@@ -231,4 +254,5 @@ def simulate_multi_contact(
         completed=tcp_s is not None,
         contacts_used=contacts_used,
         tier_completion_s=tier_completion_s,
+        bytes_transmitted=bytes_transmitted,
     )

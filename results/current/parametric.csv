@@ -1,0 +1,5 @@
+comparison,rate_bps,processing_lead_s,raw_bytes,processed_bytes,processing_time_s,exposed_processing_s,transmission_time_saved_s,compressed_latency_advantage_s,caveat
+A1 compressed full vs A0 raw full,5000000,0.0,1000000000,300000000,20.0,20.0,1120.0,1100.0,P4 full-scene products differ in lossy fidelity
+A1 compressed full vs A0 raw full,5000000,30.0,1000000000,300000000,20.0,0.0,1120.0,1120.0,P4 full-scene products differ in lossy fidelity
+A1 compressed full vs A0 raw full,50000000,0.0,1000000000,300000000,20.0,20.0,112.0,92.0,P4 full-scene products differ in lossy fidelity
+A1 compressed full vs A0 raw full,50000000,30.0,1000000000,300000000,20.0,0.0,112.0,112.0,P4 full-scene products differ in lossy fidelity

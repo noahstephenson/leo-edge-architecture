@@ -11,9 +11,7 @@ Each class exposes two interfaces:
   time, used by `leo_edge.simulation.simulate_multi_contact` to carry
   undelivered bytes forward across a real sequence of contact windows.
 
-Sizing ratios (0.3 / 0.02 / 0.1 and the Progressive tier byte targets) are
-design assumptions, not measurements. See config/product_sizing.yaml and
-docs/ASSUMPTIONS.md.
+Sizing ratios (0.3 / 0.02 / 0.05) are standardized to a 1 GB scene with Progressive tier byte targets (20 MB quicklook, 50 MB ROI). These are design assumptions, not measurements. See config/product_sizing.yaml and docs/ASSUMPTIONS.md.
 """
 
 from .architecture import (
@@ -34,10 +32,10 @@ RADIO_POWER_W = 25
 COMPRESSED_FULL_FRACTION = 0.3
 QUICKLOOK_SIZE_FRACTION = 0.02
 QUICKLOOK_TIME_FRACTION = 0.1
-ROI_SIZE_FRACTION = 0.1
+ROI_SIZE_FRACTION = 0.05
 PROGRESSIVE_METADATA_BYTES = 20 * 1024
 PROGRESSIVE_THUMBNAIL_BYTES = int(0.5 * 1024 * 1024)
-PROGRESSIVE_QUICKLOOK_BYTES = 10 * 1024 * 1024
+PROGRESSIVE_QUICKLOOK_BYTES = 20 * 1024 * 1024
 PROGRESSIVE_ROI_BYTES = 50 * 1024 * 1024
 CONTACT_AWARE_MARGIN_ALPHA = 0.2
 
@@ -143,9 +141,9 @@ class CompressedFull:
             completed, TIER_FIDELITY[ProductTier.P4_FULL],
         )
 
-    def tiers(self, scene_bytes):
+    def tiers(self, scene_bytes, processing_time_s=20.0):
         compressed_bytes = float(int(scene_bytes * COMPRESSED_FULL_FRACTION))
-        return [(ProductTier.P4_FULL, compressed_bytes, 20.0)]
+        return [(ProductTier.P4_FULL, compressed_bytes, processing_time_s)]
 
 
 class QuicklookFirst:
@@ -484,7 +482,8 @@ class ContactAware:
             completed, TIER_FIDELITY[ProductTier.P4_FULL],
         )
 
-    def tiers(self, scene_bytes, processing_time_s=20.0, rate_bps=None, first_window_duration_s=None):
+    def tiers(self, scene_bytes, processing_time_s=20.0, rate_bps=None,
+              first_window_duration_s=None, first_window_start_s=None):
         """Tier plan for multi-contact use.
 
         A5's choice is rule-based per window in `run()`. For a multi-contact
@@ -494,12 +493,13 @@ class ContactAware:
         stated simplification, not a claim that a fielded A5 would behave
         this way across many windows; see docs/ASSUMPTIONS.md.
         """
-        use_compressed = True
-        if rate_bps and first_window_duration_s:
+        use_compressed = not self.processor_fault
+        if use_compressed and rate_bps and first_window_duration_s:
             contact_duration_s = first_window_duration_s
             compressed_bytes = int(scene_bytes * COMPRESSED_FULL_FRACTION)
             compressed_tx = _transmit_time_bytes(compressed_bytes, rate_bps)
-            use_compressed = self._margin_ok(contact_duration_s, compressed_tx, processing_time_s)
+            exposed_processing_s = max(0.0, processing_time_s - (first_window_start_s or 0.0))
+            use_compressed = self._margin_ok(contact_duration_s, compressed_tx, exposed_processing_s)
         if use_compressed:
             compressed_bytes = float(int(scene_bytes * COMPRESSED_FULL_FRACTION))
             return [(ProductTier.P4_FULL, compressed_bytes, processing_time_s)]

@@ -1,6 +1,6 @@
 """Semantic tests for architecture delivery correctness, not just non-negativity.
 
-Regression-guards the bugs found in the v1 audit: uncompleted deliveries
+Regression checks for uncompleted deliveries
 being scored as complete, bytes_transmitted exceeding contact capacity, and
 contact_utilization exceeding 1.0.
 """
@@ -39,7 +39,7 @@ def _ample_capacity_bytes(rate_bps=100_000_000, contact_duration_s=600):
 @pytest.mark.parametrize("arch_class", ALL_ARCHITECTURES)
 def test_never_exceeds_contact_capacity(arch_class):
     """bytes_transmitted must never exceed what the contact window can hold,
-    for any capacity size, not just the ones in the frozen sweep."""
+    across several contact capacities."""
     for rate_bps, duration_s in [(1_000_000, 10), (1_000_000, 300), (10_000_000, 300), (100_000_000, 600)]:
         capacity = (rate_bps / 8.0) * duration_s
         arch = arch_class()
@@ -107,18 +107,15 @@ def test_architecture_registry_matches_arch_ids():
         assert arch_class.ARCH_ID == arch_id
 
 
-def test_a6_is_tagged_as_proposed_post_v2():
-    """A6 was proposed after seeing v2's results and must be reported
-    separately, not folded silently into the original candidate set
-    (docs/DECISION_LOG.md)."""
+def test_a6_has_explicit_candidate_provenance():
+    """Keep the recorded provenance tag distinct from the original candidates."""
     assert ThreadAwarePriority.PROVENANCE == "proposed_post_v2"
     for arch_class in [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive, ContactAware]:
         assert arch_class.PROVENANCE == "original_candidate_set"
 
 
 def test_conditional_logic_flag_matches_per_request_branching():
-    """Used by scripts/trade_study.py to derive acquisition_lock_in_risk
-    from code, not a free-floating rubric number."""
+    """Flag candidates that branch their order for each request."""
     for arch_class in [ContactAware, ThreadAwarePriority]:
         assert arch_class.CONDITIONAL_LOGIC is True
     for arch_class in [GroundOnly, CompressedFull, QuicklookFirst, RoiFirst, Progressive]:

@@ -53,14 +53,14 @@ def test_multi_contact_two_tier_architecture_completes_first_tier_before_full():
     assert result.tfup_s < result.tcp_s or math.isnan(result.tcp_s)
 
 
-def test_contact_windows_from_access_windows_drops_pre_capture():
+def test_contact_windows_from_access_windows_clips_same_pass():
     from datetime import datetime, timedelta, timezone
 
     capture = datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     windows = [
         {"start": "2019-12-31T23:00:00Z", "end": "2019-12-31T23:05:00Z", "duration_s": 300.0},
+        {"start": "2019-12-31T23:58:00Z", "end": "2020-01-01T00:03:00Z", "duration_s": 300.0},
         {"start": "2020-01-01T01:00:00Z", "end": "2020-01-01T01:05:00Z", "duration_s": 300.0},
     ]
     out = contact_windows_from_access_windows(windows, capture)
-    assert len(out) == 1
-    assert out[0][0] == timedelta(hours=1).total_seconds()
+    assert out == [(0.0, 180.0), (timedelta(hours=1).total_seconds(), 300.0)]

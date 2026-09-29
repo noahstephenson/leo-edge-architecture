@@ -1,179 +1,25 @@
-# Trade Study
+# Architecture trade
 
-Multi-criteria evaluation of the seven candidate architectures
-(`docs/ALLOCATION_SPACE.md`) against the stakeholder values in
-`docs/STAKEHOLDERS.md`. Computed by `scripts/trade_study.py`, which writes
-`results/frozen/v4/trade_study_scores.csv` and
-`results/frozen/v4/trade_study_sensitivity.csv`. Re-run it after any
-change to `results/frozen/v4/e03_results.csv` or
-`results/frozen/v4/e11_mission_thread_trials.csv`.
+The study compares how much image preparation the commercial service does before sending data to a generic tactical terminal. The [allocation catalog](ALLOCATION_SPACE.md) defines seven candidates. Within a comparison case, they face the same collection and contact opportunities. They prepare different products, send them in different orders, and place different amounts of derivation work at the terminal.
 
-**This document is about ranking the seven architectures against each
-other. It is not the repository's headline result.** That's
-`docs/ACQUISITION_IMPLICATIONS.md`'s access-sweep finding
-(`experiments/e12_access_sweep.py`, `figures/fig20.png`). Read this
-document as "which architecture would matter, on the occasions
-architecture choice matters," not as "which architecture is good."
+## What makes an allocation useful
 
-## What this means operationally
+The satellite needs a collection opportunity, terminal contact, and enough time to send the required bytes. The image must also cover the requested area at the declared fidelity. A corridor crop can satisfy a corridor-detail request. Its finer pixels do not make it a whole-scene quicklook. A full scene supports a terminal-created view only after complete receipt and enough processing time.
 
-Each architecture is a different answer to one field problem: the unit's clock
-is running while it waits for a satellite pass and then a downlink window
-(`docs/CONOPS.md`). "Mission-thread success" below means the needed product
-arrived inside the thread's time limit. An architecture that sends a small
-useful product first can succeed; one that waits to send a single large product
-cannot. The other criteria ask what each design costs the provider, the
-terminal operator, and the contract writer.
+The first-order timing check compares exposed processing time with the transmission time saved by reducing the scene. When processing finishes before contact, little or none of its time is exposed to the user. The [hand calculation](HAND_CALC_BREAK_EVEN.md) gives the relation and units. Actual contact windows can split a transfer across passes, so the orbit/contact model is needed to test delivery by a deadline.
 
-## Criteria, and how each is computed (v4: lock-in proxy fixed, `docs/DECISION_LOG.md` ADR-021)
+Early reduced products require the provider to generate and order more than one product. The terminal needs product identity, footprint, fidelity, and completeness to judge what arrived. A service sending only full scenes leaves more derivation work at the terminal and may consume more downlink capacity before a lower product is usable. The [interface model](INTERFACES.md) specifies these exchanges. This study has no cost data with which to price them.
 
-Three criteria come directly from simulation; four are derived from real
-architecture properties tied to `docs/INTERFACES.md`'s ownership boundary,
-not hand-picked judgment numbers.
+## What the selected cases show
 
-| Criterion | Type | Source and one-line derivation rule |
-|---|---|---|
-| Mission-thread success | Simulated | `e11_mission_thread_success.csv`, mean success rate across all threads/terminals/conditions |
-| Latency | Simulated | Kaplan-Meier censored median over `e11_mission_thread_trials.csv`'s per-trial latency, censoring non-completions at the evaluation horizon (168h) instead of dropping them |
-| Resilience | Simulated | `e11_mission_thread_success.csv`, mean success rate under degraded conditions only |
-| Fidelity | Derived | Fraction of `e03_results.csv` rows delivered lossless (real `fidelity_lossy` field) |
-| Space-segment processing burden | Derived | Real mean `processing_energy_j` from `e03_results.csv`: higher energy = more provider-side compute burden = worse |
-| Terminal processing burden | Derived | Fraction of `e03_results.csv` rows with `processing_energy_j == 0`, i.e. raw/unprocessed delivery that pushes interpretation work onto the terminal = worse |
-| Acquisition lock-in risk | Derived | Non-metadata tier count (named data-format interfaces in `docs/INTERFACES.md`) plus 2 (not 1) if the architecture has per-request conditional logic (`CONDITIONAL_LOGIC`), since a runtime decision is a non-standard interface in a way a fixed format spec isn't (ADR-021) |
+The [current evidence](../results/current/) compares the seven candidates on paired synthetic requests. It uses three individually propagated Walker constellations, one or four generic terminal sites, two terminal classes, and nominal or combined-degraded conditions. Each fixed comparison cell has 24 single requests per candidate. The [configuration](../results/current/config.json), [summary](../results/current/summary.csv), and [audit](../results/current/audit.json) record the inputs, outcomes, and pairing checks. Requests are paired across candidates within a cell. Different constellation and site-count cells use independently drawn requests.
 
-Rankings are reported two ways: **SIMULATED_ONLY** (the three simulated
-criteria only, renormalized to sum to 1.0) and **COMBINED** (all seven).
-Every case where the two disagree on the top-ranked architecture is
-reported explicitly below.
+Two corridor-detail cases illustrate different limits. With one satellite and one orbital plane, a vehicle terminal, four sites, and nominal conditions, the raw full-scene, corridor-first, and need-aware candidates each had zero deadline successes in 24 requests. In this sample, access dominated product ordering. With the larger 24-satellite configuration, one site, a dismounted terminal, and nominal conditions, the raw full-scene candidate had zero successes while corridor-first and need-aware delivery each had 12 in 24. The corresponding 95% Wilson intervals are 0 to 13.8% and 31.4 to 68.6%. This second case shows that a fitting early product can change modeled delivery when access is available but the link and deadline constrain a full scene. The intervals and small sample do not establish a universal preferred candidate.
 
-## Raw values
+The [summary](../results/current/summary.csv) contains every scenario and candidate outcome with its denominator and uncertainty interval. The [trial rows](../results/current/single_request_trials.csv) show individual paired requests. The [selected figure](../figures/current/mt2_selected_deadline.png) plots one case; the architecture definition remains in the model catalog.
 
-From `results/frozen/v4/trade_study_scores.csv`'s inputs (`scripts/trade_study.py`):
+## How to interpret the evidence
 
-| Architecture | Mission-thread success | Resilience | Latency (KM median, s) | Fidelity (lossless frac.) | Space burden (mean J) | Terminal burden (raw frac.) | Lock-in score |
-|---|---|---|---|---|---|---|---|
-| GroundOnly | 0.000 | 0.000 | 604,800 (never) | 1.00 | 0 | 1.00 | 1 |
-| CompressedFull | 0.000 | 0.000 | 604,800 (never) | 0.00 | 300 | 0.00 | 1 |
-| QuicklookFirst | 0.000 | 0.000 | 604,800 (never) | 0.00 | 30 | 0.00 | 2 |
-| RoiFirst | 0.012 | 0.009 | 35,587 | 0.00 | 300 | 0.00 | 2 |
-| Progressive | 0.014 | 0.011 | 19,872 | 0.00 | 300 | 0.00 | 4 |
-| ContactAware | 0.000 | 0.000 | 604,800 (never) | 0.33 | 200 | 0.33 | 3 |
-| ThreadAwarePriority (A6) | 0.016 | 0.012 | 19,350 | 0.00 | 300 | 0.00 | 6 |
+The simulation tests delivery under assumed product usefulness. It does not assess image interpretation, radiometric quality after compression, real terminal performance, or service availability. The prior-reference scenario checks whether a prerequisite exists; it does not implement change detection. The current summary reports deadline outcomes and whether any sufficient product arrived by the horizon. It does not report partial-byte fraction, complete-product time, contact utilization, energy, or peak storage for these cases.
 
-ContactAware's lock-in score rose from 2 (v3, tier count + 1 for
-conditional logic) to 3 (v4, tier count + 2), and ThreadAwarePriority's
-from 5 to 6, under the v4 ownership-boundary proxy (ADR-021); both remain
-`CONDITIONAL_LOGIC = True`.
-
-Mission-thread success roughly doubled to tripled across the tiered
-architectures compared to v3's single-satellite baseline (v3: 0.078% tied
-across RoiFirst/Progressive/ThreadAwarePriority; v4: 1.2%/1.4%/1.6%
-respectively), driven entirely by the same-pass collect-and-downlink fix
-(`docs/DECISION_LOG.md` ADR-020), not by any change to the architectures
-themselves.
-
-## Mission-thread success at the single-satellite baseline: real separation, not a tie
-
-Unlike v3, where the top three architectures tied EXACTLY (7 vs. 7 vs. 7
-successes out of 9,000 paired trials), v4's baseline shows genuine,
-statistically significant separation
-(`results/frozen/v4/e11_significance_tests.csv`,
-`src/leo_edge/stats.py::paired_bootstrap_diff_ci`):
-
-| Comparison | Result |
-|---|---|
-| ThreadAwarePriority vs. Progressive | 142 vs. 129 of 9,000, **significant** (diff +0.14pp) |
-| Progressive vs. RoiFirst | 129 vs. 109 of 9,000, **significant** |
-| ThreadAwarePriority vs. RoiFirst | 142 vs. 109 of 9,000, **significant** |
-| Progressive vs. QuicklookFirst | 129 vs. 2 of 9,000, **significant** |
-
-GroundOnly, CompressedFull, and ContactAware remain at exactly 0
-successes: structurally incapable of ever producing an early tier,
-unchanged from v3.
-
-MT-4 (persistent monitoring) still scores 0% for every architecture at
-this baseline: even the tiered architectures never sustain the required
-cadence (no 2-consecutive-miss gap) across a full week at one satellite.
-
-## Scored results by stakeholder weight profile
-
-From `results/frozen/v4/trade_study_scores.csv`, `WITH_A6` architecture set:
-
-| Profile | SIMULATED_ONLY top (normalized score) | COMBINED top | COMBINED full order |
-|---|---|---|---|
-| TACTICAL_USER_LEANING | ThreadAwarePriority (1.000, vs. Progressive 0.943) | **RoiFirst** (0.676) | RoiFirst, Progressive, ThreadAwarePriority, GroundOnly, QuicklookFirst, ContactAware, CompressedFull |
-| ACQUISITION_LEANING | ThreadAwarePriority (1.000, vs. Progressive 0.936) | **RoiFirst** (0.678) | RoiFirst, Progressive, GroundOnly, ThreadAwarePriority, CompressedFull, QuicklookFirst, ContactAware |
-| TERMINAL_OPERATOR_LEANING | ThreadAwarePriority (1.000, vs. Progressive 0.934) | **RoiFirst** (0.700) | RoiFirst, Progressive, ThreadAwarePriority, QuicklookFirst, CompressedFull, ContactAware, GroundOnly |
-| BALANCED | ThreadAwarePriority (1.000, vs. Progressive 0.943) | **RoiFirst** (0.611) | RoiFirst, Progressive, ThreadAwarePriority, GroundOnly, QuicklookFirst, ContactAware, CompressedFull |
-
-**`SIMULATED_ONLY` and `COMBINED` disagree on the top architecture in
-every single profile, exactly as in v3.** Unlike v3, where
-ThreadAwarePriority's `SIMULATED_ONLY` edge over Progressive was a
-rounding-level artifact of two statistically tied architectures, v4's
-`SIMULATED_ONLY` edge (1.000 vs. 0.943 or lower) reflects a real,
-statistically significant mission-thread-success and latency advantage
-(see the baseline table above). `RoiFirst` still wins the `COMBINED` view
-every time, because its smaller tier count (2, vs. Progressive's 4 and
-ThreadAwarePriority's 4+2=6 under the new lock-in proxy) gives it a real
-advantage on `acquisition_lock_in_risk` that outweighs its real but
-smaller latency disadvantage (35,587s vs. ~19,400-19,900s KM median).
-
-**This flip is not an artifact of the lock-in proxy.** `docs/DECISION_LOG.md`
-ADR-021 replaced the bare tier-count proxy with one explicitly tied to
-`docs/INTERFACES.md`'s ownership boundary (named data-format interfaces
-plus a doubled weight for runtime conditional logic), and RoiFirst still
-wins `COMBINED` in every profile, and its `COMBINED` gap over
-ThreadAwarePriority is now *wider* than under the old proxy, since A6's
-score got worse (6, up from 5) while RoiFirst's stayed the same (2).
-
-## Weight-sensitivity: where rankings flip
-
-`scripts/trade_study.py`'s sensitivity sweep (`trade_study_sensitivity.csv`,
-COMBINED view, WITH_A6 set) varies each criterion's weight by up to
-+/-0.30 around each profile's baseline. Real rank flips found:
-
-- **Acquisition lock-in risk**, swept under every profile: the top
-  architecture moves among GroundOnly, Progressive, RoiFirst, and
-  ThreadAwarePriority depending on profile.
-- **Fidelity**, swept under ACQUISITION_LEANING and BALANCED: flips
-  between GroundOnly and RoiFirst. GroundOnly is the only architecture
-  that ever delivers a lossless product, despite never succeeding a
-  mission thread at all. Under TACTICAL_USER_LEANING and
-  TERMINAL_OPERATOR_LEANING, it flips between GroundOnly and
-  ThreadAwarePriority instead.
-- **Mission-thread success and resilience**, newly appearing as
-  sensitivity flip points in v4 (not in v3, where these three
-  architectures were tied): under BALANCED and TERMINAL_OPERATOR_LEANING,
-  sweeping either criterion's weight moves the top architecture among
-  Progressive, RoiFirst, and ThreadAwarePriority, a direct consequence
-  of the real separation the same-pass fix produced.
-- **Space-segment processing burden**, swept under ACQUISITION_LEANING,
-  BALANCED, and TERMINAL_OPERATOR_LEANING: flips between GroundOnly (or
-  QuicklookFirst) and RoiFirst/ThreadAwarePriority, since GroundOnly does
-  zero onboard processing.
-
-No sweep ever brought CompressedFull or ContactAware to the top of any
-profile.
-
-## Resilience: still no graceful degradation
-
-Nominal and degraded success rates remain close together for every
-architecture at the single-satellite baseline (e.g. ThreadAwarePriority:
-1.6% mean success, 1.2% mean resilience-under-degraded, a real but
-small gap, not the collapse-to-zero v3 showed at this access level). See
-`docs/ACQUISITION_IMPLICATIONS.md` for whether this pattern holds across
-the real Walker sweep.
-
-## What this trade study does not show
-
-It does not show that RoiFirst, Progressive, or ThreadAwarePriority are
-good enough in an absolute sense: a 1.2-1.6% mission-thread success rate
-at the single-satellite baseline is still not a working system. It also
-does not show that RoiFirst is operationally "the best architecture": the
-`COMBINED` ranking that favors it is driven by a real, code-derived
-lock-in-risk advantage, not a mission-thread-success advantage --
-ThreadAwarePriority and Progressive both beat it there, with statistical
-significance. See `docs/ACQUISITION_IMPLICATIONS.md` for the real headline
-(access moves success most; architecture matters once access is high enough
-to test it) and `docs/DECISION_LOG.md` for what changed from earlier
-versions.
+Generating and sending a smaller product early can matter when that product fits the need and a contact can deliver it before the deadline. Changing the order cannot recover a missed collection or terminal opportunity. The [requirements trace](REQUIREMENTS.md), [verification plan](V_AND_V.md), and [assumptions](ASSUMPTIONS.md) show which parts have been checked and which remain open.

@@ -1,71 +1,16 @@
 # Interfaces
 
-SV-1-equivalent interface reference (`docs/ARCHITECTURE_VIEWS.md`'s
-Physical View is the diagram; this is the detail table). Everything here
-crosses the commercial-space-segment / Army-edge-segment ownership
-boundary (`docs/ALLOCATION_SPACE.md`), which is exactly why
-`docs/ACQUISITION_IMPLICATIONS.md` recommends standardizing this
-interface, not any one provider's onboard implementation.
+The service and terminal need to agree on what a request means and what has arrived. These conceptual information contracts define that exchange. They do not specify a radio protocol or an Army standard. The [model catalog](reference/MODEL_CATALOG.md) names the endpoints and identifiers; the [generated exchange view](reference/VIEWS.md) shows direction.
 
-## Data formats
-
-* Raw imagery: GeoTIFF, 16 bit, 3 bands
-* Metadata (P0): JSON with timestamp, lat/lon, altitude, quality flags
-* Thumbnail (P1) / Quicklook (P2): JPEG
-* ROI (P3): GeoTIFF subset, full resolution, cropped
-* Full (P4): GeoTIFF (GroundOnly) or compressed JPEG (CompressedFull and other onboard-processed architectures); see `docs/ASSUMPTIONS.md` ASM-PROC-002 for the compression ratio assumption
-
-## Units
-
-* Time: seconds
-* Data: bytes
-* Energy: joules
-* Rate: bits per second
-
-## Rates and throughput (design ranges used across `experiments/` and `docs/MISSION_THREADS.md`)
-
-* Downlink: 1-100 Mbps (nominal single-window sweeps in `e03_static_architectures.py`); terminal-class-specific ranges are 10-100 Mbps (vehicle-mounted) and 1-10 Mbps (dismounted/manpack), `docs/MISSION_THREADS.md`
-* Onboard processor throughput: not directly modeled as a byte rate; processing is a fixed nominal duration (`processing_time_s`, `config/product_sizing.yaml`), scaled by tier in `docs/MODEL_REFERENCE.md`
-
-## Latency tolerances
-
-There is no single blanket TFUP/TCP target. Each mission thread has its
-own latency tolerance (`docs/MISSION_THREADS.md`): 120 s (MT-1), 900 s
-(MT-2 first product), 300 s (MT-4 per pass). `docs/TRADE_STUDY.md` is the
-evidence for whether any architecture meets these under real contact
-geometry; as of that document, none does reliably.
-
-## Energy budgets
-
-* Processing power: 15 W (`config/product_sizing.yaml: power.processing_power_w`)
-* Radio transmit power: 25 W (`config/product_sizing.yaml: power.radio_power_w`)
-* Both are ASSUMED, not measured; see `docs/ASSUMPTIONS.md` ASM-LINK-002, ASM-PROC-001.
-
-## Function-to-segment allocation
-
-| Function | Segment | Notes |
+| Exchange | Information required for this study | Purpose |
 |---|---|---|
-| Task | Rear-echelon cell or Army edge terminal (both paths modeled) | `docs/MISSION_THREADS.md` tasking-path table |
-| Collect | Commercial space segment | Not owned or influenced by the Army in this model beyond the tasking request |
-| Process (tiering) | Commercial space segment, in every architecture this repository evaluates today | `docs/ALLOCATION_SPACE.md`'s uncovered-regions section: no architecture here allocates any processing to the Army edge segment |
-| Prioritize | Commercial space segment | Fixed priority order in A0-A5; A6 reorders around the active mission thread's needed tier (`docs/ALLOCATION_SPACE.md`) |
-| Transmit | Commercial space segment (satellite radio) | Contact-windowed, not continuous |
-| Receive, Exploit, Disseminate | Army edge segment | Terminal-class-dependent capability, `docs/MISSION_THREADS.md` |
+| User request and tasking (I-REQUEST, I-TASK, I-DIRECT) | Request identity, synthetic area, coverage, needed product, assumed deadline, priority, and route. | Defines the need and starts the request clock. |
+| Satellite downlink (I-DOWNLINK) | Collection and product identity, footprint, fidelity or encoding, byte count, and complete or partial state. | Lets the terminal decide what arrived and whether it might satisfy the request. |
+| Provider status (I-STATUS) | Task acceptance, product readiness, and delivery progress or failure. | Keeps a missing or interrupted product visible. |
+| User delivery (I-USER) | Complete usable view and arrival status. | Marks when the information need can be credited. |
 
-## N2 Diagram
+The model has a direct tasking path and a path through an intermediate tasking node. The selected calculation includes an assumed delay for tasking. It does not exchange real messages along either path, so tasking interface verification remains open.
 
-```mermaid
-graph LR
-Provider[Commercial LEO Provider] -->|tiered product P0-P4| Terminal[Army Edge Terminal]
-Provider -->|telemetry| Rear[Rear-Echelon Tasking Cell]
-Rear -->|reachback tasking request| Provider
-Terminal -.direct edge tasking.-> Provider
-Terminal -->|acknowledgement| Provider
-```
+The downlink contract must distinguish a whole scene quicklook from a native resolution crop. It must also distinguish a complete image from a partial transfer. A full scene can support terminal derivation only when fidelity, terminal capability, processing time, and deadline allow it. The current fidelity check covers native spatial resolution; radiometric quality is outside the model.
 
-## Interface Standards
-
-All interfaces follow the documented units and formats above. Changes
-require a `docs/DECISION_LOG.md` ADR, and must be reflected here,
-`docs/DATA_DICTIONARY.md`, and `docs/ASSUMPTIONS.md` together
-(`docs/ARCHITECTURE_VIEWS.md`'s closing note).
+Contact capacity equals duration times effective rate divided by eight, converting bits to bytes. Collection may occur during an open terminal contact; a later contact with the same satellite can carry the remaining bytes. [Requirements](REQUIREMENTS.md) states the interface obligations. [Verification](V_AND_V.md) separates capacity tests from inspection of the proposed fields.

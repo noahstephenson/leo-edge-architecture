@@ -1,35 +1,28 @@
-.PHONY: reproduce test experiments access_sweep figures trade_study
+.PHONY: reproduce test model_check model_views selected_evidence rebuild_selected_evidence current_figure
 
-reproduce: test experiments figures trade_study
+reproduce: test selected_evidence current_figure
 	@echo "Reproduce complete"
 
-test:
-	uv sync
+selected_evidence:
+	uv run python experiments/e13_mbse_evidence.py --check
+
+# Writes a separate local copy; the committed current evidence is not overwritten.
+# Choose another --output path if results/reproduced/current already exists.
+rebuild_selected_evidence:
+	uv run python experiments/e13_mbse_evidence.py --output results/reproduced/current
+
+current_figure: selected_evidence
+	uv run python figures/scripts/fig_mt2_deadline.py
+	uv run python figures/scripts/fig_mt2_deadline.py --check
+
+model_check:
+	uv run python scripts/validate_model.py
+	uv run python scripts/generate_model_views.py --check
+	uv run python scripts/check_reading_path.py
+
+model_views:
+	uv run python scripts/validate_model.py
+	uv run python scripts/generate_model_views.py
+
+test: model_check
 	uv run pytest
-
-experiments:
-	uv sync
-	@echo "Running experiments..."
-	for f in experiments/*.py; do \
-		case $$f in *e12_access_sweep.py) continue;; esac; \
-		echo "Running $$f"; \
-		uv run python $$f; \
-	done
-
-# Real per-satellite SGP4 for up to 24 satellites; takes about an hour.
-access_sweep:
-	uv sync
-	uv run python experiments/e12_access_sweep.py
-
-figures:
-	uv sync
-	@echo "Generating figures..."
-	for f in figures/scripts/*.py; do \
-		echo "Generating $$f"; \
-		uv run python $$f; \
-	done
-
-trade_study:
-	uv sync
-	@echo "Running trade study..."
-	uv run python scripts/trade_study.py

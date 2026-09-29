@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-# Measured hardware benchmark config (updated by scripts/import_hardware_benchmark.py)
-# Values are seconds per MB
+# Historical laptop benchmark values in seconds per MB. These are not used
+# to calibrate the current architecture analysis.
 MEASURED_CONFIG = {
     "compression_s_per_mb": 0.006897892777777776,
     "quicklook_s_per_mb": 0.015342352222222222,
     "roi_s_per_mb": 0.0009992768749999999,
-    "source_csv": "C:/Users/noahh/OneDrive - West Point/leo-edge-architecture/results/frozen/image_benchmark.csv",
+    "source_csv": "data/imagery/benchmark/image_benchmark.csv",
     "updated_at": "2026-09-18T21:20:20.687564Z",
 }
 

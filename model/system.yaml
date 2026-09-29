@@ -1,0 +1,186 @@
+model:
+  id: LEO-EDGE
+  title: Commercial LEO imagery delivery to a tactical edge terminal
+  version: 1
+  status: conceptual_study
+  boundary: From a notional imagery request to a usable product at an Army-owned terminal.
+  research_question: How should imagery functions be allocated between a commercial LEO space segment and an Army-owned tactical edge segment, and how does the preferred allocation shift across mission needs, terminal classes, and contested or DDIL conditions?
+  authority: The YAML catalogs are the source for generated GitHub views; code and current reproducible results are the authority for computed outcomes.
+  limitations: All mission scenarios and performance requirements are notional and unofficial. No operational capability is validated.
+
+stakeholders:
+  - id: ST-USER
+    name: Tactical imagery user
+    description: Requests and uses imagery products in the notional mission threads.
+    provenance: docs/OPERATIONAL_CONTEXT.md
+  - id: ST-OPERATOR
+    name: Terminal operator
+    description: Operates the Army-owned receiving terminal under class-dependent constraints.
+    provenance: docs/MISSION_THREADS.md
+  - id: ST-PROVIDER
+    name: Commercial imagery provider
+    description: Operates the collection spacecraft and delivers contracted products.
+    provenance: docs/CONOPS.md
+  - id: ST-ACQUISITION
+    name: Acquisition analyst
+    description: Compares provider obligations and terminal capabilities using reproducible evidence.
+    provenance: docs/ACQUISITION_IMPLICATIONS.md
+
+elements:
+  - id: E-SYSTEM
+    name: Imagery delivery system of interest
+    description: End-to-end request, collection, product generation, transfer, and terminal use.
+    provenance: docs/CONOPS.md
+  - id: E-PROVIDER
+    name: Commercial imagery service
+    description: Provider-owned tasking and spacecraft operations.
+    provenance: docs/ALLOCATION_SPACE.md
+  - id: E-TASKING
+    name: Tasking path
+    description: Direct or reachback route from requester to provider; selected by scenario, not architecture ID.
+    provenance: docs/MISSION_THREADS.md
+  - id: E-SATELLITE
+    name: Commercial LEO satellite
+    description: Collects imagery, stores and prepares products, and transmits during access windows.
+    provenance: docs/ALLOCATION_SPACE.md
+  - id: E-TERMINAL
+    name: Army-owned tactical terminal
+    description: Receives products and, when capable, derives a needed product from a received full scene.
+    provenance: docs/MISSION_THREADS.md
+  - id: E-USER
+    name: Imagery user
+    description: Submits a request and receives a usable product.
+    provenance: docs/CONOPS.md
+
+views:
+  - id: VIEW-REQ
+    name: Need-to-verification trace
+    question: How is a notional need checked?
+    style: SysML requirement-relationship analogue
+  - id: VIEW-ACT
+    name: Logical delivery activity
+    question: What happens between request and usable product?
+    style: SysML activity analogue
+  - id: VIEW-ALLOCATION
+    name: Function allocation
+    question: Which system element performs each function?
+    style: SysML allocation relationship view; allocation is cross-cutting, not a dedicated diagram type
+  - id: VIEW-STRUCT
+    name: System structure
+    question: Which elements participate and where is the ownership boundary?
+    style: SysML block-definition analogue with part-composition relationships
+  - id: VIEW-IF
+    name: Provider-terminal interfaces
+    question: What crosses the ownership boundary?
+    style: SysML internal-block analogue with connected parts and labeled item flows
+  - id: VIEW-SEQ
+    name: Delivery sequence
+    question: When can collection, contact, and terminal derivation occur?
+    style: SysML sequence analogue
+  - id: VIEW-STATE
+    name: Product state
+    question: How does a product progress or fail?
+    style: SysML state-machine analogue
+  - id: VIEW-PAR
+    name: Parametric timing constraint
+    question: Which quantities determine timely delivery?
+    style: SysML parametric-diagram analogue with value properties, constraint properties, and binding connectors
+
+# These are semantic view records. The generator supplies Mermaid syntax;
+# events, states, guards, variables, and dependency edges live here.
+representative_trace: [T-026, T-027, T-004, T-028, T-081, T-082, T-083, T-084]
+
+logical_flow:
+  - {from: F-01, to: F-02, guard: precedes}
+  - {from: F-02, to: F-03, guard: precedes}
+  - {from: F-03, to: F-04, guard: precedes}
+  - {from: F-04, to: F-05, guard: precedes}
+  - {from: F-05, to: F-06, guard: precedes}
+  - {from: F-06, to: F-07, guard: precedes}
+  - {from: F-07, to: F-08, guard: if full scene and capable}
+  - {from: F-07, to: F-09, guard: if sufficient as received}
+  - {from: F-08, to: F-09, guard: if sufficient and timely}
+  - {from: F-09, to: F-10, guard: precedes}
+
+sequence_view:
+  participants:
+    - {alias: U, element: E-USER, label: Soldier}
+    - {alias: T, element: E-TERMINAL, label: Army tactical terminal}
+    - {alias: R, element: E-TASKING, label: Reachback tasking path}
+    - {alias: P, element: E-PROVIDER, label: Commercial provider}
+    - {alias: S, element: E-SATELLITE, label: Collecting satellite}
+  steps:
+    - {kind: message, from: U, to: T, label: Submit request}
+    - {kind: alt, label: Reachback tasking}
+    - {kind: message, from: T, to: R, label: Route imagery request, reference: I-REQUEST}
+    - {kind: message, from: R, to: P, label: Send collection task, reference: I-TASK}
+    - {kind: else, label: Direct tasking}
+    - {kind: message, from: T, to: P, label: Request imagery directly, reference: I-DIRECT}
+    - {kind: end}
+    - {kind: message, from: P, to: S, label: Task collection and product preparation}
+    - {kind: message, from: S, to: S, label: Collect scene and prepare selected products, reference: F-02}
+    - {kind: note, over: [S, T], label: Collection and downlink may occur in one pass}
+    - {kind: loop, label: Available contacts until complete or censored}
+    - {kind: message, from: S, to: T, label: Send product bytes and completeness, reference: I-DOWNLINK, dashed: true}
+    - {kind: end}
+    - {kind: message, from: P, to: T, label: Report availability or delivery status, reference: I-STATUS, dashed: true}
+    - {kind: opt, label: Full scene received and terminal capable}
+    - {kind: message, from: T, to: T, label: Derive requested view, reference: F-08}
+    - {kind: end}
+    - {kind: message, from: T, to: U, label: Present usable product or failure status, reference: I-USER, dashed: true}
+
+product_state_view:
+  states: [Requested, Collected, Unserved, Ready, Partial, Received, Derived, Usable, Censored, Late, Insufficient, MissingPrior, FallbackScene]
+  transitions:
+    - {from: START, to: Requested}
+    - {from: Requested, to: Collected, guard: access and collection}
+    - {from: Requested, to: Unserved, guard: no collection before horizon}
+    - {from: Collected, to: Ready, guard: product generated or raw retained}
+    - {from: Ready, to: Partial, guard: contact carries some bytes}
+    - {from: Partial, to: Partial, guard: next contact carries more bytes}
+    - {from: Ready, to: Ready, guard: contact interrupted or denied}
+    - {from: Partial, to: Partial, guard: contact interrupted; bytes retained}
+    - {from: Ready, to: Received, guard: whole product in one contact}
+    - {from: Partial, to: Received, guard: remaining bytes delivered}
+    - {from: Received, to: Derived, guard: full scene and capable terminal}
+    - {from: Received, to: Usable, guard: sufficient and within deadline}
+    - {from: Derived, to: Usable, guard: sufficient and within deadline}
+    - {from: Ready, to: Censored, guard: evaluation horizon ends}
+    - {from: Partial, to: Censored, guard: evaluation horizon ends}
+    - {from: Received, to: Late, guard: complete after deadline}
+    - {from: Received, to: Insufficient, guard: coverage or fidelity inadequate}
+    - {from: Received, to: MissingPrior, guard: change requested without prior reference}
+    - {from: Derived, to: Insufficient, guard: coverage or fidelity inadequate}
+    - {from: Derived, to: Late, guard: completed after deadline}
+    - {from: MissingPrior, to: FallbackScene, guard: new scene only; no change product}
+    - {from: Usable, to: END}
+    - {from: Censored, to: END}
+    - {from: Insufficient, to: END}
+    - {from: Late, to: END}
+    - {from: FallbackScene, to: END}
+    - {from: Unserved, to: END}
+
+parametric_view:
+  nodes:
+    - {id: lead, label: 'T_lead [s]: processing completed before contact', role: value_property}
+    - {id: proc, label: 'T_proc [s]: total processing time', role: value_property}
+    - {id: raw, label: 'D_raw [byte]: full-scene data size', role: value_property}
+    - {id: product, label: 'D_product [byte]: reduced-product data size', role: value_property}
+    - {id: rate, label: 'R [bit/s]: downlink rate', role: value_property}
+    - {id: exposed, label: 'T_exposed [s]: processing that delays transmission', role: value_property}
+    - {id: saved, label: 'T_saved [s]: transmission time saved', role: value_property}
+    - {id: earlier, label: 'Earlier product? [Boolean]', role: value_property}
+    - {id: c_exposed, label: 'C1: T_exposed = max(0, T_proc - T_lead)', role: constraint_property}
+    - {id: c_saved, label: 'C2: T_saved = 8*(D_raw - D_product) / R', role: constraint_property}
+    - {id: c_compare, label: 'C3: Earlier if T_exposed < T_saved', role: constraint_property}
+  dependencies:
+    - {from: proc, to: c_exposed, type: bind T_proc}
+    - {from: lead, to: c_exposed, type: bind T_lead}
+    - {from: c_exposed, to: exposed, type: bind T_exposed}
+    - {from: raw, to: c_saved, type: bind D_raw}
+    - {from: product, to: c_saved, type: bind D_product}
+    - {from: rate, to: c_saved, type: bind R}
+    - {from: c_saved, to: saved, type: bind T_saved}
+    - {from: exposed, to: c_compare, type: bind T_exposed}
+    - {from: saved, to: c_compare, type: bind T_saved}
+    - {from: c_compare, to: earlier, type: bind Earlier}

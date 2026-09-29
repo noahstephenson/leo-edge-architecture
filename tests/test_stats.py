@@ -23,12 +23,7 @@ def test_paired_bootstrap_detects_large_real_difference():
 
 
 def test_paired_bootstrap_point_estimate_matches_raw_counts():
-    """docs/DECISION_LOG.md/the v3 task cites 73 vs 69 successes out of
-    6,000 paired trials as a gap that must be tested, not assumed
-    significant either way. This checks the point estimate is exactly
-    right; the actual significance call depends on how correlated real
-    paired trials are (see test_paired_bootstrap_correlated_pairs_can_be_
-    significant_at_small_gaps below), so it isn't hardcoded here."""
+    """The point estimate is the difference in paired success fractions."""
     n = 6000
     a = [1] * 73 + [0] * (n - 73)
     b = [1] * 69 + [0] * (n - 69)

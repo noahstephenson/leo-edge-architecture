@@ -1,98 +1,14 @@
-# Stakeholders
+# Stakeholders and measures
 
-All notional. This describes the roles the allocation decision has to
-satisfy simultaneously, and where their interests conflict, not real named
-organizations or individuals.
+The study follows a soldier using a generic Army-owned terminal. The soldier requests imagery of a synthetic area and needs to know whether a complete product is available before the stated time limit. Here, “readable” means the terminal can present the modeled product. The study does not test whether a soldier can interpret it or use it to make a real decision.
 
-For the operational story these roles act in, see `docs/CONOPS.md`.
+| Stakeholder | Need in the study | Outside the model |
+|---|---|---|
+| Soldier at the terminal | Request imagery, check its delivery state, and view a complete product with the requested coverage and detail. | Soldier trials, display testing, image interpretation, and operational usefulness. |
+| Terminal operator | Check whether a product is complete and whether the terminal can derive a smaller view from a full scene. | Actual hardware, workload, training, and procedures. |
+| Commercial imagery provider | Receive a clear request and identify each product, its order, and its delivery state. | Provider implementation, service guarantees, and contracts. |
+| Acquisition decision maker | See which functions and exchanges belong to the service and which belong at the terminal. | Costs, procurement choices, and acquisition recommendations. |
 
-## Tactical user
+An interrupted contact can leave only part of a product at the terminal. The study records that transfer as incomplete. If no sufficient product arrives before the limit, the soldier has no new usable product in time. The model does not substitute an old image or infer what the soldier should do.
 
-The soldier or unit consuming the imagery product at the edge terminal.
-
-**Values**: speed to an actionable product, matched to the mission thread
-at hand (`docs/MISSION_THREADS.md`); a product they can trust (known
-fidelity, not silently degraded); the system working when the link is
-degraded, not just under nominal conditions.
-
-**Doesn't value**: product standardization for its own sake, or
-architectural elegance; if a mission-tailored, non-standard product gets
-them what they need faster, that's what they want.
-
-## Terminal operators
-
-The soldiers or small team responsible for setting up, operating, and
-maintaining the edge terminal in the field.
-
-**Values**: low SWaP burden (a terminal that's actually portable and power-
-sufficient for its class, `docs/MISSION_THREADS.md`'s terminal classes);
-simple operation under stress; graceful behavior when contact is lost or
-degraded, not a system that just stops working.
-
-**Conflicts with tactical user**: the user wants the richest product
-possible; the operator has to live within whatever compute and power the
-terminal class actually has. A dismounted terminal operator can't deliver
-what a vehicle-mounted terminal can, no matter what the user wants.
-
-## Rear-echelon intelligence and tasking cell
-
-The element that plans collections, deconflicts requests across multiple
-users, and (under the reachback tasking path) submits collection requests
-to the commercial provider on the edge user's behalf.
-
-**Values**: visibility into and control over what's being tasked, so
-requests can be deconflicted and prioritized across the force, not just
-satisfied one at a time; a tasking interface that works the same way
-regardless of which commercial provider is being used.
-
-**Conflicts with tactical user**: reachback tasking adds latency
-(`docs/MISSION_THREADS.md`'s tasking-path parameters) that the tactical
-user, especially on a time-sensitive thread, doesn't want to pay. Direct
-edge tasking bypasses the rear-echelon cell's deconfliction role entirely.
-
-## Commercial provider
-
-The company operating the LEO imaging satellites and selling collection
-and delivery as a service.
-
-**Values**: a standardized product and tasking interface that works the
-same way across all its customers, not a bespoke integration per customer;
-predictable, well-specified requirements it can build a service catalog
-around; not being locked into exposing proprietary onboard processing
-details.
-
-**Conflicts with tactical user and terminal operators**: the edge wants
-mission-tailored products (a specific tier, a specific ROI, a specific
-priority order) and terminal-specific delivery behavior; a provider
-optimized for a broad customer base has limited incentive to build
-military-specific tiering or terminal-specific delivery logic unless it's
-required and paid for as a standard service feature, not a one-off.
-
-## Army acquisition / program office
-
-The organization responsible for contracting the commercial service and
-fielding the edge terminal.
-
-**Values**: low vendor lock-in (the terminal and tasking interface should
-work with more than one commercial provider); requirements that are
-specific enough to be enforceable in a contract but not so specific they
-lock in one vendor's implementation; evidence that a requirement is
-actually load-bearing (tied to a mission-thread outcome) before it goes
-into a contract, not a wish list.
-
-**Conflicts with commercial provider**: standardization and multi-vendor
-interoperability, which acquisition wants to avoid lock-in, cost the
-provider differentiation and may cost more to build than a proprietary
-interface.
-
-**Conflicts with tactical user**: the most mission-tailored possible
-architecture is often the most vendor-specific and hardest to
-re-compete, which is exactly what acquisition is trying to avoid.
-
-## Where this goes next
-
-`docs/TRADE_STUDY.md` turns "what each stakeholder values" into weighted
-criteria (mission-thread success, latency, fidelity, terminal SWaP burden,
-resilience, acquisition lock-in risk) and shows where the ranking of
-candidate allocations changes depending on whose values are weighted
-heaviest.
+The main measure is the time until the first complete product meets the requested coverage and assumed detail. Repeated area updates start the clock at each collection; the other scenarios start it when the request is made. The study also records whether the time limit was met and whether a usable product arrived. Other measures are reported only when the selected evidence includes them. The [scenarios](MISSION_THREADS.md) define the requests, and [requirements](REQUIREMENTS.md) connect them to system behavior. A simulated success depends on assumed product usefulness and says nothing about soldier effectiveness.
