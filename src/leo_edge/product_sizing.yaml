@@ -1,0 +1,19 @@
+# Notional assumptions, not measured imagery or processor performance.
+scene_bytes: 1000000000
+processing:
+  nominal_time_s: 20.0
+compressed_full:
+  size_fraction: 0.3
+quicklook:
+  size_fraction: 0.02
+  processing_time_fraction: 0.1
+roi:
+  size_fraction: 0.05
+progressive:
+  metadata_bytes: 20480
+  thumbnail_bytes: 524288
+contact_aware:
+  margin_alpha: 0.2
+power:
+  processing_power_w: 15
+  radio_power_w: 25

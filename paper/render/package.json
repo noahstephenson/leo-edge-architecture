@@ -1,0 +1,11 @@
+{
+  "name": "leo-edge-manuscript-renderer",
+  "private": true,
+  "type": "module",
+  "scripts": {"render": "node render.mjs"},
+  "dependencies": {
+    "marked": "17.0.5",
+    "mermaid": "11.12.0",
+    "playwright": "1.62.1"
+  }
+}

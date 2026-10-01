@@ -45,7 +45,10 @@ SOURCE_PATHS = (
     "src/leo_edge/orbit/access.py",
     "src/leo_edge/orbit/constellation.py",
     "src/leo_edge/stats.py",
-    "config/product_sizing.yaml",
+    "src/leo_edge/product_sizing.yaml",
+    "src/leo_edge/configuration.py",
+    "experiments/evidence_analysis.py",
+    "results/history/pre-completion-2026-09-30/single_request_trials.csv",
     "model/system.yaml",
     "model/architecture.yaml",
     "model/assurance.yaml",
@@ -94,20 +97,25 @@ def _merged_windows(site_windows: list[list[tuple[float, float, float]]]):
     return [(start, end - start, (start + end) / 2.0) for start, end in merged]
 
 
-def _access_for_config(config: tuple[int, int, int], hours: float):
+def _access_for_config(config: tuple[int, int, int], hours: float,
+                       step_seconds=30.0, start_offset_s=0.0, aoi_shift=0.0,
+                       single_site_only=False):
     total, planes, phasing = config
     tles = generate_walker_delta_tles(total, planes, phasing, ALTITUDE_KM, INCLINATION_DEG)
-    aoi_raw = per_satellite_access_windows(tles, AOI_LAT, AOI_LON,
-                                           MIN_ELEVATION_DEG, hours)
-    aoi = {sat: _offset_windows(windows) for sat, windows in aoi_raw.items()}
+    aoi_raw = per_satellite_access_windows(tles, AOI_LAT + aoi_shift, AOI_LON + aoi_shift,
+                                           MIN_ELEVATION_DEG, hours, step_seconds, start_offset_s)
+    def offsets(windows):
+        return [(start - start_offset_s, duration, peak - start_offset_s)
+                for start, duration, peak in _offset_windows(windows)]
+    aoi = {sat: offsets(windows) for sat, windows in aoi_raw.items()}
     sites = []
-    for lat, lon in TERMINAL_SITES:
+    for lat, lon in TERMINAL_SITES[:1] if single_site_only else TERMINAL_SITES:
         raw = per_satellite_access_windows(tles, lat, lon,
-                                           MIN_ELEVATION_DEG, hours)
-        sites.append({sat: _offset_windows(windows)
+                                           MIN_ELEVATION_DEG, hours, step_seconds, start_offset_s)
+        sites.append({sat: offsets(windows)
                       for sat, windows in raw.items()})
     by_count = {}
-    for count in SITE_COUNTS:
+    for count in (1,) if single_site_only else SITE_COUNTS:
         by_count[count] = {
             sat: _merged_windows([site[sat] for site in sites[:count]])
             for sat in aoi
@@ -159,6 +167,7 @@ def _single_rows(config, count, aoi, downlink, hours, trials, seed):
                             "condition": condition_id, "thread": thread_id,
                             "trial": trial, "architecture_id": arch_id,
                             "mode": "single_request",
+                            "receiver_semantics": "requesting_terminal" if count == 1 else "pooled_connected_receiver_zero_forwarding_delay",
                             "paired_context_sha256": context_sha256,
                             "request_time_s": result["request_time_s"],
                             "collection_time_s": result["collection_time_s"],
@@ -172,6 +181,10 @@ def _single_rows(config, count, aoi, downlink, hours, trials, seed):
                             "produced": result["produced_tier"],
                             "structural_incapacity": result["structural_incapacity"],
                             "success": result["success"],
+                            **{key: result[key] for key in (
+                                "collection_delay_s", "full_scene_arrival_time_s", "full_scene_latency_s",
+                                "full_scene_deadline_met", "bytes_transmitted", "contact_utilization", "outcome")},
+                            "product_progress_json": json.dumps(result["product_progress"], sort_keys=True),
                         })
     return rows
 
@@ -212,7 +225,8 @@ def _cadence_rows(config, count, aoi, downlink, trials, seed):
                         "terminal_sites": count, "terminal_class": terminal_id,
                         "condition": condition_id,
                         "thread": "MT4_PERSISTENT_MONITORING", "trial": trial,
-                        "architecture_id": arch_id, "mode": "cadence",
+                        "architecture_id": arch_id, "mode": "independent_opportunities",
+                        "receiver_semantics": "requesting_terminal" if count == 1 else "pooled_connected_receiver_zero_forwarding_delay",
                         "paired_context_sha256": context_sha256,
                         "total_passes": result["total_passes"],
                         "passes_met": result["passes_met"],
@@ -237,7 +251,7 @@ def _summary(rows: list[dict]):
         successes = sum(row["success"] for row in group)
         # One deterministic nominal cadence sequence is a scenario result,
         # not a Bernoulli sample from an uncertainty distribution.
-        lower, upper = (("", "") if key[-1] == "cadence" and key[3] == "NOMINAL"
+        lower, upper = (("", "") if key[-1] == "independent_opportunities" and key[3] == "NOMINAL"
                         else wilson_ci(successes, n))
         out.append(dict(zip((
             "walker", "terminal_sites", "terminal_class", "condition",
@@ -325,6 +339,18 @@ def check_freeze(output: Path) -> None:
             failures.append(f"result changed: {filename}")
     if not manifest.get("audit_passed") or failures:
         raise RuntimeError("Evidence check failed: " + "; ".join(failures))
+    from evidence_analysis import select
+    claim_sources = {}
+    for claim in json.loads((output / 'claims.json').read_text()):
+        if claim['source'] not in claim_sources:
+            with (output / claim['source']).open(newline='', encoding='utf-8') as stream:
+                claim_sources[claim['source']] = list(csv.DictReader(stream))
+        rows = claim_sources[claim['source']]
+        group = select(rows, claim['filters'])
+        count = (float(group[0][claim['column']]) if claim['aggregation'] == 'first_numeric'
+                 else sum(row[claim['column']] == 'True' for row in group))
+        if count != claim['numerator'] or len(group) != claim['denominator']:
+            raise RuntimeError('Claim filter disagrees with rows: ' + claim['claim'])
     print(f"Evidence verified: {len(manifest['source_sha256'])} sources, "
           f"{len(manifest['result_sha256'])} result files", flush=True)
 
@@ -368,6 +394,11 @@ def main():
                                          args.cadence_trials, args.seed))
 
     config_doc = {
+        "receiver_semantics": {"1": "requesting_terminal", "4": "pooled_connected_receiver_zero_forwarding_delay"},
+        "cadence_scope": "independent opportunities; no shared queue or capacity reservation",
+        "collection_proxy": "peak elevation; no optical field of regard, illumination, clouds, or collection duration",
+        "access_sampling_step_s": 30,
+        "full_scene_receipt_deadline_s": 3600,
         "status": "selected synthetic evidence",
         "walker_t_p_f": WALKER_CONFIGS, "terminal_sites_lat_lon": TERMINAL_SITES,
         "terminal_site_counts": SITE_COUNTS, "terminal_classes": {
@@ -392,7 +423,7 @@ def main():
             "scene_product_rates_deadlines_compute": "sensitivity-only assumptions",
             "terminal_sites": "synthetic locations, not operational terminal locations",
             "mission_utility": "assumed tier sufficiency, not demonstrated capability",
-            "imagery_benchmark": "measured laptop data is not calibrated into this analysis",
+            "imagery_benchmark": "optional synthetic benchmark is not calibrated into this analysis",
         },
         "scenario_labels": {
             "MT1_TIME_SENSITIVE_CUEING": "rapid area update (legacy key retained for file compatibility)",
@@ -412,6 +443,9 @@ def main():
     _write_csv(args.output / "summary.csv", _summary(single + cadence))
     _write_csv(args.output / "parametric.csv", _parametric_rows())
     _write_csv(args.output / "access_counts.csv", access_counts)
+    from evidence_analysis import additional_evidence
+    additional_evidence(args.output, single, args.hours, args.trials, args.seed,
+                        _access_for_config, _trial_context, _write_csv, _write_json)
     _write_json(args.output / "config.json", config_doc)
     _write_json(args.output / "audit.json", audit)
     repo = Path(__file__).resolve().parents[1]

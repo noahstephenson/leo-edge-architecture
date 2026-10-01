@@ -1,7 +1,10 @@
 {
+  "access_sampling_step_s": 30,
   "cadence_event_policy": "all collection events in the evaluation horizon",
+  "cadence_scope": "independent opportunities; no shared queue or capacity reservation",
   "cadence_trials_degraded_per_cell": 6,
   "cadence_trials_nominal_per_cell": 1,
+  "collection_proxy": "peak elevation; no optical field of regard, illumination, clouds, or collection duration",
   "conditions": {
     "COMBINED_DEGRADED": {
       "contact_denial_frac": 0.3,
@@ -15,6 +18,7 @@
     }
   },
   "freeze_check_command": "uv run python experiments/e13_mbse_evidence.py --check",
+  "full_scene_receipt_deadline_s": 3600,
   "horizon_hours": 48.0,
   "orbit": {
     "altitude_km": 550.0,
@@ -28,6 +32,10 @@
   },
   "prior_reference_probability": 0.5,
   "processing_time_s": 20.0,
+  "receiver_semantics": {
+    "1": "requesting_terminal",
+    "4": "pooled_connected_receiver_zero_forwarding_delay"
+  },
   "reproduce_command": "uv run python experiments/e13_mbse_evidence.py --output results/reproduced/current",
   "sample_limitations": "48-hour geometry; request times sampled within the first 47 hours; 24 draws paired across A0-A6 within each fixed Walker/site/thread/terminal/condition cell, with independent draws across Walker and site cells; nominal cadence is one deterministic full pass sequence, while degraded cadence has six denial draws. Wilson intervals describe sampled uncertainty only, not model uncertainty or operational validity",
   "scenario_labels": {
@@ -40,7 +48,7 @@
   "seed": 7,
   "single_request_trials_per_cell": 24,
   "source_classification": {
-    "imagery_benchmark": "measured laptop data is not calibrated into this analysis",
+    "imagery_benchmark": "optional synthetic benchmark is not calibrated into this analysis",
     "mission_utility": "assumed tier sufficiency, not demonstrated capability",
     "orbital_access": "synthetic TLE plus SGP4 geometry; not measured access",
     "scene_product_rates_deadlines_compute": "sensitivity-only assumptions",

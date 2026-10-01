@@ -21,6 +21,8 @@ def generate_access_windows(
     inclination_deg: float,
     duration_hours: float,
     tle_lines: tuple[str, str] | None = None,
+    step_seconds: float = 30.0,
+    start_offset_s: float = 0.0,
 ) -> List[Dict]:
     """Generate satellite access windows for a ground station.
 
@@ -59,13 +61,16 @@ def generate_access_windows(
 
     ts = load.timescale()
     # Deterministic start epoch
-    start_dt = datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
+    if not math.isfinite(step_seconds) or step_seconds <= 0 or not math.isfinite(start_offset_s):
+        raise ValueError("Sampling step must be positive and start offset finite")
+    if not math.isfinite(duration_hours) or duration_hours <= 0:
+        raise ValueError("Propagation duration must be positive")
+    start_dt = datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc) + timedelta(seconds=start_offset_s)
     end_dt = start_dt + timedelta(hours=duration_hours)
 
     # Sample every 30 seconds for a simple deterministic scan
-    step_seconds = 30
     total_seconds = int((end_dt - start_dt).total_seconds())
-    n_steps = max(1, total_seconds // step_seconds + 1)
+    n_steps = max(1, int(total_seconds // step_seconds) + 1)
     datetimes = [start_dt + timedelta(seconds=i * step_seconds) for i in range(n_steps)]
     times = ts.from_datetimes(datetimes)
 

@@ -66,8 +66,8 @@ relationships:
   - {id: T-058, type: exchanges, source: E-SATELLITE, target: I-DOWNLINK, status: modeled}
   - {id: T-059, type: exchanges, source: I-DOWNLINK, target: E-TERMINAL, status: modeled}
   - {id: T-060, type: satisfies, source: A4_PROGRESSIVE, target: REQ-ALLOC-001, status: modeled}
-  - {id: T-061, type: satisfies, source: A5_CONTACT_AWARE, target: REQ-ALLOC-003, status: modeled}
-  - {id: T-062, type: satisfies, source: A6_THREAD_AWARE_PRIORITY, target: REQ-ALLOC-004, status: modeled}
+  - {id: T-061, type: candidate_for, source: A5_CONTACT_AWARE, target: REQ-ALLOC-003, status: modeled}
+  - {id: T-062, type: candidate_for, source: A6_THREAD_AWARE_PRIORITY, target: REQ-ALLOC-004, status: modeled}
   - {id: T-063, type: constrains, source: REQ-ALLOC-002, target: I-DIRECT, status: proposed}
   - {id: T-064, type: verifies, source: V-PRODUCT, target: REQ-THREAD-001, status: proposed}
   - {id: T-065, type: verifies, source: V-PRODUCT, target: REQ-THREAD-002, status: proposed}

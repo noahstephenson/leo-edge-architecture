@@ -96,10 +96,10 @@ interfaces:
     boundary_crossing: true
     provenance: docs/CONOPS.md
   - id: I-USER
-    name: Usable imagery product
+    name: Imagery product or status
     from: E-TERMINAL
     to: E-USER
-    carries: product and explicit utility caveat
+    carries: sufficient product or delivery failure status, with explicit utility caveat
     provenance: docs/CONOPS.md
 
 products:

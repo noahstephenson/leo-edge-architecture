@@ -22,13 +22,14 @@ from leo_edge.architectures import (
 )
 from leo_edge.orbit.constellation import generate_walker_delta_tles, per_satellite_access_windows
 from leo_edge.simulation import simulate_multi_contact
+from leo_edge.configuration import DEFAULT_SIZING
 from leo_edge.mission_threads import MISSION_THREADS
 from leo_edge.products import ProductTier
 from leo_edge.products import TIER_FIDELITY
 from leo_edge.stats import wilson_ci, paired_bootstrap_diff_ci, kaplan_meier_curve
 
-SCENE_BYTES = 1_000_000_000  # 1 GB notional area-of-interest scene
-PROCESSING_TIME_S = 20.0
+SCENE_BYTES = DEFAULT_SIZING.scene_bytes  # notional area-of-interest scene
+PROCESSING_TIME_S = DEFAULT_SIZING.nominal_processing_time_s
 HORIZON_S = 168 * 3600.0  # matches the 1-week access-window generation
 EPOCH = datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 ALTITUDE_KM = 550.0
@@ -44,13 +45,13 @@ AOI_LAT, AOI_LON = 45.0, 5.0
 PRIOR_REFERENCE_PROB = 0.5
 
 ARCHITECTURE_FACTORIES = {
-    "A0_GROUND_ONLY": lambda thread: GroundOnly(),
-    "A1_COMPRESSED_FULL": lambda thread: CompressedFull(),
-    "A2_QUICKLOOK_FIRST": lambda thread: QuicklookFirst(),
-    "A3_ROI_FIRST": lambda thread: RoiFirst(),
-    "A4_PROGRESSIVE": lambda thread: Progressive(),
-    "A5_CONTACT_AWARE": lambda thread: ContactAware(),
-    "A6_THREAD_AWARE_PRIORITY": lambda thread: ThreadAwarePriority(priority_tier=thread["needed_tier"]),
+    "A0_GROUND_ONLY": lambda thread: GroundOnly(sizing=DEFAULT_SIZING),
+    "A1_COMPRESSED_FULL": lambda thread: CompressedFull(sizing=DEFAULT_SIZING),
+    "A2_QUICKLOOK_FIRST": lambda thread: QuicklookFirst(sizing=DEFAULT_SIZING),
+    "A3_ROI_FIRST": lambda thread: RoiFirst(sizing=DEFAULT_SIZING),
+    "A4_PROGRESSIVE": lambda thread: Progressive(sizing=DEFAULT_SIZING),
+    "A5_CONTACT_AWARE": lambda thread: ContactAware(sizing=DEFAULT_SIZING),
+    "A6_THREAD_AWARE_PRIORITY": lambda thread: ThreadAwarePriority(priority_tier=thread["needed_tier"], sizing=DEFAULT_SIZING),
 }
 
 TERMINAL_CLASSES = {
@@ -187,6 +188,9 @@ def usable_downlink_same_satellite(collection_time_s, downlink_windows, denial_r
     after collection)."""
     usable = []
     for (start_s, dur_s, _peak_s), denial_roll in zip(downlink_windows, denial_rolls):
+        # An isolated sampled elevation point provides no transfer capacity.
+        if dur_s <= 0:
+            continue
         end_s = start_s + dur_s
         if end_s <= collection_time_s:
             continue
@@ -222,10 +226,10 @@ def draw_trial_context(rng, condition, aoi_windows_by_sat, downlink_windows_by_s
 
 
 def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal, condition_key, condition,
-                              ctx, trial_idx):
+                              ctx, trial_idx, processing_time_s=PROCESSING_TIME_S):
     architecture = factory(thread)
     arch_name = type(architecture).__name__
-    architecture_capable_flag = architecture_capable(architecture, thread["needed_tier"], SCENE_BYTES, PROCESSING_TIME_S, terminal)
+    architecture_capable_flag = architecture_capable(architecture, thread["needed_tier"], SCENE_BYTES, processing_time_s, terminal)
     rate_bps = terminal["rate_bps"] * condition["interference_derate"]
 
     if thread_key == "MT3_BATTLE_DAMAGE_ASSESSMENT":
@@ -250,6 +254,10 @@ def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal,
             "terminal_processing_time_s": None,
             "product_arrival_time_s": None,
             "final_availability_time_s": None,
+            "collection_delay_s": None, "full_scene_arrival_time_s": None,
+            "full_scene_latency_s": None, "full_scene_deadline_met": False,
+            "bytes_transmitted": 0.0, "contact_utilization": 0.0,
+            "product_progress": {}, "outcome": "no_collection",
         }
 
     collection_time_s, sat_id = ctx["collection"]
@@ -257,7 +265,7 @@ def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal,
     usable = usable_downlink_same_satellite(
         collection_time_s, ctx["downlink_windows"], ctx["denial_rolls"], condition["contact_denial_frac"]
     )
-    result = simulate_multi_contact(architecture, SCENE_BYTES, usable, rate_bps, PROCESSING_TIME_S)
+    result = simulate_multi_contact(architecture, SCENE_BYTES, usable, rate_bps, processing_time_s)
 
     # Find a delivered tier that is sufficient for the needed tier, allowing terminal derivation from P4_FULL
     needed_completion, delivered_tier_found = get_needed_completion(result, thread["needed_tier"], terminal)
@@ -279,6 +287,9 @@ def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal,
         product_arrival_time_s = collection_time_s + needed_completion - terminal_processing_time_s
         final_availability_time_s = collection_time_s + needed_completion
 
+    full_completion = result.tier_completion_s.get(ProductTier.P4_FULL.value)
+    full_arrival = collection_time_s + full_completion if full_completion is not None else None
+    full_latency = full_arrival - request_time_s if full_arrival is not None else None
     structural_incapacity = not architecture_capable_flag
     success = (not structural_incapacity) and produced_tier and latency_s <= tolerance_s
 
@@ -296,15 +307,25 @@ def evaluate_single_request(factory, thread_key, thread, terminal_key, terminal,
         "terminal_processing_time_s": terminal_processing_time_s,
         "product_arrival_time_s": product_arrival_time_s,
         "final_availability_time_s": final_availability_time_s,
+        "collection_delay_s": collection_time_s - request_time_s,
+        "full_scene_arrival_time_s": full_arrival,
+        "full_scene_latency_s": full_latency,
+        "full_scene_deadline_met": full_latency is not None and full_latency <= 3600.0,
+        "bytes_transmitted": result.bytes_transmitted,
+        "contact_utilization": result.contact_utilization,
+        "product_progress": result.product_progress,
+        "outcome": ("timely_sufficient" if success else "insufficient_fidelity" if structural_incapacity
+                    else "late_availability" if produced_tier else "incomplete_transfer"),
     }
 
 
 def evaluate_cadence(factory, thread, terminal_key, terminal, condition_key, condition,
                       collection_events, downlink_windows_by_sat, denial_rolls_by_sat, trial_idx):
-    """MT-4: walk every real collection pass across the horizon (now across
-    every satellite in the constellation, each pass handled by whichever
-    satellite made it); success requires never missing the per-pass
-    tolerance twice in a row."""
+    """Independent opportunities: each collection starts a fresh transfer.
+
+    Capacity is not reserved between collections. This tests opportunities,
+    not stream feasibility or multi-request scheduling.
+    """
     architecture = factory(thread)
     arch_name = type(architecture).__name__
     architecture_capable_flag = architecture_capable(architecture, thread["needed_tier"], SCENE_BYTES, PROCESSING_TIME_S, terminal)
@@ -483,7 +504,10 @@ def main():
                       "latency_s", "produced_tier", "structural_incapacity", "success", "has_prior_reference",
                       "request_time_s", "collection_time_s", "sat_id", "delivered_tier",
                       "terminal_derivation_required", "terminal_processing_time_s",
-                      "product_arrival_time_s", "final_availability_time_s"]
+                      "product_arrival_time_s", "final_availability_time_s",
+                      "collection_delay_s", "full_scene_arrival_time_s", "full_scene_latency_s",
+                      "full_scene_deadline_met", "bytes_transmitted", "contact_utilization",
+                      "product_progress", "outcome"]
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(single_rows)

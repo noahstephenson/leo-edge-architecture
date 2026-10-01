@@ -47,13 +47,13 @@ def test_break_even_condition_matches_latency():
 
 
 def test_energy_favorable_true():
-    # E_p < 8*e_t*(D_r - D_p)
+    # E_p < e_t*(D_r - D_p), with e_t in joules per byte.
     # Choose values where condition holds
     E_p = 10.0
     e_t = 0.001
     D_r = 1e9
     D_p = 3e8
-    # RHS = 8 * 0.001 * 700e6 = 5_600_000
+    # RHS = 0.001 * 700e6 = 700_000 J
     assert energy_favorable(E_p, e_t, D_r, D_p) is True
 
 
@@ -63,6 +63,13 @@ def test_energy_favorable_false():
     D_r = 1e9
     D_p = 3e8
     assert energy_favorable(E_p, e_t, D_r, D_p) is False
+
+
+def test_energy_favorable_uses_joules_per_byte_at_crossover():
+    # Removing 80 bytes at 0.5 J/byte saves 40 J, not 320 J.
+    assert energy_favorable(39.0, 0.5, 100.0, 20.0) is True
+    assert energy_favorable(40.0, 0.5, 100.0, 20.0) is False
+    assert energy_favorable(41.0, 0.5, 100.0, 20.0) is False
 
 
 def test_exposed_processing_time_logic():

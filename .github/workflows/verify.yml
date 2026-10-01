@@ -1,0 +1,50 @@
+name: Verify architecture study
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.11.13'
+          python-version: '3.11'
+      - run: uv sync --frozen --no-editable
+      - run: uv run --frozen --no-editable python -I -c "from leo_edge.configuration import load_sizing; print(load_sizing())"
+      - run: uv run --frozen pytest -q
+      - run: uv run --frozen python scripts/validate_model.py
+      - run: uv run --frozen python scripts/generate_model_views.py --check
+      - run: uv run --frozen python scripts/check_reading_path.py
+      - run: uv run --frozen python experiments/e13_mbse_evidence.py --check
+      - run: uv run --frozen python figures/scripts/fig_mt2_deadline.py --check
+  regeneration:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          version: '0.11.13'
+          python-version: '3.11'
+      - run: uv sync --frozen
+      - run: uv run --frozen python scripts/verify_reproduction.py
+  manuscript:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: paper/render/package-lock.json
+      - run: npm ci
+        working-directory: paper/render
+      - run: npx playwright install --with-deps chromium
+        working-directory: paper/render
+      - run: npm run render
+        working-directory: paper/render
+        env:
+          MANUSCRIPT_CHANNEL: chromium
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-reading-copy
+          path: output/pdf/

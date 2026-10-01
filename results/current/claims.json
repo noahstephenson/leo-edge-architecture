@@ -1,0 +1,2543 @@
+[
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A0_GROUND_ONLY_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A0_GROUND_ONLY_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A0_GROUND_ONLY_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 5,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A1_COMPRESSED_FULL_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A1_COMPRESSED_FULL_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A1_COMPRESSED_FULL_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 20,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A2_QUICKLOOK_FIRST_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A2_QUICKLOOK_FIRST_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A2_QUICKLOOK_FIRST_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 5,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A3_ROI_FIRST_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 12,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A3_ROI_FIRST_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A3_ROI_FIRST_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 24,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A4_PROGRESSIVE_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 8,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A4_PROGRESSIVE_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A4_PROGRESSIVE_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 22,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A5_CONTACT_AWARE_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A5_CONTACT_AWARE_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A5_CONTACT_AWARE_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 5,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A6_THREAD_AWARE_PRIORITY_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 12,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A6_THREAD_AWARE_PRIORITY_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "principal_A6_THREAD_AWARE_PRIORITY_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "condition": "NOMINAL",
+      "terminal_class": "DISMOUNTED_MANPACK",
+      "terminal_sites": 1,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "24/8/1"
+    },
+    "numerator": 24,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A0_GROUND_ONLY_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A0_GROUND_ONLY_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 3,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A0_GROUND_ONLY_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 21,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A1_COMPRESSED_FULL_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A1_COMPRESSED_FULL_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 3,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A1_COMPRESSED_FULL_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 21,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A2_QUICKLOOK_FIRST_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A2_QUICKLOOK_FIRST_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 3,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A2_QUICKLOOK_FIRST_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 21,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A3_ROI_FIRST_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A3_ROI_FIRST_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 3,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A3_ROI_FIRST_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 21,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A4_PROGRESSIVE_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A4_PROGRESSIVE_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 3,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A4_PROGRESSIVE_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 21,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A5_CONTACT_AWARE_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A5_CONTACT_AWARE_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 3,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A5_CONTACT_AWARE_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 21,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A6_THREAD_AWARE_PRIORITY_success",
+    "column": "success",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 0,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A6_THREAD_AWARE_PRIORITY_full_scene_deadline_met",
+    "column": "full_scene_deadline_met",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 3,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "counterexample_A6_THREAD_AWARE_PRIORITY_produced",
+    "column": "produced",
+    "denominator": 24,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "condition": "NOMINAL",
+      "terminal_class": "VEHICLE_MOUNTED",
+      "terminal_sites": 4,
+      "thread": "MT2_ROUTE_RECON_FIRST",
+      "walker": "1/1/0"
+    },
+    "numerator": 21,
+    "source": "single_request_trials.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "principal_A3_minus_A6_jointly_timely_latency",
+    "column": "mean_latency_difference_s",
+    "denominator": 1,
+    "filters": {
+      "candidate_a": "A3_ROI_FIRST",
+      "candidate_b": "A6_THREAD_AWARE_PRIORITY"
+    },
+    "numerator": -0.03276800000003277,
+    "source": "principal_paired_differences.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "baseline"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "baseline"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "baseline"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_baseline_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "baseline"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 2,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 2,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_tasking_delay_s_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "tasking_delay_s"
+    },
+    "numerator": 2,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "interference_derate"
+    },
+    "numerator": 8,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "interference_derate"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "interference_derate"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "interference_derate"
+    },
+    "numerator": 7,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "interference_derate"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "interference_derate"
+    },
+    "numerator": 8,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_interference_derate_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "interference_derate"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 8,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 8,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 8,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_contact_denial_frac_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "contact_denial_frac"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "rate_0.5x"
+    },
+    "numerator": 8,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "rate_0.5x"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "rate_0.5x"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "rate_0.5x"
+    },
+    "numerator": 7,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "rate_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "rate_0.5x"
+    },
+    "numerator": 8,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_0.5x_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "rate_0.5x"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "processing_0.5x"
+    },
+    "numerator": 14,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "processing_0.5x"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "processing_0.5x"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "processing_0.5x"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_0.5x_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "processing_0.5x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "rate_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "rate_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "rate_2x"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "rate_2x"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "rate_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "rate_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "rate_2x"
+    },
+    "numerator": 14,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "rate_2x"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "rate_2x"
+    },
+    "numerator": 14,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "rate_2x"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "rate_2x"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "rate_2x"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "rate_2x"
+    },
+    "numerator": 14,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_rate_2x_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "rate_2x"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "processing_2x"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "processing_2x"
+    },
+    "numerator": 9,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "processing_2x"
+    },
+    "numerator": 2,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "processing_2x"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_processing_2x_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "processing_2x"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "sampling_5s"
+    },
+    "numerator": 14,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "sampling_5s"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "sampling_5s"
+    },
+    "numerator": 12,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "sampling_5s"
+    },
+    "numerator": 1,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "sampling_5s"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "sampling_5s"
+    },
+    "numerator": 14,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_sampling_5s_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "sampling_5s"
+    },
+    "numerator": 3,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "next_day"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "next_day"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "next_day"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "next_day"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "next_day"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "next_day"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_next_day_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "next_day"
+    },
+    "numerator": 4,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A0_GROUND_ONLY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A0_GROUND_ONLY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A0_GROUND_ONLY",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A1_COMPRESSED_FULL_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A1_COMPRESSED_FULL_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A1_COMPRESSED_FULL",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A2_QUICKLOOK_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A2_QUICKLOOK_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A2_QUICKLOOK_FIRST",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A3_ROI_FIRST_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A3_ROI_FIRST_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A3_ROI_FIRST",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A4_PROGRESSIVE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 10,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A4_PROGRESSIVE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A4_PROGRESSIVE",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 1,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A5_CONTACT_AWARE_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A5_CONTACT_AWARE_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A5_CONTACT_AWARE",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A6_THREAD_AWARE_PRIORITY_successes",
+    "column": "successes",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 11,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "first_numeric",
+    "claim": "sensitivity_aoi_shift_1deg_A6_THREAD_AWARE_PRIORITY_classification_changes_from_baseline",
+    "column": "classification_changes_from_baseline",
+    "denominator": 1,
+    "filters": {
+      "architecture_id": "A6_THREAD_AWARE_PRIORITY",
+      "case": "aoi_shift_1deg"
+    },
+    "numerator": 0,
+    "source": "sensitivity_summary.csv"
+  },
+  {
+    "aggregation": "count_true",
+    "claim": "baseline_changed_deadline_classifications",
+    "column": "outcome_changed",
+    "denominator": 12096,
+    "filters": {},
+    "numerator": 1,
+    "source": "baseline_comparison.csv"
+  }
+]

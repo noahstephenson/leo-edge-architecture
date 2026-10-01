@@ -106,14 +106,14 @@ measures:
 
 assumptions:
   - {id: ASM-LINK-001, category: ANALYTICAL_ASSUMPTION, statement: Link rate is constant within each contact window., provenance: docs/ASSUMPTIONS.md}
-  - {id: ASM-PROC-002, category: ANALYTICAL_ASSUMPTION, value: {compressed_full_fraction: 0.3}, statement: Compressed-full product is 30% of raw scene bytes; laptop benchmark data do not validate this flight value., provenance: config/product_sizing.yaml}
-  - {id: ASM-PROC-003, category: ANALYTICAL_ASSUMPTION, value: {quicklook_fraction: 0.02}, statement: A2 quicklook is 2% of raw scene bytes., provenance: config/product_sizing.yaml}
-  - {id: ASM-PROC-004, category: ANALYTICAL_ASSUMPTION, value: {roi_fraction: 0.05}, statement: "A3 ROI is 5% of raw scene bytes; this is a sensitivity choice, not a measured crop ratio.", provenance: config/product_sizing.yaml}
-  - {id: ASM-PROC-005, category: ANALYTICAL_ASSUMPTION, value: {metadata_bytes: 20480, thumbnail_bytes: 524288, quicklook_bytes: 20971520, roi_bytes: 52428800}, statement: A4 and A6 progressive products use fixed byte targets independent of scene size., provenance: config/product_sizing.yaml}
+  - {id: ASM-PROC-002, category: ANALYTICAL_ASSUMPTION, value: {compressed_full_fraction: 0.3}, statement: Compressed-full product is 30% of raw scene bytes; laptop benchmark data do not validate this flight value., provenance: src/leo_edge/product_sizing.yaml}
+  - {id: ASM-PROC-003, category: ANALYTICAL_ASSUMPTION, value: {quicklook_fraction: 0.02}, statement: A2 quicklook is 2% of raw scene bytes., provenance: src/leo_edge/product_sizing.yaml}
+  - {id: ASM-PROC-004, category: ANALYTICAL_ASSUMPTION, value: {roi_fraction: 0.05}, statement: "A3 ROI is 5% of raw scene bytes; this is a sensitivity choice, not a measured crop ratio.", provenance: src/leo_edge/product_sizing.yaml}
+  - {id: ASM-PROC-005, category: ANALYTICAL_ASSUMPTION, value: {metadata_bytes: 20480, thumbnail_bytes: 524288, quicklook_fraction: 0.02, roi_fraction: 0.05}, statement: A4 and A6 share scene-relative quicklook and ROI sizes with A2 and A3; only metadata and thumbnail bytes are fixed., provenance: src/leo_edge/product_sizing.yaml}
   - {id: ASM-TERM-001, category: SENSITIVITY_ONLY, value: {rate_bps: 50000000, derivation_time_s: 5.0}, statement: The vehicle terminal has a notional 50 Mbps link and takes five seconds to derive a lower tier from received P4., provenance: experiments/e11_mission_thread_success.py}
   - {id: ASM-TERM-002, category: SENSITIVITY_ONLY, value: {rate_bps: 5000000, derivation_time_s: 30.0}, statement: The dismounted terminal has a notional 5 Mbps link and takes thirty seconds to derive a lower tier from received P4., provenance: experiments/e11_mission_thread_success.py}
   - {id: ASM-ORBIT-001, category: ANALYTICAL_ASSUMPTION, statement: Synthetic circular orbits are propagated at a fixed epoch., provenance: docs/ASSUMPTIONS.md}
-  - {id: ASM-BENCH-001, category: MEASURED_BENCHMARK, statement: Laptop image-processing measurements are measurements of that hardware only., provenance: docs/ASSUMPTIONS.md}
+  - {id: ASM-BENCH-001, category: MEASURED_BENCHMARK, statement: Optional synthetic image-processing timings describe the executing machine only and do not calibrate selected evidence., provenance: docs/ASSUMPTIONS.md}
   - {id: ASM-CONTEXT-001, category: PUBLIC_CONTEXT, statement: Public Army motivation informs the study without defining an Army requirement., provenance: docs/OPERATIONAL_CONTEXT.md}
   - {id: ASM-THREAD-001, category: SENSITIVITY_ONLY, statement: Thread product needs and deadlines are notional study parameters., provenance: docs/MISSION_THREADS.md}
 
@@ -121,7 +121,7 @@ verification_cases:
   - {id: V-TIMING, name: Request-to-product timing, method: simulation, status: supported_by_simulation, evidence: [results/current/single_request_trials.csv, results/current/cadence_trials.csv, results/current/summary.csv, results/current/config.json, results/current/audit.json], description: Compare complete sufficient delivery time with scenario deadline in the selected synthetic cases., provenance: experiments/e11_mission_thread_success.py}
   - {id: V-PRODUCT, name: Product sufficiency, method: test, status: supported_by_test, evidence: [tests/test_product_sufficiency.py], description: Check coverage and resolution; full-scene derivation requires terminal capability and time., provenance: tests/test_product_sufficiency.py}
   - {id: V-INTERFACE, name: Product interface fields, method: inspection, status: not_evaluated, reason: The conceptual fields are modeled but no operational message schema or complete exchange inspection exists., description: "Inspect tier, coverage, fidelity, completeness, and identifiers at delivery.", provenance: docs/INTERFACES.md}
-  - {id: V-CONTACT, name: Contact replay, method: test, status: supported_by_test, evidence: [tests/test_simulation.py, tests/test_product_sufficiency.py], description: Check capacity and multi-contact completion under paired contacts., provenance: src/leo_edge/simulation.py}
+  - {id: V-CONTACT, name: Contact replay, method: test, status: supported_by_test, evidence: [tests/test_simulation.py, tests/test_product_sufficiency.py, tests/test_transfer_contract.py], description: Check capacity and multi-contact completion under paired contacts., provenance: src/leo_edge/simulation.py}
   - {id: V-TASK, name: Tasking route trace, method: analysis, status: not_evaluated, reason: The current sweep varies tasking delay but does not verify distinct direct and reachback message routes., description: Check path availability and delay are reflected in request timing., provenance: experiments/e11_mission_thread_success.py}
   - {id: V-PRIORITY, name: Ordering comparison, method: simulation, status: supported_by_simulation, evidence: [results/current/single_request_trials.csv, results/current/cadence_trials.csv, results/current/summary.csv, results/current/config.json, results/current/audit.json], description: "Compare fixed, thread-aware, and contact-aware policies on paired requests in selected synthetic cases.", provenance: experiments/e11_mission_thread_success.py}
   - {id: V-REFERENCE, name: Missing-prior handling, method: test, status: partial, evidence: [tests/test_product_sufficiency.py], reason: Fallback tolerance and reference flag are checked; no actual change-product algorithm or provenance chain is verified., description: Verify no change product is credited without a prior reference., provenance: docs/MISSION_THREADS.md}
@@ -157,7 +157,7 @@ claims:
     provenance: docs/MISSION_THREADS.md
   - id: CL-005
     name: Selected comparative outcome
-    statement: The selected 48-hour synthetic cases include both an access-limited MT-2 vehicle/four-site 1/1/0 cell with 0/24 for all candidates and a strategy-sensitive MT-2 dismounted/one-site 24/8/1 cell with 0/24 for A0 and 12/24 for A3 and A6; these samples do not establish general operating regimes.
+    statement: The selected 48-hour synthetic cases include both a shared-timing-limit MT-2 vehicle/pooled-four-site 1/1/0 cell with 0/24 for all candidates and a strategy-sensitive MT-2 dismounted/one-site 24/8/1 cell with 0/24 for A0 and 12/24 for A3 and A6; these samples do not establish general operating regimes.
     status: supported_by_simulation
     evidence: [results/current/single_request_trials.csv, results/current/cadence_trials.csv, results/current/summary.csv, results/current/config.json, results/current/manifest.json, results/current/audit.json]
     provenance: results/current/

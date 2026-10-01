@@ -1,6 +1,6 @@
 # Model views
 
-> Generated from the `model/` catalogs. Diagram purposes and relationship conventions follow Lenny Delligatti's *SysML Distilled*, Chapters 3–12. Diagrams show readable names; stable IDs remain in node keys and reference tables. These Mermaid views are analogues, not formal SysML diagrams.
+> Generated from the `model/` catalogs. View purposes are organized around Lenny Delligatti's *SysML Distilled*, Chapters 3–12; [modeling conventions](../MODELING_PLAN.md) record the semantic mapping and sources. Diagrams show readable names; stable IDs remain in node keys and reference tables. These Mermaid views are analogues, not formal SysML diagrams.
 
 ## Need-to-evidence trace
 
@@ -19,7 +19,7 @@ flowchart LR
     n_A3_ROI_FIRST["Corridor crop first"]
     n_I_DOWNLINK["Product downlink"]
     n_CL_005["Selected comparative outcome"]
-    n_REQ_THREAD_002 -.->|derived from| n_N_02
+    n_REQ_THREAD_002 -.->|need trace| n_N_02
     n_REQ_THREAD_002 -.->|constrains| n_F_09
     n_N_02 -.->|evaluated by| n_M_DEADLINE
     n_V_TIMING -.->|verify| n_REQ_THREAD_002
@@ -29,14 +29,31 @@ flowchart LR
     n_V_TIMING -.->|supports claim| n_CL_005
 ```
 
+## Soldier-facing use cases
+
+**Question:** Which services does the imagery delivery system provide to the soldier?
+
+This black-box view places the soldier outside the named system subject and shows the two services the soldier uses. It omits internal behavior and does not imply operational capability.
+
+```mermaid
+flowchart LR
+    n_E_USER["Soldier (external actor)"]
+    subgraph use_case_subject ["Imagery delivery system"]
+        n_UC_REQUEST(["Request imagery"])
+        n_UC_RECEIVE(["Receive product or delivery status"])
+    end
+    n_E_USER ---|association| n_UC_REQUEST
+    n_E_USER ---|association| n_UC_RECEIVE
+```
+
 ## Logical delivery activity
 
 **Question:** What happens from request to usable imagery?
 
-Arrows show control sequencing and guarded alternatives, not data-object flow. This logical view does not assign behaviors to parts; the separate allocation view shows that relationship. Incomplete or late delivery is represented in the product-state view.
+Arrows show a successful product path, not data-object flow or the engine's repeated transfer loop. The decision chooses direct sufficiency or required terminal derivation; the merge accepts either path without waiting for both. Failed paths appear in the lifecycle view. Candidate preparation and transmission can overlap across products; this coarse activity does not impose a batch barrier. Allocation is shown separately.
 
 ```mermaid
-flowchart LR
+flowchart TB
     n_F_01["Task"]
     n_F_02["Collect"]
     n_F_03["Store"]
@@ -47,55 +64,39 @@ flowchart LR
     n_F_08["Derive at terminal"]
     n_F_09["Make usable"]
     n_F_10["Disseminate"]
-    n_F_01 -->|precedes| n_F_02
-    n_F_02 -->|precedes| n_F_03
-    n_F_03 -->|precedes| n_F_04
-    n_F_04 -->|precedes| n_F_05
-    n_F_05 -->|precedes| n_F_06
-    n_F_06 -->|precedes| n_F_07
-    n_F_07 -->|if full scene and capable| n_F_08
-    n_F_07 -->|if sufficient as received| n_F_09
-    n_F_08 -->|if sufficient and timely| n_F_09
-    n_F_09 -->|precedes| n_F_10
+    n_CTRL_DERIVE{"Requested view needs terminal derivation?"}
+    n_CTRL_MERGE{" "}
+    n_F_01 --> n_F_02
+    n_F_02 --> n_F_03
+    n_F_03 --> n_F_04
+    n_F_04 --> n_F_05
+    n_F_05 --> n_F_06
+    n_F_06 --> n_F_07
+    n_F_07 -->|"complete product"| n_CTRL_DERIVE
+    n_CTRL_DERIVE -->|"[derivation needed and eligible full scene]"| n_F_08
+    n_CTRL_DERIVE -->|"[sufficient as received]"| n_CTRL_MERGE
+    n_F_08 -->|"sufficient derived view"| n_CTRL_MERGE
+    n_CTRL_MERGE -->|"check deadline"| n_F_09
+    n_F_09 --> n_F_10
 ```
 
 ## Function allocation
 
 **Question:** Which system element performs each function?
 
-Dashed allocation dependencies point from behavior to the receiving system element, following SysML allocation direction. All candidates currently inherit the same element allocations; their execution modes differ in the catalog.
+Each grouped list names individual functions with the same owner. Its dashed allocation dependency applies to every listed function and points to the receiving element. All candidates inherit these owners; candidate execution modes and the individual allocation records remain in the catalog.
 
 ```mermaid
 flowchart LR
-    subgraph behavior ["Functions"]
-        n_F_01["Task"]
-        n_F_02["Collect"]
-        n_F_03["Store"]
-        n_F_04["Generate product"]
-        n_F_05["Prioritize"]
-        n_F_06["Transmit"]
-        n_F_07["Receive"]
-        n_F_08["Derive at terminal"]
-        n_F_09["Make usable"]
-        n_F_10["Disseminate"]
-    end
-    subgraph structure_parts ["System elements"]
-        n_E_SYSTEM["Imagery delivery system of interest"]
-        n_E_PROVIDER["Commercial imagery service"]
-        n_E_TASKING["Tasking path"]
-        n_E_SATELLITE["Commercial LEO satellite"]
-        n_E_TERMINAL["Army-owned tactical terminal"]
-    end
-    n_F_01 -.->|allocate| n_E_TASKING
-    n_F_02 -.->|allocate| n_E_SATELLITE
-    n_F_03 -.->|allocate| n_E_SATELLITE
-    n_F_04 -.->|allocate| n_E_SATELLITE
-    n_F_05 -.->|allocate| n_E_SATELLITE
-    n_F_06 -.->|allocate| n_E_SATELLITE
-    n_F_07 -.->|allocate| n_E_TERMINAL
-    n_F_08 -.->|allocate| n_E_TERMINAL
-    n_F_09 -.->|allocate| n_E_TERMINAL
-    n_F_10 -.->|allocate| n_E_TERMINAL
+    group_n_E_TASKING["F-01 Task"]
+    n_E_TASKING["Tasking path"]
+    group_n_E_TASKING -.->|allocate| n_E_TASKING
+    group_n_E_SATELLITE["F-02 Collect<br/>F-03 Store<br/>F-04 Generate product<br/>F-05 Prioritize<br/>F-06 Transmit"]
+    n_E_SATELLITE["Commercial LEO satellite"]
+    group_n_E_SATELLITE -.->|allocate| n_E_SATELLITE
+    group_n_E_TERMINAL["F-07 Receive<br/>F-08 Derive at terminal<br/>F-09 Make usable<br/>F-10 Disseminate"]
+    n_E_TERMINAL["Army-owned tactical terminal"]
+    group_n_E_TERMINAL -.->|allocate| n_E_TERMINAL
 ```
 
 ## System structure
@@ -111,7 +112,6 @@ classDiagram
     class n_E_TASKING["«block» Tasking path"]
     class n_E_SATELLITE["«block» Commercial LEO satellite"]
     class n_E_TERMINAL["«block» Army-owned tactical terminal"]
-    class n_E_USER["Imagery user (external user)"]
     n_E_SYSTEM *-- n_E_PROVIDER : part
     n_E_SYSTEM *-- n_E_TASKING : part
     n_E_SYSTEM *-- n_E_TERMINAL : part
@@ -122,91 +122,96 @@ classDiagram
 
 **Question:** What information crosses each interface?
 
-This internal-block view shows connected parts and labels each connector with the information exchanged. Interface records define the exchange contract; the interface itself is not shown as a transmitted item.
+This internal-block analogue scopes the participating parts within the system of interest and leaves the user outside. Arrows describe item-flow direction, with interface IDs and exchange names. The full fields remain in the [interface inventory](MODEL_CATALOG.md#interfaces). Ports, typed part properties, multiplicities, and protocols are not specified.
 
 ```mermaid
-flowchart LR
-    subgraph provider_boundary ["Commercial service"]
+flowchart TB
+    subgraph delivery_system ["Imagery delivery system"]
         n_E_PROVIDER["Commercial imagery service"]
         n_E_SATELLITE["Commercial LEO satellite"]
-    end
-    subgraph army_segment ["Army tactical edge segment"]
         n_E_TERMINAL["Army-owned tactical terminal"]
-    end
-    subgraph tasking_route ["Tasking route; ownership not modeled"]
         n_E_TASKING["Tasking path"]
     end
     n_E_USER["Imagery user"]
-    n_E_TERMINAL -->|I-REQUEST item flow: request identifier, area of interest, needed product, deadline| n_E_TASKING
-    n_E_TERMINAL -->|I-DIRECT item flow: request identifier, area of interest, needed product, deadline| n_E_PROVIDER
-    n_E_TASKING -->|I-TASK item flow: provider task and status| n_E_PROVIDER
-    n_E_SATELLITE -->|I-DOWNLINK item flow: collection and product identifiers, tier, coverage, fidelity, bytes, completeness or partial-transfer state, provenance| n_E_TERMINAL
-    n_E_PROVIDER -->|I-STATUS item flow: availability, completeness, and failure status| n_E_TERMINAL
-    n_E_TERMINAL -->|I-USER item flow: product and explicit utility caveat| n_E_USER
+    n_E_TERMINAL -->|"I-REQUEST: Reachback imagery request"| n_E_TASKING
+    n_E_TERMINAL -->|"I-DIRECT: Direct imagery request"| n_E_PROVIDER
+    n_E_TASKING -->|"I-TASK: Collection task"| n_E_PROVIDER
+    n_E_SATELLITE -->|"I-DOWNLINK: Product downlink"| n_E_TERMINAL
+    n_E_PROVIDER -->|"I-STATUS: Delivery status"| n_E_TERMINAL
+    n_E_TERMINAL -->|"I-USER: Imagery product or status"| n_E_USER
 ```
 
 ## Delivery sequence
 
 **Question:** When do collection, contact, and terminal derivation occur?
 
-The sequence allows same-pass delivery and byte carryover; it does not claim every request succeeds.
+Remote exchanges use solid open-arrow signal notation; self calls use filled arrows. Dashed replies are reserved for an explicitly modeled return. Product availability and conditional terminal derivation occur within the contact loop, before the candidate sequence necessarily ends. Message routes and status delivery are conceptual obligations, not simulated transport behavior.
 
 ```mermaid
 sequenceDiagram
     participant U as Soldier
-    participant T as Army tactical terminal
-    participant R as Reachback tasking path
-    participant P as Commercial provider
-    participant S as Collecting satellite
-    U->>T: Submit request
+    participant T as Army tactical<br/>terminal
+    participant R as Reachback tasking<br/>path
+    participant P as Commercial<br/>provider
+    participant S as Collecting<br/>satellite
+    U-)T: Submit request
     alt Reachback tasking
-    T->>R: Route imagery request
-    R->>P: Send collection task
+    T-)R: Route imagery request
+    R-)P: Send collection task
     else Direct tasking
-    T->>P: Request imagery directly
+    T-)P: Request imagery directly
     end
-    P->>S: Task collection and product preparation
-    S->>S: Collect scene and prepare selected products
+    P-)S: Task collection and<br/>product preparation
+    S->>S: Collect scene
+    S->>S: Prepare candidate products<br/>as needed
     Note over S,T: Collection and downlink may occur in one pass
-    loop Available contacts until complete or censored
-    S-->>T: Send product bytes and completeness
-    end
-    P-->>T: Report availability or delivery status
-    opt Full scene received and terminal capable
+    loop Available contacts until<br/>complete or censored
+    S-)T: Send product bytes and<br/>completeness
+    opt Product receipt complete
+    opt Derivation needed and eligible
     T->>T: Derive requested view
     end
-    T-->>U: Present usable product or failure status
+    T-)U: Present sufficient product<br/>or product status
+    end
+    end
+    Note over S,T: Terminal derivation does not pause provider transfer#59;<br/>usable availability can precede sequence completion
+    P-)T: Report final availability<br/>or delivery status
+    T-)U: Present final delivery or<br/>failure status
 ```
 
 ## Product state
 
 **Question:** How can delivery progress or fail?
 
-A product is usable only after complete delivery and any required terminal derivation.
+This lifecycle combines product transfer states with request-level outcomes. Guard aliases: prior_ok means any required prior condition is met; direct_ok means sufficient as received; derive_ok means derivation is needed and eligible; timely and late refer to the request deadline. Full guard expressions remain in the system catalog. Choices separate direct sufficiency, derivation, and failure. Timing events and executable priorities are unspecified. MissingPrior and FallbackScene are conceptual obligations, not a change algorithm.
 
 ```mermaid
 stateDiagram-v2
+    state AssessReceipt <<choice>>
+    state AssessDerived <<choice>>
     [*] --> Requested
-    Requested --> Collected: access and collection
-    Requested --> Unserved: no collection before horizon
-    Collected --> Ready: product generated or raw retained
-    Ready --> Partial: contact carries some bytes
-    Partial --> Partial: next contact carries more bytes
-    Ready --> Ready: contact interrupted or denied
-    Partial --> Partial: contact interrupted; bytes retained
-    Ready --> Received: whole product in one contact
-    Partial --> Received: remaining bytes delivered
-    Received --> Derived: full scene and capable terminal
-    Received --> Usable: sufficient and within deadline
-    Derived --> Usable: sufficient and within deadline
-    Ready --> Censored: evaluation horizon ends
-    Partial --> Censored: evaluation horizon ends
-    Received --> Late: complete after deadline
-    Received --> Insufficient: coverage or fidelity inadequate
-    Received --> MissingPrior: change requested without prior reference
-    Derived --> Insufficient: coverage or fidelity inadequate
-    Derived --> Late: completed after deadline
-    MissingPrior --> FallbackScene: new scene only; no change product
+    Requested --> Collected: [access and collection]
+    Requested --> Unserved: [no collection before<br/>horizon]
+    Collected --> Ready: [product generated or<br/>raw retained]
+    Ready --> Partial: [contact carries some<br/>bytes]
+    Partial --> Partial: [next contact carries<br/>more bytes]
+    Ready --> Ready: [contact interrupted or<br/>denied]
+    Partial --> Partial: [contact interrupted#59;<br/>bytes retained]
+    Ready --> Received: [whole product in one<br/>contact]
+    Partial --> Received: [remaining bytes<br/>delivered]
+    Received --> AssessReceipt
+    AssessReceipt --> Derived: [prior_ok and derive_ok]
+    AssessReceipt --> Usable: [prior_ok and direct_ok<br/>and timely]
+    Derived --> AssessDerived
+    AssessDerived --> Usable: [sufficient and timely]
+    Ready --> Censored: [evaluation horizon<br/>ends]
+    Partial --> Censored: [evaluation horizon<br/>ends]
+    AssessReceipt --> Late: [prior_ok and direct_ok<br/>and late]
+    AssessReceipt --> Insufficient: [prior_ok and not<br/>direct_ok and not<br/>derive_ok]
+    AssessReceipt --> MissingPrior: [change requested<br/>without prior<br/>reference]
+    AssessDerived --> Insufficient: [coverage or fidelity<br/>inadequate]
+    AssessDerived --> Late: [sufficient and late]
+    MissingPrior --> FallbackScene: [new scene only#59; no<br/>change product]
     Usable --> [*]
     Censored --> [*]
     Insufficient --> [*]
@@ -215,11 +220,44 @@ stateDiagram-v2
     Unserved --> [*]
 ```
 
+## Corridor product state
+
+**Question:** How is the fresh corridor request assessed?
+
+This manuscript view omits prior-reference branches, since the corridor request needs a new scene. It inherits the delivery and assessment transitions with compact guard labels; named outcomes end this assessment, with final-node connectors omitted. Direct means sufficient as received; derive_ok means needed and eligible terminal derivation; no sufficient path means neither direct sufficiency nor eligible derivation. Timely and late refer to the request deadline. The full guards remain in Product state and the system catalog.
+
+```mermaid
+stateDiagram-v2
+    state AssessReceipt <<choice>>
+    state AssessDerived <<choice>>
+    [*] --> Requested
+    Requested --> Collected: [collection]
+    Requested --> Unserved: [no collection]
+    Collected --> Ready: [product ready]
+    Ready --> Partial: [partial bytes]
+    Partial --> Partial: [more bytes]
+    Ready --> Ready: [interrupted / denied]
+    Partial --> Partial: [interrupted#59; retained]
+    Ready --> Received: [complete receipt]
+    Partial --> Received: [complete receipt]
+    Received --> AssessReceipt
+    AssessReceipt --> Derived: [derive_ok]
+    AssessReceipt --> Usable: [direct, timely]
+    Derived --> AssessDerived
+    AssessDerived --> Usable: [sufficient, timely]
+    Ready --> Censored: [horizon ends]
+    Partial --> Censored: [horizon ends]
+    AssessReceipt --> Late: [direct, late]
+    AssessReceipt --> Insufficient: [no sufficient path]
+    AssessDerived --> Insufficient: [insufficient]
+    AssessDerived --> Late: [sufficient, late]
+```
+
 ## Parametric timing constraint
 
 **Question:** When can product reduction save exposed delivery time?
 
-In this Mermaid analogue, rectangular nodes stand for value properties, hexagons stand for constraint blocks, and undirected labeled lines stand for binding connectors. The view does not encode SysML parameter directions or a formal constraint model. Sizes are bytes, rates are bits per second, and the factor of 8 converts bytes to bits. This is a first-order crossover model, not the full contact simulation.
+Rectangles stand for value properties and hexagons for constraint properties, which are usages of constraint definitions. Undirected bindings equate each value with the named constraint parameter; they do not show calculation order. Parameter ports and constraint types are omitted in this analogue. Sizes are bytes and rates are bits per second. The first-order crossover is separate from the contact simulation.
 
 ```mermaid
 flowchart LR

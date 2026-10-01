@@ -1,6 +1,9 @@
 """Simulation engine integrating orbit access, architecture policies, and metrics."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from math import isfinite
+from inspect import signature, Parameter
+from .configuration import DEFAULT_SIZING
 from datetime import datetime
 from typing import List, Tuple, Type
 
@@ -25,7 +28,7 @@ class SimulationResult:
     architecture_name: str
     tfup_s: float
     tcp_s: float
-    bytes_transmitted: int
+    bytes_transmitted: float
     processing_energy_j: float
     tx_energy_j: float
     contact_utilization: float
@@ -61,7 +64,7 @@ def run_static_architecture(
         architecture_name=arch_class.__name__,
         tfup_s=float(out.get("tfup_s", float("nan"))),
         tcp_s=float(out.get("tcp_s", float("nan"))),
-        bytes_transmitted=int(out.get("bytes_transmitted", 0)),
+        bytes_transmitted=float(out.get("bytes_transmitted", 0)),
         processing_energy_j=float(out.get("processing_energy_j", 0.0)),
         tx_energy_j=float(out.get("tx_energy_j", 0.0)),
         contact_utilization=float(out.get("contact_utilization", 0.0)),
@@ -117,6 +120,14 @@ class MultiContactResult:
     contacts_used: int
     tier_completion_s: dict
     bytes_transmitted: float = 0.0
+    product_progress: dict = field(default_factory=dict)
+    processing_time_used_s: float = 0.0
+    transmission_time_used_s: float = 0.0
+    contact_capacity_bytes: float = 0.0
+
+    @property
+    def contact_utilization(self):
+        return self.bytes_transmitted / self.contact_capacity_bytes if self.contact_capacity_bytes else 0.0
 
 
 def _parse_iso(ts: str) -> datetime:
@@ -150,7 +161,7 @@ def simulate_multi_contact(
     scene_bytes: float,
     contact_windows_s: List[Tuple[float, float]],
     rate_bps: float,
-    processing_time_s: float = 20.0,
+    processing_time_s: float = DEFAULT_SIZING.nominal_processing_time_s,
 ) -> MultiContactResult:
     """Deliver an architecture's product tiers across a real sequence of
     contact windows, carrying undelivered bytes forward.
@@ -177,23 +188,32 @@ def simulate_multi_contact(
     Returns:
         MultiContactResult.
     """
-    try:
-        first_start_s, first_duration_s = contact_windows_s[0] if contact_windows_s else (None, None)
-        tiers = architecture.tiers(
-            scene_bytes, processing_time_s=processing_time_s,
-            rate_bps=rate_bps, first_window_duration_s=first_duration_s,
-            first_window_start_s=first_start_s,
-        )
-    except TypeError:
-        try:
-            tiers = architecture.tiers(scene_bytes, processing_time_s=processing_time_s)
-        except TypeError:
-            tiers = architecture.tiers(scene_bytes)
+    if not isfinite(scene_bytes) or scene_bytes <= 0 or not isfinite(rate_bps) or rate_bps <= 0:
+        raise ValueError("Scene size and rate must be finite and positive")
+    if not isfinite(processing_time_s) or processing_time_s < 0:
+        raise ValueError("Processing time must be finite and nonnegative")
+    previous_end = 0.0
+    for start, duration in contact_windows_s:
+        if not isfinite(start) or not isfinite(duration) or start < previous_end or duration <= 0:
+            raise ValueError("Contacts must be finite, ordered, positive, and nonoverlapping")
+        previous_end = start + duration
+    first_start_s, first_duration_s = contact_windows_s[0] if contact_windows_s else (None, None)
+    options = dict(processing_time_s=processing_time_s, rate_bps=rate_bps,
+                   first_window_duration_s=first_duration_s, first_window_start_s=first_start_s)
+    parameters = signature(architecture.tiers).parameters
+    accepts_all = any(p.kind == Parameter.VAR_KEYWORD for p in parameters.values())
+    tiers = architecture.tiers(scene_bytes, **{k: v for k, v in options.items() if accepts_all or k in parameters})
 
     name = type(architecture).__name__
     if not tiers or rate_bps <= 0:
         return MultiContactResult(name, float("nan"), float("nan"), False, 0, {})
 
+    identifiers = [tier.value for tier, _, _ in tiers]
+    if len(set(identifiers)) != len(identifiers) or any(
+        not isfinite(size) or size <= 0 or not isfinite(proc) or proc < 0
+        for _, size, proc in tiers
+    ):
+        raise ValueError("Products must be unique with positive sizes and nonnegative processing")
     delivered = [0.0] * len(tiers)
     tier_idx = 0
     proc_left_s = tiers[0][2]
@@ -202,6 +222,7 @@ def simulate_multi_contact(
     contacts_used = 0
     tier_completion_s = {}
     bytes_transmitted = 0.0
+    processing_used_s = 0.0
 
     current_time = 0.0
     for window_start_s, duration_s in contact_windows_s:
@@ -213,6 +234,7 @@ def simulate_multi_contact(
         if proc_left_s > 0 and idle > 0:
             spend = min(proc_left_s, idle)
             proc_left_s -= spend
+            processing_used_s += spend
             current_time += spend
         current_time = window_start_s
         t = 0.0
@@ -220,6 +242,7 @@ def simulate_multi_contact(
             if proc_left_s > 0:
                 spend = min(proc_left_s, duration_s - t)
                 proc_left_s -= spend
+                processing_used_s += spend
                 t += spend
                 continue
             tier, target_bytes, _tier_proc = tiers[tier_idx]
@@ -233,7 +256,7 @@ def simulate_multi_contact(
             delivered[tier_idx] += take_bytes
             bytes_transmitted += take_bytes
             t += take_time_s
-            if delivered[tier_idx] >= target_bytes - 1e-6:
+            if delivered[tier_idx] >= target_bytes:
                 completion_s = window_start_s + t
                 tier_completion_s[tier.value] = completion_s
                 if tfup_s is None:
@@ -255,4 +278,45 @@ def simulate_multi_contact(
         contacts_used=contacts_used,
         tier_completion_s=tier_completion_s,
         bytes_transmitted=bytes_transmitted,
+        product_progress={tier.value: {
+            "target_bytes": target, "received_bytes": delivered[i],
+            "completeness": delivered[i] / target,
+            "completion_time_s": tier_completion_s.get(tier.value),
+        } for i, (tier, target, _) in enumerate(tiers)},
+        processing_time_used_s=processing_used_s,
+        transmission_time_used_s=bytes_transmitted * 8 / rate_bps,
+        contact_capacity_bytes=sum(duration * rate_bps / 8 for _, duration in contact_windows_s),
     )
+
+
+def single_contact_metrics(architecture, scene_bytes, capacity_bytes, rate_bps, processing_time_s):
+    """Legacy dictionary interface backed by the same transfer accounting.
+
+    Completeness refers to P4's encoded product, not bytes divided by raw
+    scene size. Energy is bookkeeping at assumed constant powers. Peak
+    storage is not evaluated.
+    """
+    from .products import ProductTier, TIER_FIDELITY
+    if not isfinite(capacity_bytes) or capacity_bytes < 0 or not isfinite(rate_bps) or rate_bps <= 0:
+        raise ValueError("Capacity must be nonnegative and rate positive")
+    duration = capacity_bytes * 8 / rate_bps
+    result = simulate_multi_contact(architecture, scene_bytes,
+                                   [(0.0, duration)] if duration else [],
+                                   rate_bps, processing_time_s)
+    completed_tiers = list(result.tier_completion_s)
+    tier = ProductTier(completed_tiers[-1]) if completed_tiers else None
+    fidelity = TIER_FIDELITY[tier] if tier else None
+    raw_full = tier == ProductTier.P4_FULL and result.product_progress[tier.value]["target_bytes"] == scene_bytes
+    return {
+        "tfup_s": result.tfup_s, "tcp_s": result.tcp_s,
+        "bytes_transmitted": result.bytes_transmitted, "completed": result.completed,
+        "contact_utilization": result.contact_utilization,
+        "processing_energy_j": result.processing_time_used_s * architecture.sizing.processing_power_w,
+        "tx_energy_j": result.transmission_time_used_s * architecture.sizing.radio_power_w,
+        "storage_peak_bytes": None,
+        "deadline_met": result.completed and result.tcp_s <= duration,
+        "product_completeness": result.product_progress.get("P4_FULL", {}).get("completeness", 0.0),
+        "product_progress": result.product_progress,
+        "fidelity_lossy": False if raw_full else fidelity.lossy if fidelity else True,
+        "fidelity_resolution_class": fidelity.resolution_class if fidelity else "unknown",
+    }

@@ -4,7 +4,7 @@ model:
   version: 1
   status: conceptual_study
   boundary: From a notional imagery request to a usable product at an Army-owned terminal.
-  research_question: How should imagery functions be allocated between a commercial LEO space segment and an Army-owned tactical edge segment, and how does the preferred allocation shift across mission needs, terminal classes, and contested or DDIL conditions?
+  research_question: How should imagery functions (tasking, collection, processing, prioritization, delivery) be allocated between a commercial LEO space segment acquired as a service and an Army-owned tactical edge segment, and how does the preferred allocation shift across mission needs, terminal classes, and contested or DDIL conditions?
   authority: The YAML catalogs are the source for generated GitHub views; code and current reproducible results are the authority for computed outcomes.
   limitations: All mission scenarios and performance requirements are notional and unofficial. No operational capability is validated.
 
@@ -53,6 +53,10 @@ elements:
     provenance: docs/CONOPS.md
 
 views:
+  - id: VIEW-USECASE
+    name: Soldier-facing service use cases
+    question: Which services does the imagery delivery system provide to the soldier?
+    style: SysML-aligned black-box use-case analogue with external actor, named subject boundary, and actor associations
   - id: VIEW-REQ
     name: Need-to-verification trace
     question: How is a notional need checked?
@@ -88,7 +92,24 @@ views:
 
 # These are semantic view records. The generator supplies Mermaid syntax;
 # events, states, guards, variables, and dependency edges live here.
+use_case_view:
+  subject: E-SYSTEM
+  subject_label: Imagery delivery system
+  actor: E-USER
+  actor_label: Soldier
+  actor_role: external actor
+  use_cases:
+    - {id: UC-REQUEST, label: Request imagery}
+    - {id: UC-RECEIVE, label: Receive product or delivery status}
+  associations:
+    - {actor: E-USER, use_case: UC-REQUEST}
+    - {actor: E-USER, use_case: UC-RECEIVE}
+
 representative_trace: [T-026, T-027, T-004, T-028, T-081, T-082, T-083, T-084]
+
+logical_control_nodes:
+  - {id: CTRL-DERIVE, kind: decision, label: 'Requested view needs terminal derivation?'}
+  - {id: CTRL-MERGE, kind: merge, label: Sufficient product path}
 
 logical_flow:
   - {from: F-01, to: F-02, guard: precedes}
@@ -97,9 +118,11 @@ logical_flow:
   - {from: F-04, to: F-05, guard: precedes}
   - {from: F-05, to: F-06, guard: precedes}
   - {from: F-06, to: F-07, guard: precedes}
-  - {from: F-07, to: F-08, guard: if full scene and capable}
-  - {from: F-07, to: F-09, guard: if sufficient as received}
-  - {from: F-08, to: F-09, guard: if sufficient and timely}
+  - {from: F-07, to: CTRL-DERIVE, guard: complete product}
+  - {from: CTRL-DERIVE, to: F-08, guard: derivation needed and eligible full scene}
+  - {from: CTRL-DERIVE, to: CTRL-MERGE, guard: sufficient as received}
+  - {from: F-08, to: CTRL-MERGE, guard: sufficient derived view}
+  - {from: CTRL-MERGE, to: F-09, guard: check deadline}
   - {from: F-09, to: F-10, guard: precedes}
 
 sequence_view:
@@ -118,19 +141,25 @@ sequence_view:
     - {kind: message, from: T, to: P, label: Request imagery directly, reference: I-DIRECT}
     - {kind: end}
     - {kind: message, from: P, to: S, label: Task collection and product preparation}
-    - {kind: message, from: S, to: S, label: Collect scene and prepare selected products, reference: F-02}
+    - {kind: message, from: S, to: S, label: Collect scene, reference: F-02}
+    - {kind: message, from: S, to: S, label: Prepare candidate products as needed, reference: F-04}
     - {kind: note, over: [S, T], label: Collection and downlink may occur in one pass}
     - {kind: loop, label: Available contacts until complete or censored}
-    - {kind: message, from: S, to: T, label: Send product bytes and completeness, reference: I-DOWNLINK, dashed: true}
-    - {kind: end}
-    - {kind: message, from: P, to: T, label: Report availability or delivery status, reference: I-STATUS, dashed: true}
-    - {kind: opt, label: Full scene received and terminal capable}
+    - {kind: message, from: S, to: T, label: Send product bytes and completeness, reference: I-DOWNLINK}
+    - {kind: opt, label: A product has completed receipt}
+    - {kind: opt, label: Requested view requires derivation and full scene is eligible}
     - {kind: message, from: T, to: T, label: Derive requested view, reference: F-08}
     - {kind: end}
-    - {kind: message, from: T, to: U, label: Present usable product or failure status, reference: I-USER, dashed: true}
+    - {kind: message, from: T, to: U, label: Present sufficient product or product status, reference: I-USER}
+    - {kind: end}
+    - {kind: end}
+    - {kind: note, over: [S, T], label: Terminal derivation does not pause provider transfer; usable availability can precede sequence completion}
+    - {kind: message, from: P, to: T, label: Report final availability or delivery status, reference: I-STATUS}
+    - {kind: message, from: T, to: U, label: Present final delivery or failure status, reference: I-USER}
 
 product_state_view:
   states: [Requested, Collected, Unserved, Ready, Partial, Received, Derived, Usable, Censored, Late, Insufficient, MissingPrior, FallbackScene]
+  choices: [AssessReceipt, AssessDerived]
   transitions:
     - {from: START, to: Requested}
     - {from: Requested, to: Collected, guard: access and collection}
@@ -142,16 +171,18 @@ product_state_view:
     - {from: Partial, to: Partial, guard: contact interrupted; bytes retained}
     - {from: Ready, to: Received, guard: whole product in one contact}
     - {from: Partial, to: Received, guard: remaining bytes delivered}
-    - {from: Received, to: Derived, guard: full scene and capable terminal}
-    - {from: Received, to: Usable, guard: sufficient and within deadline}
-    - {from: Derived, to: Usable, guard: sufficient and within deadline}
+    - {from: Received, to: AssessReceipt}
+    - {from: AssessReceipt, to: Derived, guard: prior condition met and derivation needed and eligible}
+    - {from: AssessReceipt, to: Usable, guard: prior condition met and sufficient as received and within deadline}
+    - {from: Derived, to: AssessDerived}
+    - {from: AssessDerived, to: Usable, guard: sufficient and within deadline}
     - {from: Ready, to: Censored, guard: evaluation horizon ends}
     - {from: Partial, to: Censored, guard: evaluation horizon ends}
-    - {from: Received, to: Late, guard: complete after deadline}
-    - {from: Received, to: Insufficient, guard: coverage or fidelity inadequate}
-    - {from: Received, to: MissingPrior, guard: change requested without prior reference}
-    - {from: Derived, to: Insufficient, guard: coverage or fidelity inadequate}
-    - {from: Derived, to: Late, guard: completed after deadline}
+    - {from: AssessReceipt, to: Late, guard: prior condition met and sufficient as received and after deadline}
+    - {from: AssessReceipt, to: Insufficient, guard: prior condition met and neither directly sufficient nor eligible for derivation}
+    - {from: AssessReceipt, to: MissingPrior, guard: change requested without prior reference}
+    - {from: AssessDerived, to: Insufficient, guard: coverage or fidelity inadequate}
+    - {from: AssessDerived, to: Late, guard: sufficient and completed after deadline}
     - {from: MissingPrior, to: FallbackScene, guard: new scene only; no change product}
     - {from: Usable, to: END}
     - {from: Censored, to: END}

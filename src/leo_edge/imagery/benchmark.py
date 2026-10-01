@@ -2,16 +2,6 @@
 
 from __future__ import annotations
 
-# Historical laptop benchmark values in seconds per MB. These are not used
-# to calibrate the current architecture analysis.
-MEASURED_CONFIG = {
-    "compression_s_per_mb": 0.006897892777777776,
-    "quicklook_s_per_mb": 0.015342352222222222,
-    "roi_s_per_mb": 0.0009992768749999999,
-    "source_csv": "data/imagery/benchmark/image_benchmark.csv",
-    "updated_at": "2026-09-18T21:20:20.687564Z",
-}
-
 import io
 import time
 from typing import List, Dict, Optional
@@ -24,7 +14,8 @@ class ImageBenchmark:
 
     def _load_image(self, image_path: Optional[str]) -> Image.Image:
         if image_path:
-            return Image.open(image_path).convert("RGB")
+            with Image.open(image_path) as image:
+                return image.convert("RGB")
         # synthetic 2048x2048 RGB
         img = Image.new("RGB", (2048, 2048))
         # simple gradient for non-trivial data
@@ -96,9 +87,9 @@ class ImageBenchmark:
             upper = (h - new_h) // 2
             right = left + new_w
             lower = upper + new_h
-            roi = img.crop((left, upper, right, lower))
             buf = io.BytesIO()
             start = time.perf_counter_ns()
+            roi = img.crop((left, upper, right, lower))
             roi.save(buf, format="JPEG", quality=85)
             end = time.perf_counter_ns()
             results.append({

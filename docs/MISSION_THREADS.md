@@ -5,9 +5,9 @@ Each scenario describes a generic soldier’s request at a tactical terminal. Th
 | Scenario | Soldier needs | Assumed time limit | When the study counts the product as sufficient |
 |---|---|---|---|
 | Whole-area update (MT-1) | A quick view covering the entire requested area. | 120 seconds from request. | A whole-scene quicklook or an eligible view derived from the full scene. A corridor crop does not cover the whole area. |
-| Corridor detail (MT-2) | Native-resolution detail for a declared corridor. | 900 seconds from request; complete scene is separately assessed at 3,600 seconds. | A crop covering the corridor or an eligible view derived from the full scene. |
+| Corridor detail (MT-2) | Native-resolution detail for a declared corridor. | 900 seconds from request; full-scene receipt is assessed separately at 3,600 seconds. | A crop covering the corridor or an eligible view derived from the full scene. |
 | Compare with a prior image (MT-3) | A new image and, when available, a suitable earlier image. | 600 seconds from request when a prior exists; 900 seconds for review of the new image otherwise. | The calculation uses crop size as a proxy. It does not compare images or support a claim that a change was detected. |
-| Repeated whole-area updates (MT-4) | A coarse view after each successive collection. | 300 seconds from each collection. | A complete thumbnail for each collection. Consecutive missed opportunities are recorded. |
+| Repeated whole-area updates (MT-4) | A coarse view after each successive collection. | 300 seconds from each collection. | Independent opportunities for complete thumbnail delivery. Consecutive misses are recorded without a shared transfer budget. |
 
 The products are metadata, a coarse whole-scene thumbnail, a reduced-resolution whole-scene quicklook, a native-resolution crop, and a full scene. They differ in coverage and detail. A corridor crop cannot satisfy a request for the whole area. A terminal can derive a smaller view from a full scene only after complete receipt, and only when its capability, the image detail, and remaining time allow it. The model assumes the declared crop covers the corridor; it does not check image geometry or interpret imagery. “Readable” means the terminal can present the complete product at its modeled tier. The study does not test whether a soldier can interpret it.
 

@@ -39,7 +39,7 @@
 | V-TIMING | supported_by_simulation | [results/current/single_request_trials.csv](../../results/current/single_request_trials.csv), [results/current/cadence_trials.csv](../../results/current/cadence_trials.csv), [results/current/summary.csv](../../results/current/summary.csv), [results/current/config.json](../../results/current/config.json), [results/current/audit.json](../../results/current/audit.json) |
 | V-PRODUCT | supported_by_test | [tests/test_product_sufficiency.py](../../tests/test_product_sufficiency.py) |
 | V-INTERFACE | not_evaluated | The conceptual fields are modeled but no operational message schema or complete exchange inspection exists. |
-| V-CONTACT | supported_by_test | [tests/test_simulation.py](../../tests/test_simulation.py), [tests/test_product_sufficiency.py](../../tests/test_product_sufficiency.py) |
+| V-CONTACT | supported_by_test | [tests/test_simulation.py](../../tests/test_simulation.py), [tests/test_product_sufficiency.py](../../tests/test_product_sufficiency.py), [tests/test_transfer_contract.py](../../tests/test_transfer_contract.py) |
 | V-TASK | not_evaluated | The current sweep varies tasking delay but does not verify distinct direct and reachback message routes. |
 | V-PRIORITY | supported_by_simulation | [results/current/single_request_trials.csv](../../results/current/single_request_trials.csv), [results/current/cadence_trials.csv](../../results/current/cadence_trials.csv), [results/current/summary.csv](../../results/current/summary.csv), [results/current/config.json](../../results/current/config.json), [results/current/audit.json](../../results/current/audit.json) |
 | V-REFERENCE | partial | [tests/test_product_sufficiency.py](../../tests/test_product_sufficiency.py) |
@@ -110,8 +110,8 @@
 | T-058 | exchanges | E-SATELLITE | I-DOWNLINK | modeled |
 | T-059 | exchanges | I-DOWNLINK | E-TERMINAL | modeled |
 | T-060 | satisfies | A4_PROGRESSIVE | REQ-ALLOC-001 | modeled |
-| T-061 | satisfies | A5_CONTACT_AWARE | REQ-ALLOC-003 | modeled |
-| T-062 | satisfies | A6_THREAD_AWARE_PRIORITY | REQ-ALLOC-004 | modeled |
+| T-061 | candidate_for | A5_CONTACT_AWARE | REQ-ALLOC-003 | modeled |
+| T-062 | candidate_for | A6_THREAD_AWARE_PRIORITY | REQ-ALLOC-004 | modeled |
 | T-063 | constrains | REQ-ALLOC-002 | I-DIRECT | proposed |
 | T-064 | verifies | V-PRODUCT | REQ-THREAD-001 | proposed |
 | T-065 | verifies | V-PRODUCT | REQ-THREAD-002 | proposed |

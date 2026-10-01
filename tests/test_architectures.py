@@ -141,7 +141,7 @@ def test_thread_aware_priority_reorders_around_priority_tier():
     # not enough for the 512 KB thumbnail on top, so the last tier
     # delivered is unambiguously the ROI, not something after it.
     rate_bps = 10_000_000
-    capacity = 20 * 1024 + 50 * 1024 * 1024 + 100_000
+    capacity = 20 * 1024 + 50_000_000 + rate_bps * PROCESSING_TIME_S / 8 + 100_000
 
     roi_first = ThreadAwarePriority(priority_tier=ProductTier.P3_ROI)
     out = roi_first.run(SCENE_BYTES, capacity, rate_bps, PROCESSING_TIME_S)
@@ -155,14 +155,15 @@ def test_thread_aware_priority_reorders_around_priority_tier():
     assert prog_out["fidelity_resolution_class"] != "roi_full_res"
 
 
-def test_thread_aware_priority_skips_ahead_to_smaller_fitting_tier():
-    """Unlike Progressive, A6 must not stop at the first tier that doesn't
-    fit if a smaller, lower-priority tier still could."""
+def test_thread_aware_priority_retains_unfinished_priority_tier():
+    """Do not skip an unfinished ROI to transmit a thumbnail."""
     rate_bps = 10_000_000
     # Enough for metadata + thumbnail, not enough for the 50 MB ROI
     # priority tier.
-    capacity = 20 * 1024 + 600 * 1024
+    capacity = 20 * 1024 + 600 * 1024 + rate_bps * PROCESSING_TIME_S / 8
 
     arch = ThreadAwarePriority(priority_tier=ProductTier.P3_ROI)
     out = arch.run(SCENE_BYTES, capacity, rate_bps, PROCESSING_TIME_S)
-    assert out["fidelity_resolution_class"] == "coarse"  # thumbnail, not ROI
+    assert out["fidelity_resolution_class"] == "metadata"
+    assert out["product_progress"]["P1_THUMBNAIL"]["received_bytes"] == 0
+    assert out["product_progress"]["P3_ROI"]["received_bytes"] > 0

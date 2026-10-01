@@ -1,5 +1,5 @@
 """Small, dependency-free statistics helpers shared by experiments/e11,
-experiments/e12, and scripts/trade_study.py.
+the selected evidence analysis.
 
 No scipy dependency; these are hand-rolled but standard techniques
 (paired bootstrap, Kaplan-Meier), not novel statistics.
@@ -29,7 +29,7 @@ def paired_bootstrap_diff_ci(
     `significant` is True iff the 95% CI excludes 0.
 
     Vectorized with numpy: this gets called for many architecture pairs
-    across many cells (experiments/e11, experiments/e12), and a pure-Python
+    across many cells, and a pure-Python
     per-resample loop is too slow at the trial counts this repo uses.
     """
     n = len(successes_a)

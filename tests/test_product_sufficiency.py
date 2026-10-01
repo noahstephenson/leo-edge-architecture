@@ -93,7 +93,7 @@ def test_missing_prior_reference_uses_explicit_thread_tolerance():
 
 def test_product_sizing_matches_documented_assumption():
     assert ROI_SIZE_FRACTION == 0.05
-    assert PROGRESSIVE_QUICKLOOK_BYTES == 20 * 1024 * 1024
+    assert PROGRESSIVE_QUICKLOOK_BYTES == 20_000_000
 
 
 def test_contact_bytes_never_exceed_available_capacity():

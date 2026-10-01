@@ -81,6 +81,8 @@ def per_satellite_access_windows(
     ground_lon: float,
     min_elevation_deg: float,
     duration_hours: float,
+    step_seconds: float = 30.0,
+    start_offset_s: float = 0.0,
 ) -> Dict[str, List[Dict]]:
     """Propagate every satellite in `tles` (from `generate_walker_delta_tles`)
     individually against one ground point via real SGP4, and return each
@@ -107,6 +109,8 @@ def per_satellite_access_windows(
             inclination_deg=0.0,
             duration_hours=duration_hours,
             tle_lines=(tle["line1"], tle["line2"]),
+            step_seconds=step_seconds,
+            start_offset_s=start_offset_s,
         )
         out[tle["sat_id"]] = windows
     return out

@@ -12,6 +12,8 @@ The satellite may send a full scene, a reduced whole-scene view, or a crop of a 
 
 The project uses selected conceptual-design guidance from [NASA-HDBK-1009A](https://standards.nasa.gov/system/files/tmp/2025-03-12-NASA-HDBK-1009A.pdf). The [modeling plan](docs/MODELING_PLAN.md) records the scope and tailoring. Four structured [model catalogs](model/) define needs, requirements, functions, elements, interfaces, alternatives, measures, and their relationships. The [generated architecture views](docs/reference/VIEWS.md) and [traceability tables](docs/reference/TRACEABILITY.md) let a reader follow a need through a proposed requirement, behavior, allocation, interface, measure, and verification case. Mermaid presents SysML-aligned concepts; the files are not formal SysML or a NASA-reviewed product.
 
+The [research design](docs/RESEARCH_DESIGN.md) explains the argument from request to sufficient availability and interface responsibility. The [literature synthesis](docs/reference/LITERATURE.md) places it alongside established architecture, processing, scheduling, and delivery work. The contribution is a traceable application and conditional comparison; the numerical assumptions are not calibrated from those sources.
+
 Start with the [stakeholders and assumed scenarios](docs/STAKEHOLDERS.md), then read the [requirements](docs/REQUIREMENTS.md) and [functional architecture](docs/FUNCTIONAL_ARCHITECTURE.md). The functions are defined before the [candidate allocations](docs/ALLOCATION_SPACE.md) assign them to the service and terminal. The [interfaces](docs/INTERFACES.md) describe what must be known about a request, received product, and delivery status. The full ID inventory is in the [model catalog](docs/reference/MODEL_CATALOG.md).
 
 ## Seven delivery choices
@@ -41,13 +43,21 @@ The results concern delivery under stated assumptions. The study has not tested 
 Install [uv](https://docs.astral.sh/uv/). The project pins Python 3.11 in `.python-version`. From the repository root, run:
 
 ```bash
-uv sync
-uv run python scripts/validate_model.py
-uv run python scripts/generate_model_views.py --check
-uv run pytest
-uv run python experiments/e13_mbse_evidence.py --check
+uv sync --frozen
+uv run --frozen python scripts/validate_model.py
+uv run --frozen python scripts/generate_model_views.py --check
+uv run --frozen pytest
+uv run --frozen python experiments/e13_mbse_evidence.py --check
+uv run --frozen python scripts/check_reading_path.py
+uv run --frozen python figures/scripts/fig_mt2_deadline.py --check
 ```
 
-After editing a catalog, regenerate the views with `uv run python scripts/generate_model_views.py`. To recompute the selected cases in an ignored scratch directory, run `uv run python experiments/e13_mbse_evidence.py --output results/reproduced/current`. The runner refuses to overwrite a nonempty directory. The [evidence manifest](results/current/manifest.json) records inputs, source hashes, and audit information.
+After editing a catalog, regenerate the views with `uv run --frozen python scripts/generate_model_views.py`. To recompute the selected cases in an ignored scratch directory, run `uv run --frozen python experiments/e13_mbse_evidence.py --output results/reproduced/current`. The runner refuses to overwrite a nonempty directory. The [evidence manifest](results/current/manifest.json) records inputs, source hashes, and audit information.
 
-The [project roadmap](docs/PROJECT_ROADMAP.md) tracks the method steps, and the [decision log](docs/DECISION_LOG.md) records changes to the model's meaning. The repository uses the [MIT license](LICENSE).
+If installation in a OneDrive folder reports incompatible hardlinks, use `uv sync --frozen --link-mode copy`.
+
+To independently regenerate and compare evidence and figures, run `uv run --frozen python scripts/verify_reproduction.py --output results/reproduced/verify-new`. Use a fresh output directory for each run. CI executes the frozen checks and a separate regeneration job. The [claims table](results/current/claims.json) gives exact filters for the principal numerical findings; the [sensitivity summary](results/current/sensitivity_summary.csv) records the bounded comparisons.
+
+The principal case uses one requesting terminal. Four-site cases represent a pooled connected receiver with zero forwarding delay. Repeated collections are independent opportunities without a shared capacity budget. These boundaries are recorded in the [decision log](docs/DECISION_LOG.md). The [project roadmap](docs/PROJECT_ROADMAP.md) explains the method. The repository code and generated synthetic image example use the [MIT license](LICENSE); no third-party imagery is required. Final manuscript preparation remains separate from the verified repository workflow.
+
+The optional [manuscript renderer](paper/render/README.md) builds a PDF and a self-contained HTML reading copy with catalog-generated diagrams and the current result figures. Its Node dependencies are pinned separately from the Python analysis. CI parses all reference diagrams with Mermaid, checks manuscript diagram text size, and retains the rendered copy as an artifact.

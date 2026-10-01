@@ -17,3 +17,7 @@ The names in parentheses are stable catalog and code identifiers. The [generated
 A corridor crop shows detail in part of the scene; a quicklook shows the whole scene at reduced resolution. The crop cannot stand in for a whole scene preview, even if its product number is higher. After receiving a full scene, the terminal may still need time to derive the requested smaller view. The [product verification](V_AND_V.md) tests these rules, which also shape the [trade study](TRADE_STUDY.md).
 
 The comparison leaves provider hardware, terminal power and mass, real image quality, crosslinks, and actual tasking authority open. It is an allocation study, not a detailed implementation design.
+
+Tasking and collection ownership are held fixed in the evaluated alternatives. The tested allocation choice concerns where a needed view is prepared: by the provider before transmission, or by an eligible terminal after complete full-scene receipt. Candidate execution modes describe this choice even where common function owners remain unchanged. The broader research question also covers responsibilities that this bounded experiment does not vary.
+
+The [packaged sizing configuration](../src/leo_edge/product_sizing.yaml) gives A2/A3/A4/A6 common scene-relative quicklook and crop sizes. A6 sends metadata, then the requested product, then remaining products in catalog order. It retains an unfinished product instead of skipping to a smaller one. Priority between competing requests is not evaluated.

@@ -1,0 +1,22 @@
+candidate_a,candidate_b,n_pairs,difference_a_minus_b,ci95_lower,ci95_upper,both_timely_pairs,mean_latency_difference_s,interpretation
+A0_GROUND_ONLY,A1_COMPRESSED_FULL,24,0.0,0.0,0.0,0,,success-rate difference; latency conditional on both candidates being timely
+A0_GROUND_ONLY,A2_QUICKLOOK_FIRST,24,0.0,0.0,0.0,0,,success-rate difference; latency conditional on both candidates being timely
+A0_GROUND_ONLY,A3_ROI_FIRST,24,-0.5,-0.7083333333333334,-0.2916666666666667,0,,success-rate difference; latency conditional on both candidates being timely
+A0_GROUND_ONLY,A4_PROGRESSIVE,24,-0.3333333333333333,-0.5416666666666666,-0.16666666666666666,0,,success-rate difference; latency conditional on both candidates being timely
+A0_GROUND_ONLY,A5_CONTACT_AWARE,24,0.0,0.0,0.0,0,,success-rate difference; latency conditional on both candidates being timely
+A0_GROUND_ONLY,A6_THREAD_AWARE_PRIORITY,24,-0.5,-0.7083333333333334,-0.2916666666666667,0,,success-rate difference; latency conditional on both candidates being timely
+A1_COMPRESSED_FULL,A2_QUICKLOOK_FIRST,24,0.0,0.0,0.0,0,,success-rate difference; latency conditional on both candidates being timely
+A1_COMPRESSED_FULL,A3_ROI_FIRST,24,-0.5,-0.7083333333333334,-0.2916666666666667,0,,success-rate difference; latency conditional on both candidates being timely
+A1_COMPRESSED_FULL,A4_PROGRESSIVE,24,-0.3333333333333333,-0.5416666666666666,-0.16666666666666666,0,,success-rate difference; latency conditional on both candidates being timely
+A1_COMPRESSED_FULL,A5_CONTACT_AWARE,24,0.0,0.0,0.0,0,,success-rate difference; latency conditional on both candidates being timely
+A1_COMPRESSED_FULL,A6_THREAD_AWARE_PRIORITY,24,-0.5,-0.7083333333333334,-0.2916666666666667,0,,success-rate difference; latency conditional on both candidates being timely
+A2_QUICKLOOK_FIRST,A3_ROI_FIRST,24,-0.5,-0.7083333333333334,-0.2916666666666667,0,,success-rate difference; latency conditional on both candidates being timely
+A2_QUICKLOOK_FIRST,A4_PROGRESSIVE,24,-0.3333333333333333,-0.5416666666666666,-0.16666666666666666,0,,success-rate difference; latency conditional on both candidates being timely
+A2_QUICKLOOK_FIRST,A5_CONTACT_AWARE,24,0.0,0.0,0.0,0,,success-rate difference; latency conditional on both candidates being timely
+A2_QUICKLOOK_FIRST,A6_THREAD_AWARE_PRIORITY,24,-0.5,-0.7083333333333334,-0.2916666666666667,0,,success-rate difference; latency conditional on both candidates being timely
+A3_ROI_FIRST,A4_PROGRESSIVE,24,0.16666666666666666,0.04166666666666663,0.3333333333333333,8,-32.87162880000002,success-rate difference; latency conditional on both candidates being timely
+A3_ROI_FIRST,A5_CONTACT_AWARE,24,0.5,0.2916666666666667,0.7083333333333334,0,,success-rate difference; latency conditional on both candidates being timely
+A3_ROI_FIRST,A6_THREAD_AWARE_PRIORITY,24,0.0,0.0,0.0,12,-0.03276800000003277,success-rate difference; latency conditional on both candidates being timely
+A4_PROGRESSIVE,A5_CONTACT_AWARE,24,0.3333333333333333,0.16666666666666666,0.5416666666666666,0,,success-rate difference; latency conditional on both candidates being timely
+A4_PROGRESSIVE,A6_THREAD_AWARE_PRIORITY,24,-0.16666666666666666,-0.3333333333333333,-0.04166666666666663,8,32.838860799999985,success-rate difference; latency conditional on both candidates being timely
+A5_CONTACT_AWARE,A6_THREAD_AWARE_PRIORITY,24,-0.5,-0.7083333333333334,-0.2916666666666667,0,,success-rate difference; latency conditional on both candidates being timely

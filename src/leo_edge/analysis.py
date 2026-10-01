@@ -53,7 +53,7 @@ def latency_raw(D_r: float, R: float) -> float:
 def energy_favorable(E_p: float, e_t: float, D_r: float, D_p: float) -> bool:
     """Check if onboard processing saves energy.
 
-    Energy saved condition: E_p < 8 * e_t * (D_r - D_p)
+    Energy saved condition: E_p < e_t * (D_r - D_p)
     where e_t is energy per byte transmitted.
 
     Args:
@@ -65,7 +65,7 @@ def energy_favorable(E_p: float, e_t: float, D_r: float, D_p: float) -> bool:
     Returns:
         True if processing is energetically favorable.
     """
-    return E_p < 8 * e_t * (D_r - D_p)
+    return E_p < e_t * (D_r - D_p)
 
 
 if __name__ == "__main__":

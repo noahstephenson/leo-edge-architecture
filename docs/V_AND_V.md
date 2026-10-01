@@ -34,9 +34,19 @@ The handbook lists requirements verification matrices, cases and events, configu
 
 Automated tests and invariants check that transmitted bytes do not exceed modeled contact capacity, incomplete products have no invented completion time, selected state remains nonnegative, and seeded replay is deterministic. The [current evidence audit](../results/current/audit.json) checks selected result counts and pairing. [Engineering status](ENGINEERING_STATUS.md) records open checks. Only measures present in the evidence set may appear as numerical findings.
 
+The optional manuscript job uses the real Mermaid parser on all generated reference views and renders the manuscript's diagrams, table, and figures. It checks diagram text size at page width and retains the PDF, HTML, figure images, and render manifest. This supplements the restricted grammar and freshness checks. Visual page review checks labels, arrows, captions, and pagination; rendering alone does not establish SysML conformance or scientific validity.
+
+The [catalog regressions](../tests/test_model_catalog.py) also reject composition cycles and multiple owners, conflicting allocation and exchange traces, candidate satisfaction of study-evaluation obligations, implicit activity branches, invalid sequence fragments, mismatched interface messages, unguarded choices, and invalid binding roles. They check the [documented SysML interpretation](MODELING_PLAN.md#sysml-interpretation-and-view-consistency), not formal SysML conformance. A verification dependency names a check; its evidence and status determine what has been demonstrated.
+
 Product size, link rate, processing time, deadlines, terminal capability, and utility are mostly analytical or sensitivity inputs. Their origins are labeled in [assumptions](ASSUMPTIONS.md). More simulation draws can narrow uncertainty around modeled success rates. Whether a soldier finds a product useful still needs assessment with representative users and conditions.
 
 ## Evidence sequence for a claim
+
+The [transfer contract tests](../tests/test_transfer_contract.py) check exposed and hidden processing, exact contact completion, interrupted byte conservation, encoded-product completeness, invalid contact inputs, injected configuration, and identical single/multi-contact behavior. Current rows distinguish missing collection, incomplete transfer, insufficient fidelity, and late availability. Per-product progress and full-scene receipt are separate from mission-sufficient availability.
+
+The [claim filters](../results/current/claims.json) are recomputed by the evidence check. The [paired comparison](../results/current/principal_paired_differences.csv) uses matching request contexts; latency differences are conditional on both candidates being timely. Sensitivity outputs retain changes caused by finer sampling, next-day propagation, and the shifted synthetic AOI. These changes limit the stability of the conclusion rather than verify optical collection accuracy.
+
+CI runs frozen installation and internal checks. A separate [regeneration command](../scripts/verify_reproduction.py) propagates again and compares all evidence and generated figures, including manifests. Figure regeneration uses the pinned environment on Windows; a separate Linux job checks logic and committed hashes. The [workflow](https://github.com/astral-sh/setup-uv) documents the pinned setup action used for installation.
 
 A claim is ready for the paper only when a reader can follow this path:
 

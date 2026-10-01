@@ -222,20 +222,44 @@ def validate(model: dict[str, Any], root: Path = ROOT) -> list[str]:
                 errors.append(f"{rel_id}: wrong {end} kind for {rel_type}")
         if rel.get("status") not in {"proposed", "modeled", "conditional", "open", "not_evaluated"}:
             errors.append(f"{rel_id}: missing or invalid status")
+        source_record = index.get(rel.get("source"), (None, {}))[1]
+        target_record = index.get(rel.get("target"), (None, {}))[1]
+        if rel_type == "satisfies" and target_record.get("kind") == "study":
+            errors.append(f"{rel_id}: a candidate cannot satisfy a study evaluation obligation; use candidate_for")
+        if rel_type == "allocated_to" and common.get(rel.get("source")) != rel.get("target"):
+            errors.append(f"{rel_id}: allocation trace disagrees with common_allocations")
+        if rel_type == "exchanges":
+            if index.get(rel.get("target"), (None,))[0] == "interface":
+                agrees = target_record.get("from") == rel.get("source")
+            elif index.get(rel.get("source"), (None,))[0] == "interface":
+                agrees = source_record.get("to") == rel.get("target")
+            else:
+                agrees = False
+            if not agrees:
+                errors.append(f"{rel_id}: exchange trace disagrees with interface endpoints")
 
     for rel_id in model.get("representative_trace", []):
         if rel_id not in rel_ids:
             errors.append(f"representative_trace: unknown relationship {rel_id}")
-    for edge in model.get("logical_flow", []):
-        if edge.get("from") not in functions or edge.get("to") not in functions or not edge.get("guard"):
+    controls = model.get("logical_control_nodes", [])
+    control_ids = {item.get("id") for item in controls}
+    if len(control_ids) != len(controls) or control_ids & functions or any(item.get("kind") not in {"decision", "merge"} or not item.get("label") for item in controls):
+        errors.append("logical_control_nodes: unique decision/merge nodes and labels required")
+    flow = model.get("logical_flow", [])
+    for edge in flow:
+        if edge.get("from") not in functions | control_ids or edge.get("to") not in functions | control_ids or not edge.get("guard"):
             errors.append(f"logical_flow: invalid function edge {edge}")
+    for identifier in functions:
+        if sum(edge.get("from") == identifier for edge in flow) > 1 or sum(edge.get("to") == identifier for edge in flow) > 1:
+            errors.append(f"logical_flow: {identifier} needs an explicit decision or merge for alternative paths")
 
     sequence = model.get("sequence_view", {})
     participants = sequence.get("participants", [])
     aliases = {item.get("alias") for item in participants}
     if len(aliases) != len(participants) or any(item.get("element") not in elements for item in participants):
         errors.append("sequence_view: aliases must be unique and reference elements")
-    depth = 0
+    branches: list[str] = []
+    participant_elements = {item.get("alias"): item.get("element") for item in participants}
     for step in sequence.get("steps", []):
         kind = step.get("kind")
         if kind == "message":
@@ -243,41 +267,103 @@ def validate(model: dict[str, Any], root: Path = ROOT) -> list[str]:
                 errors.append(f"sequence_view: invalid message {step}")
             if step.get("reference") and step["reference"] not in index:
                 errors.append(f"sequence_view: unknown reference {step['reference']}")
+            if "dashed" in step or step.get("message_sort", "signal") not in {"call", "signal", "reply"}:
+                errors.append("sequence_view: use an explicit call/signal/reply sort, not a dashed flag")
+            reference = index.get(step.get("reference"), (None, {}))
+            if reference[0] == "interface" and (participant_elements.get(step.get("from")), participant_elements.get(step.get("to"))) != (reference[1].get("from"), reference[1].get("to")):
+                errors.append(f"sequence_view: message endpoints disagree with {step['reference']}")
         elif kind == "note":
             if set(step.get("over", [])) - aliases or not step.get("label"):
                 errors.append(f"sequence_view: invalid note {step}")
         elif kind in {"alt", "loop", "opt"}:
-            depth += 1
+            branches.append(kind)
             if not step.get("label"):
                 errors.append(f"sequence_view: unlabeled {kind}")
         elif kind == "else":
-            if depth < 1 or not step.get("label"):
-                errors.append("sequence_view: else without open branch")
+            if not branches or branches[-1] != "alt" or not step.get("label"):
+                errors.append("sequence_view: else requires an open alt branch")
         elif kind == "end":
-            depth -= 1
-            if depth < 0:
+            if not branches:
                 errors.append("sequence_view: unmatched end")
+            else:
+                branches.pop()
         else:
             errors.append(f"sequence_view: unknown step kind {kind}")
-    if depth:
+    if branches:
         errors.append("sequence_view: unclosed branch")
+
+    use_case = model.get("use_case_view", {})
+    element_ids = {item.get("id") for item in model.get("elements", [])}
+    if use_case.get("subject") not in element_ids or use_case.get("actor") not in element_ids:
+        errors.append("use_case_view: subject and actor must reference system elements")
+    if not use_case.get("subject_label") or not use_case.get("actor_label") or use_case.get("actor_role") != "external actor":
+        errors.append("use_case_view: named subject and external actor labels are required")
+    # The actor must remain outside the subject's containment tree.
+    contained_by: dict[str, set[str]] = {}
+    for rel in relationships:
+        if rel.get("type") == "contains":
+            contained_by.setdefault(rel.get("source"), set()).add(rel.get("target"))
+    parents: dict[str, set[str]] = {}
+    for parent, children in contained_by.items():
+        for child in children:
+            parents.setdefault(child, set()).add(parent)
+    if any(len(owners) > 1 for owners in parents.values()):
+        errors.append("contains: a composite part cannot have multiple owners")
+    for origin in contained_by:
+        pending_parts = list(contained_by[origin])
+        visited: set[str] = set()
+        while pending_parts:
+            part = pending_parts.pop()
+            if part == origin:
+                errors.append(f"contains: composition cycle involving {origin}")
+                break
+            if part not in visited:
+                visited.add(part)
+                pending_parts.extend(contained_by.get(part, set()))
+    pending = [use_case.get("subject")]
+    contained: set[str] = set()
+    while pending:
+        parent = pending.pop()
+        for child in contained_by.get(parent, set()):
+            if child not in contained:
+                contained.add(child)
+                pending.append(child)
+    if use_case.get("actor") in contained:
+        errors.append("use_case_view: external actor is inside the subject boundary")
+    uc_items = use_case.get("use_cases", [])
+    uc_ids = {item.get("id") for item in uc_items if isinstance(item, dict)}
+    if not uc_items or len(uc_ids) != len(uc_items) or any(not isinstance(item.get("id"), str) or not item["id"].startswith("UC-") or not item.get("label") for item in uc_items if isinstance(item, dict)):
+        errors.append("use_case_view: use cases need unique UC- IDs and labels")
+    associations = use_case.get("associations", [])
+    association_pairs = {(item.get("actor"), item.get("use_case")) for item in associations if isinstance(item, dict)}
+    expected_pairs = {(use_case.get("actor"), identifier) for identifier in uc_ids}
+    if association_pairs != expected_pairs:
+        errors.append("use_case_view: every service must have one actor association")
 
     state_view = model.get("product_state_view", {})
     states = set(state_view.get("states", []))
+    choices = set(state_view.get("choices", []))
     if not states or "START" in states or "END" in states:
         errors.append("product_state_view: invalid state inventory")
+    if choices & states or len(choices) != len(state_view.get("choices", [])):
+        errors.append("product_state_view: choices must be unique and separate from states")
     for transition in state_view.get("transitions", []):
-        if transition.get("from") not in states | {"START"} or transition.get("to") not in states | {"END"}:
+        if transition.get("from") not in states | choices | {"START"} or transition.get("to") not in states | choices | {"END"}:
             errors.append(f"product_state_view: unknown transition endpoint {transition}")
+        if transition.get("from") in choices and not transition.get("guard"):
+            errors.append("product_state_view: choice branches require guards")
 
     parametric = model.get("parametric_view", {})
     parametric_nodes = parametric.get("nodes", [])
     parametric_ids = {item.get("id") for item in parametric_nodes}
-    if not parametric_ids or len(parametric_ids) != len(parametric_nodes) or any(not item.get("label") for item in parametric_nodes):
+    if not parametric_ids or len(parametric_ids) != len(parametric_nodes) or any(not item.get("label") or item.get("role") not in {"value_property", "constraint_property"} for item in parametric_nodes):
         errors.append("parametric_view: invalid nodes")
+    roles = {item.get("id"): item.get("role") for item in parametric_nodes}
     for dependency in parametric.get("dependencies", []):
         if dependency.get("from") not in parametric_ids or dependency.get("to") not in parametric_ids or not dependency.get("type"):
             errors.append(f"parametric_view: invalid dependency {dependency}")
+        if {roles.get(dependency.get("from")), roles.get(dependency.get("to"))} != {"value_property", "constraint_property"} or not str(dependency.get("type", "")).startswith("bind "):
+            errors.append("parametric_view: binding must connect a value to a named constraint parameter")
 
     def linked(rel_type: str, source: str | None = None, target: str | None = None) -> bool:
         return any(r.get("type") == rel_type and (source is None or r.get("source") == source)

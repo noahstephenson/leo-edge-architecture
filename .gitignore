@@ -103,3 +103,8 @@ dmypy.json
 # Local scratch outputs; results/current/ is the committed evidence set.
 results/raw/
 results/reproduced/
+
+# Optional manuscript rendering dependencies and derived reading copies.
+paper/render/node_modules/
+output/pdf/
+tmp/pdfs/
