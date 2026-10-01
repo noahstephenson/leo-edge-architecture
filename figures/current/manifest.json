@@ -3,13 +3,13 @@
   "matplotlib_version": "3.8.4",
   "output_sha256": {
     "mt2_counterexample.png": "e47d7b58a424b8402c8806c2d651ab30447f09cb5e84b51da36abd0a22039146",
-    "mt2_selected_deadline.png": "d5948aa05d96c8634575969aa0fced1f643a7eb7265ba84750e407b6aff58c66",
-    "mt2_selected_deadline.svg": "5d88b4bf760fe47051f4bc70a16f7fe6ef19705fc19efe253d07bed03b43f75f",
+    "mt2_selected_deadline.png": "4ded0aa757e57a03aab6e901c239af38874a248d6b8cd282cc5d0588982ea099",
+    "mt2_selected_deadline.svg": "4855417a2a811d162d1348fecb44d112605bbb4bc9ad8bb0cbd2d6d69328ea9c",
     "mt2_sensitivity.png": "8ea0ba9ec68774f0d8d7a05997137f9b96cfb9e85294970054bc09c1372bb819"
   },
   "selection": "Principal: MT-2 dismounted requesting terminal, nominal, one site; counterexample: vehicle, four pooled sites, Walker 1/1/0; bounded corridor sensitivities",
   "source_sha256": {
-    "fig_mt2_deadline.py": "795dbf205f7ab3cc6afe09e1601137df8abea87223ef5d081528318a99205228",
+    "fig_mt2_deadline.py": "bd7493013ca557145a88b12393032ba4d8914a7d8474022d64f05dd22fddec86",
     "sensitivity_summary.csv": "38104e125fd5d084e133d5418be4cb9d041859fe5170a6fcc4888a56748145ac",
     "summary.csv": "1e861232f50da0dd05a64acd078ba6b590872272f2a8121ac9f99aada771676a",
     "uv.lock": "c98b64d9b33e265ed499b3e0cde17f958ba9f13d0d439a51830869de3807b7d3"

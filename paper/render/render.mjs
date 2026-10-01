@@ -100,7 +100,7 @@ try {
     const stats = [];
     for (const [i, code] of [...document.querySelectorAll('code.language-mermaid')].entries()) {
       const diagramSource = code.textContent.startsWith('stateDiagram')
-        ? '%%{init: {"flowchart":{"nodeSpacing":120,"rankSpacing":50}}}%%\n' + code.textContent
+        ? '%%{init: {"flowchart":{"nodeSpacing":120,"rankSpacing":25}}}%%\n' + code.textContent
         : code.textContent;
       const { svg } = await mermaid.render('diagram' + i, diagramSource);
       const figure = document.createElement('figure'); figure.innerHTML = svg;

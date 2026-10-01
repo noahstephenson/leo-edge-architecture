@@ -236,8 +236,8 @@ stateDiagram-v2
     Partial --> Partial: [more bytes]
     Ready --> Ready: [interrupted / denied]
     Partial --> Partial: [interrupted#59; retained]
-    Ready --> Received: [complete receipt]
-    Partial --> Received: [complete receipt]
+    Ready --> Received: [complete]
+    Partial --> Received: [complete]
     Received --> AssessReceipt
     AssessReceipt --> Derived: [derive_ok]
     AssessReceipt --> Usable: [direct, timely]

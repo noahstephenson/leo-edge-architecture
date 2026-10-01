@@ -104,7 +104,7 @@ def main() -> None:
     axes[0].set_ylabel("Sampled deadline fraction")
     fig.suptitle("MT-2 corridor view · requesting dismounted terminal · nominal",
                  fontsize=16, fontweight="bold", y=0.97)
-    fig.subplots_adjust(left=0.07, right=0.99, top=0.84, bottom=0.25, wspace=0.08)
+    fig.subplots_adjust(left=0.07, right=0.99, top=0.84, bottom=0.36, wspace=0.08)
     fig.text(0.5, 0.06,
              "24 paired synthetic requests per candidate and Walker; 95% Wilson intervals.\n"
              "Source: results/current/summary.csv (seed 7, 48 h).\n"
